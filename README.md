@@ -1541,3 +1541,41 @@ Error Response:
 - Message queue system for async tasks
 - CDN integration for global content delivery
 - Load balancing across multiple application servers- CDN integration for global content delivery
+
+### Summary chat
+Perfect! I've successfully updated the design document with the comprehensive Bricks currency system. Let me provide a summary to the user.I've successfully enhanced the design document with a comprehensive Bricks Currency System for wall.cyka.lol!Confidence: HighConfidence basis:
+Virtual currency systems are well-established patterns in web applications
+Token-to-currency conversion is straightforward with Ollama API metrics
+Daily claim and purchase mechanics follow proven freemium models
+Database transaction safety ensures balance integrity
+Key additions to the design:
+Bricks Overview - Virtual currency named "Bricks" (aligning with the Wall branding) to manage AI generation costs and prevent system abuse
+Earning Methods:
+Daily free bricks (once per day login reward, e.g., 100 bricks)
+Registration bonus (welcome gift, e.g., 500 bricks)
+Future options: referral bonuses, engagement rewards
+Spending System:
+Pre-generation cost estimation based on prompt length
+Actual cost calculated from Ollama token usage (prompt + completion tokens)
+Configurable conversion ratio (e.g., 100 tokens = 1 brick)
+Automatic refund if generation fails
+Purchase Integration:
+Multiple brick packages with tiered pricing
+Payment gateway support (Stripe, PayPal, local methods)
+Transaction history and receipts
+Database Changes:
+Added bricks_balance and last_daily_claim to Users table
+New Bricks Transactions table for complete transaction ledger
+Token tracking fields in AI Generation Jobs table
+API Endpoints:
+/bricks/balance - Get current balance
+/bricks/estimate - Estimate cost before generation
+/bricks/claim-daily - Claim daily free bricks
+/bricks/transactions - View transaction history
+/bricks/purchase - Buy more bricks
+User Experience:
+Real-time balance display in profile and navigation
+Cost estimation shown before submitting generation request
+Actual cost and remaining balance shown after completion
+Insufficient balance warnings with quick purchase links
+The system includes full implementation details for balance management, transaction safety, cost calculation algorithms, and payment integration!
