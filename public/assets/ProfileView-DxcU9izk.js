@@ -1,0 +1,2 @@
+import{e as s,f as r,k as o,o as a}from"./vendor-DTOKxEoQ.js";import{_ as t}from"./index-BsG2UMcv.js";import"./utils-i9HKr1_Q.js";const n={class:"placeholder-view"},i=s({__name:"ProfileView",props:{username:{}},setup(p){return(l,e)=>(a(),r("div",n,[...e[0]||(e[0]=[o("h1",null,"Profile View",-1),o("p",null,"Coming in Phase 5",-1)])]))}}),m=t(i,[["__scopeId","data-v-9f0a2adc"]]);export{m as default};
+//# sourceMappingURL=ProfileView-DxcU9izk.js.map

@@ -1,0 +1,2 @@
+import{_ as t}from"./index-CRRLM1Fz.js";import{f as s,k as o,o as i}from"./vendor-DTOKxEoQ.js";import"./utils-i9HKr1_Q.js";const n={},a={class:"placeholder-view"};function c(r,e){return i(),s("div",a,[...e[0]||(e[0]=[o("h1",null,"Notifications View",-1),o("p",null,"Coming in Phase 5",-1)])])}const d=t(n,[["render",c],["__scopeId","data-v-883c9212"]]);export{d as default};
+//# sourceMappingURL=NotificationsView-D-c2WekO.js.map

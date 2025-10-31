@@ -1,0 +1,16 @@
+/* Import base styles */
+@import './base/reset.css';
+@import './base/variables.css';
+@import './base/layout.css';
+@import './base/components.css';
+@import './base/utilities.css';
+@import './base/responsive.css';
+@import './base/forms.css';
+
+/* Import all themes */
+@import './themes/light.css';
+@import './themes/dark.css';
+@import './themes/green.css';
+@import './themes/cream.css';
+@import './themes/blue.css';
+@import './themes/high-contrast.css';

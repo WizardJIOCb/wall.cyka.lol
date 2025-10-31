@@ -1,0 +1,2 @@
+import{e as t,f as a,k as o,o as s}from"./vendor-DTOKxEoQ.js";import{_ as n}from"./index-CRRLM1Fz.js";import"./utils-i9HKr1_Q.js";const r={class:"placeholder-view"},p=t({__name:"AIGenerateView",props:{jobId:{}},setup(i){return(_,e)=>(s(),a("div",r,[...e[0]||(e[0]=[o("h1",null,"AI Generate View",-1),o("p",null,"Coming in Phase 6",-1)])]))}}),m=n(p,[["__scopeId","data-v-d64a156d"]]);export{m as default};
+//# sourceMappingURL=AIGenerateView-Bz11lxWQ.js.map

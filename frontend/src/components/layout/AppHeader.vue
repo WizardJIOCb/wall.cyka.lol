@@ -1,0 +1,226 @@
+<template>
+  <header class="app-header">
+    <div class="header-content">
+      <div class="header-left">
+        <button
+          class="btn-icon mobile-menu-toggle"
+          aria-label="Toggle menu"
+          @click="toggleSidebar"
+        >
+          <span class="hamburger-icon">☰</span>
+        </button>
+        <router-link to="/" class="logo">
+          <span class="logo-icon">🧱</span>
+          <span class="logo-text">Wall</span>
+        </router-link>
+      </div>
+
+      <div class="header-center">
+        <div class="search-container">
+          <input
+            type="search"
+            placeholder="Search posts, walls, users..."
+            class="search-input"
+            aria-label="Search"
+          />
+          <button class="search-btn" aria-label="Search">
+            <span class="icon">🔍</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <AppButton variant="primary" size="sm" class="create-btn">
+          <span class="icon">+</span>
+          <span class="text">Create</span>
+        </AppButton>
+
+        <button class="btn-icon" aria-label="Notifications">
+          <span class="icon">🔔</span>
+          <span v-if="notificationCount > 0" class="badge">{{ notificationCount }}</span>
+        </button>
+
+        <AppDropdown position="bottom-right">
+          <template #trigger>
+            <AppAvatar :src="currentUser?.avatar_url" :name="currentUser?.display_name" size="sm" />
+          </template>
+          
+          <router-link to="/profile" class="dropdown-item">
+            <span class="icon">👤</span>
+            <span>My Profile</span>
+          </router-link>
+          <router-link to="/settings" class="dropdown-item">
+            <span class="icon">⚙️</span>
+            <span>Settings</span>
+          </router-link>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item" @click="handleLogout">
+            <span class="icon">🚪</span>
+            <span>Logout</span>
+          </button>
+        </AppDropdown>
+      </div>
+    </div>
+  </header>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useUIStore } from '@/stores/ui'
+import AppButton from '@/components/common/AppButton.vue'
+import AppAvatar from '@/components/common/AppAvatar.vue'
+import AppDropdown from '@/components/common/AppDropdown.vue'
+
+const authStore = useAuthStore()
+const uiStore = useUIStore()
+
+const currentUser = computed(() => authStore.user)
+const notificationCount = computed(() => 0) // TODO: Get from notifications store
+
+const toggleSidebar = () => {
+  uiStore.toggleSidebar()
+}
+
+const handleLogout = async () => {
+  await authStore.logout()
+}
+</script>
+
+<style scoped>
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  height: var(--header-height, 64px);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 var(--spacing-4);
+  max-width: 1920px;
+  margin: 0 auto;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.header-center {
+  flex: 1;
+  max-width: 600px;
+  margin: 0 var(--spacing-4);
+}
+
+.mobile-menu-toggle {
+  display: none;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  text-decoration: none;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--spacing-2) var(--spacing-10) var(--spacing-2) var(--spacing-3);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.search-btn {
+  position: absolute;
+  right: var(--spacing-2);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-2);
+  color: var(--text-secondary);
+}
+
+.btn-icon {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-2);
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  border-radius: var(--radius-md);
+  transition: background 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: var(--surface-hover);
+}
+
+.badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--danger);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
+}
+
+.create-btn .text {
+  display: inline;
+}
+
+@media (max-width: 1024px) {
+  .header-center {
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: block;
+  }
+
+  .header-center {
+    display: none;
+  }
+
+  .create-btn .text {
+    display: none;
+  }
+}
+</style>
