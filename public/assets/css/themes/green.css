@@ -1,0 +1,51 @@
+/**
+ * Green Theme
+ * Nature-inspired palette with earth tones
+ */
+
+[data-theme="green"] {
+    /* Primary Colors */
+    --color-primary: #38a169;
+    --color-primary-light: #48bb78;
+    --color-primary-dark: #2f855a;
+    --color-primary-rgb: 56, 161, 105;
+    
+    /* Secondary Colors */
+    --color-secondary: #d69e2e;
+    --color-secondary-light: #ecc94b;
+    --color-secondary-dark: #b7791f;
+    
+    /* Background Colors */
+    --color-background: #f0fdf4;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f7fee7;
+    --color-overlay: rgba(0, 0, 0, 0.5);
+    
+    /* Text Colors */
+    --color-text: #1c4532;
+    --color-text-secondary: #276749;
+    --color-text-tertiary: #38a169;
+    --color-text-inverse: #ffffff;
+    
+    /* Border Colors */
+    --color-border: #d1fae5;
+    --color-border-light: #ecfdf5;
+    --color-border-dark: #a7f3d0;
+    
+    /* Semantic Colors */
+    --color-success: #34d399;
+    --color-success-light: #6ee7b7;
+    --color-success-dark: #10b981;
+    
+    --color-error: #f87171;
+    --color-error-light: #fca5a5;
+    --color-error-dark: #ef4444;
+    
+    --color-warning: #fbbf24;
+    --color-warning-light: #fcd34d;
+    --color-warning-dark: #f59e0b;
+    
+    --color-info: #3b82f6;
+    --color-info-light: #60a5fa;
+    --color-info-dark: #2563eb;
+}

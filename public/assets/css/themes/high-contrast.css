@@ -1,0 +1,79 @@
+/**
+ * High Contrast Theme
+ * Maximum accessibility with pure black and white
+ */
+
+[data-theme="high-contrast"] {
+    /* Primary Colors */
+    --color-primary: #0000ff;
+    --color-primary-light: #3333ff;
+    --color-primary-dark: #0000cc;
+    --color-primary-rgb: 0, 0, 255;
+    
+    /* Secondary Colors */
+    --color-secondary: #ff00ff;
+    --color-secondary-light: #ff66ff;
+    --color-secondary-dark: #cc00cc;
+    
+    /* Background Colors */
+    --color-background: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f0f0f0;
+    --color-overlay: rgba(0, 0, 0, 0.8);
+    
+    /* Text Colors */
+    --color-text: #000000;
+    --color-text-secondary: #000000;
+    --color-text-tertiary: #333333;
+    --color-text-inverse: #ffffff;
+    
+    /* Border Colors */
+    --color-border: #000000;
+    --color-border-light: #333333;
+    --color-border-dark: #000000;
+    
+    /* Semantic Colors */
+    --color-success: #008000;
+    --color-success-light: #00b300;
+    --color-success-dark: #006600;
+    
+    --color-error: #ff0000;
+    --color-error-light: #ff3333;
+    --color-error-dark: #cc0000;
+    
+    --color-warning: #ff8800;
+    --color-warning-light: #ffaa33;
+    --color-warning-dark: #cc6600;
+    
+    --color-info: #0000ff;
+    --color-info-light: #3333ff;
+    --color-info-dark: #0000cc;
+    
+    /* Enhanced contrast settings */
+    --shadow-sm: none;
+    --shadow-md: 0 0 0 2px #000000;
+    --shadow-lg: 0 0 0 3px #000000;
+    --shadow-xl: 0 0 0 4px #000000;
+    --shadow-2xl: 0 0 0 5px #000000;
+}
+
+/* High contrast specific adjustments */
+[data-theme="high-contrast"] .btn,
+[data-theme="high-contrast"] .form-input,
+[data-theme="high-contrast"] .card,
+[data-theme="high-contrast"] .post-card {
+    border-width: 2px;
+    border-color: #000000;
+}
+
+[data-theme="high-contrast"] .btn:focus,
+[data-theme="high-contrast"] .form-input:focus {
+    outline: 3px solid #0000ff;
+    outline-offset: 2px;
+}
+
+[data-theme="high-contrast"] .nav-item.active {
+    background-color: #000000;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+}

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="description" content="Wall Social Platform - AI-Powered Social Network with AI-Generated Web Applications">
+    <title>Wall Social Platform</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="/assets/css/reset.css">
+    <link rel="stylesheet" href="/assets/css/variables.css">
+    <link rel="stylesheet" href="/assets/css/layout.css">
+    <link rel="stylesheet" href="/assets/css/components.css">
+    <link rel="stylesheet" href="/assets/css/utilities.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    
+    <!-- Theme CSS - Loaded dynamically -->
+    <link rel="stylesheet" href="/assets/css/themes/light.css" id="theme-stylesheet">
+</head>
+<body>
+    <!-- Application Shell -->
+    <div id="app" class="app-container">
+        <!-- Header -->
+        <header id="app-header" class="app-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <button id="menu-toggle" class="btn-icon hide-desktop" aria-label="Toggle menu">
+                        <span class="hamburger-icon"></span>
+                    </button>
+                    <a href="#/" class="logo">
+                        <span class="logo-icon">🧱</span>
+                        <span class="logo-text">Wall</span>
+                    </a>
+                </div>
+                
+                <div class="header-center">
+                    <div class="search-container">
+                        <input 
+                            type="search" 
+                            id="global-search" 
+                            class="search-input" 
+                            placeholder="Search posts, walls, users..."
+                            aria-label="Search"
+                        >
+                        <button class="search-btn" aria-label="Search">
+                            <span class="icon-search">🔍</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <button id="create-post-btn" class="btn btn-primary hide-mobile" aria-label="Create post">
+                        <span class="icon">+</span>
+                        <span class="text">Create</span>
+                    </button>
+                    
+                    <button id="notifications-btn" class="btn-icon" aria-label="Notifications">
+                        <span class="icon">🔔</span>
+                        <span id="notification-badge" class="badge" style="display: none;">0</span>
+                    </button>
+                    
+                    <div class="user-menu">
+                        <button id="user-menu-btn" class="user-menu-trigger" aria-label="User menu" aria-expanded="false">
+                            <img id="user-avatar" src="/assets/images/default-avatar.svg" alt="User avatar" class="avatar avatar-sm">
+                            <span id="user-name" class="hide-mobile">User</span>
+                        </button>
+                        <div id="user-dropdown" class="dropdown-menu" hidden>
+                            <a href="#/profile" class="dropdown-item">
+                                <span class="icon">👤</span>
+                                <span>My Profile</span>
+                            </a>
+                            <a href="#/settings" class="dropdown-item">
+                                <span class="icon">⚙️</span>
+                                <span>Settings</span>
+                            </a>
+                            <a href="#/bricks" class="dropdown-item">
+                                <span class="icon">🧱</span>
+                                <span id="bricks-balance">Bricks: 0</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <button id="logout-btn" class="dropdown-item">
+                                <span class="icon">🚪</span>
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <div class="main-container">
+            <!-- Sidebar Navigation -->
+            <aside id="sidebar" class="sidebar">
+                <nav class="sidebar-nav" aria-label="Main navigation">
+                    <a href="#/" class="nav-item active" data-page="home">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-text">Home</span>
+                    </a>
+                    <a href="#/wall/me" class="nav-item" data-page="wall">
+                        <span class="nav-icon">🧱</span>
+                        <span class="nav-text">My Wall</span>
+                    </a>
+                    <a href="#/ai/generate" class="nav-item" data-page="ai">
+                        <span class="nav-icon">🤖</span>
+                        <span class="nav-text">AI Generate</span>
+                    </a>
+                    <a href="#/messages" class="nav-item" data-page="messages">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-text">Messages</span>
+                        <span id="messages-badge" class="badge" style="display: none;">0</span>
+                    </a>
+                    <a href="#/discover" class="nav-item" data-page="discover">
+                        <span class="nav-icon">🔍</span>
+                        <span class="nav-text">Discover</span>
+                    </a>
+                    <a href="#/notifications" class="nav-item" data-page="notifications">
+                        <span class="nav-icon">🔔</span>
+                        <span class="nav-text">Notifications</span>
+                    </a>
+                    <a href="#/settings" class="nav-item" data-page="settings">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-text">Settings</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main id="content" class="content" role="main">
+                <!-- Dynamic content loaded here -->
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            </main>
+
+            <!-- Right Sidebar (Widgets) -->
+            <aside id="widgets" class="widgets hide-mobile hide-tablet">
+                <!-- Trending and suggestions -->
+                <div id="widgets-content">
+                    <!-- Widgets loaded dynamically -->
+                </div>
+            </aside>
+        </div>
+
+        <!-- Mobile Bottom Navigation -->
+        <nav id="bottom-nav" class="bottom-nav hide-tablet hide-desktop" aria-label="Mobile navigation">
+            <a href="#/" class="bottom-nav-item active" data-page="home">
+                <span class="icon">🏠</span>
+                <span class="label">Home</span>
+            </a>
+            <a href="#/discover" class="bottom-nav-item" data-page="discover">
+                <span class="icon">🔍</span>
+                <span class="label">Discover</span>
+            </a>
+            <button id="mobile-create-btn" class="bottom-nav-item" aria-label="Create post">
+                <span class="icon icon-large">+</span>
+                <span class="label">Create</span>
+            </button>
+            <a href="#/messages" class="bottom-nav-item" data-page="messages">
+                <span class="icon">💬</span>
+                <span class="label">Messages</span>
+            </a>
+            <a href="#/profile" class="bottom-nav-item" data-page="profile">
+                <span class="icon">👤</span>
+                <span class="label">Profile</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- Modal Container -->
+    <div id="modal-container" class="modal-container"></div>
+
+    <!-- JavaScript Files -->
+    <script type="module" src="/assets/js/app.js"></script>
+</body>
+</html>

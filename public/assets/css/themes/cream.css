@@ -1,0 +1,51 @@
+/**
+ * Cream Theme
+ * Warm, cozy aesthetic with beige backgrounds
+ */
+
+[data-theme="cream"] {
+    /* Primary Colors */
+    --color-primary: #d97706;
+    --color-primary-light: #f59e0b;
+    --color-primary-dark: #b45309;
+    --color-primary-rgb: 217, 119, 6;
+    
+    /* Secondary Colors */
+    --color-secondary: #92400e;
+    --color-secondary-light: #b45309;
+    --color-secondary-dark: #78350f;
+    
+    /* Background Colors */
+    --color-background: #fef3c7;
+    --color-surface: #fffbeb;
+    --color-surface-hover: #fef3c7;
+    --color-overlay: rgba(120, 53, 15, 0.5);
+    
+    /* Text Colors */
+    --color-text: #78350f;
+    --color-text-secondary: #92400e;
+    --color-text-tertiary: #b45309;
+    --color-text-inverse: #fffbeb;
+    
+    /* Border Colors */
+    --color-border: #fde68a;
+    --color-border-light: #fef3c7;
+    --color-border-dark: #fcd34d;
+    
+    /* Semantic Colors */
+    --color-success: #65a30d;
+    --color-success-light: #84cc16;
+    --color-success-dark: #4d7c0f;
+    
+    --color-error: #dc2626;
+    --color-error-light: #ef4444;
+    --color-error-dark: #b91c1c;
+    
+    --color-warning: #ea580c;
+    --color-warning-light: #f97316;
+    --color-warning-dark: #c2410c;
+    
+    --color-info: #0891b2;
+    --color-info-light: #06b6d4;
+    --color-info-dark: #0e7490;
+}

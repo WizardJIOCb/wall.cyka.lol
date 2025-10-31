@@ -1,0 +1,51 @@
+/**
+ * Dark Theme
+ * Reduced eye strain with dark backgrounds
+ */
+
+[data-theme="dark"] {
+    /* Primary Colors */
+    --color-primary: #7c8ff5;
+    --color-primary-light: #8fa1f7;
+    --color-primary-dark: #667eea;
+    --color-primary-rgb: 124, 143, 245;
+    
+    /* Secondary Colors */
+    --color-secondary: #9f7aea;
+    --color-secondary-light: #b794f4;
+    --color-secondary-dark: #805ad5;
+    
+    /* Background Colors */
+    --color-background: #1a202c;
+    --color-surface: #2d3748;
+    --color-surface-hover: #4a5568;
+    --color-overlay: rgba(0, 0, 0, 0.7);
+    
+    /* Text Colors */
+    --color-text: #f7fafc;
+    --color-text-secondary: #e2e8f0;
+    --color-text-tertiary: #cbd5e0;
+    --color-text-inverse: #1a202c;
+    
+    /* Border Colors */
+    --color-border: #4a5568;
+    --color-border-light: #2d3748;
+    --color-border-dark: #718096;
+    
+    /* Semantic Colors */
+    --color-success: #68d391;
+    --color-success-light: #9ae6b4;
+    --color-success-dark: #48bb78;
+    
+    --color-error: #fc8181;
+    --color-error-light: #feb2b2;
+    --color-error-dark: #f56565;
+    
+    --color-warning: #f6ad55;
+    --color-warning-light: #fbd38d;
+    --color-warning-dark: #ed8936;
+    
+    --color-info: #63b3ed;
+    --color-info-light: #90cdf4;
+    --color-info-dark: #4299e1;
+}

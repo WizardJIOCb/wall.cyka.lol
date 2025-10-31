@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="description" content="Login or Register - Wall Social Platform">
+    <title>Login - Wall Social Platform</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="/assets/css/reset.css">
+    <link rel="stylesheet" href="/assets/css/variables.css">
+    <link rel="stylesheet" href="/assets/css/layout.css">
+    <link rel="stylesheet" href="/assets/css/components.css">
+    <link rel="stylesheet" href="/assets/css/utilities.css">
+    <link rel="stylesheet" href="/assets/css/responsive.css">
+    
+    <!-- Theme CSS -->
+    <link rel="stylesheet" href="/assets/css/themes/light.css" id="theme-stylesheet">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <!-- Auth Header -->
+        <div class="auth-header">
+            <a href="/" class="logo-link">
+                <span class="logo-icon">🧱</span>
+                <h1 class="logo-text">Wall Social Platform</h1>
+            </a>
+            <p class="tagline">AI-Powered Social Network</p>
+        </div>
+
+        <!-- Auth Forms Container -->
+        <div class="auth-forms">
+            <!-- Tab Switcher -->
+            <div class="auth-tabs" role="tablist">
+                <button id="login-tab" class="auth-tab active" role="tab" aria-selected="true" aria-controls="login-form">
+                    Login
+                </button>
+                <button id="register-tab" class="auth-tab" role="tab" aria-selected="false" aria-controls="register-form">
+                    Register
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-panel" class="auth-panel active" role="tabpanel" aria-labelledby="login-tab">
+                <form id="login-form" class="auth-form" novalidate>
+                    <h2 class="form-title">Welcome Back</h2>
+                    
+                    <div class="form-group">
+                        <label for="login-identifier" class="form-label">Username or Email</label>
+                        <input 
+                            type="text" 
+                            id="login-identifier" 
+                            name="identifier" 
+                            class="form-input" 
+                            required 
+                            autocomplete="username"
+                            aria-required="true"
+                        >
+                        <span class="form-error" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-password" class="form-label">Password</label>
+                        <div class="password-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="login-password" 
+                                name="password" 
+                                class="form-input" 
+                                required 
+                                autocomplete="current-password"
+                                aria-required="true"
+                            >
+                            <button 
+                                type="button" 
+                                class="password-toggle" 
+                                aria-label="Toggle password visibility"
+                                data-target="login-password"
+                            >
+                                <span class="icon">👁️</span>
+                            </button>
+                        </div>
+                        <span class="form-error" role="alert"></span>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <input type="checkbox" id="remember-me" name="remember" class="checkbox">
+                        <label for="remember-me" class="checkbox-label">Remember me</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large btn-block">
+                        <span class="btn-text">Login</span>
+                        <span class="btn-loader" style="display: none;"></span>
+                    </button>
+
+                    <div class="form-footer">
+                        <a href="#/forgot-password" class="link-secondary">Forgot password?</a>
+                    </div>
+                </form>
+
+                <!-- OAuth Options -->
+                <div class="oauth-section">
+                    <div class="divider">
+                        <span>Or continue with</span>
+                    </div>
+                    
+                    <div class="oauth-buttons">
+                        <button id="google-login" class="btn btn-oauth btn-google" type="button">
+                            <span class="icon">G</span>
+                            <span>Google</span>
+                        </button>
+                        <button id="yandex-login" class="btn btn-oauth btn-yandex" type="button">
+                            <span class="icon">Я</span>
+                            <span>Yandex</span>
+                        </button>
+                        <button id="telegram-login" class="btn btn-oauth btn-telegram" type="button">
+                            <span class="icon">✈️</span>
+                            <span>Telegram</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-panel" class="auth-panel" role="tabpanel" aria-labelledby="register-tab" hidden>
+                <form id="register-form" class="auth-form" novalidate>
+                    <h2 class="form-title">Create Account</h2>
+                    
+                    <div class="form-group">
+                        <label for="register-username" class="form-label">Username</label>
+                        <input 
+                            type="text" 
+                            id="register-username" 
+                            name="username" 
+                            class="form-input" 
+                            required 
+                            minlength="3"
+                            maxlength="50"
+                            pattern="[a-zA-Z0-9_]+"
+                            autocomplete="username"
+                            aria-required="true"
+                            aria-describedby="username-help"
+                        >
+                        <span class="form-help" id="username-help">3-50 characters, letters, numbers, underscore only</span>
+                        <span class="form-error" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-email" class="form-label">Email</label>
+                        <input 
+                            type="email" 
+                            id="register-email" 
+                            name="email" 
+                            class="form-input" 
+                            required 
+                            autocomplete="email"
+                            aria-required="true"
+                        >
+                        <span class="form-error" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-password" class="form-label">Password</label>
+                        <div class="password-input-wrapper">
+                            <input 
+                                type="password" 
+                                id="register-password" 
+                                name="password" 
+                                class="form-input" 
+                                required 
+                                minlength="8"
+                                autocomplete="new-password"
+                                aria-required="true"
+                                aria-describedby="password-help"
+                            >
+                            <button 
+                                type="button" 
+                                class="password-toggle" 
+                                aria-label="Toggle password visibility"
+                                data-target="register-password"
+                            >
+                                <span class="icon">👁️</span>
+                            </button>
+                        </div>
+                        <div id="password-strength" class="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" data-strength="0"></div>
+                            </div>
+                            <span class="strength-text">Weak</span>
+                        </div>
+                        <span class="form-help" id="password-help">Minimum 8 characters</span>
+                        <span class="form-error" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-display-name" class="form-label">Display Name (Optional)</label>
+                        <input 
+                            type="text" 
+                            id="register-display-name" 
+                            name="display_name" 
+                            class="form-input" 
+                            maxlength="100"
+                            autocomplete="name"
+                        >
+                        <span class="form-error" role="alert"></span>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <input type="checkbox" id="terms-accept" name="terms" class="checkbox" required aria-required="true">
+                        <label for="terms-accept" class="checkbox-label">
+                            I agree to the <a href="/terms" target="_blank" class="link">Terms of Service</a>
+                        </label>
+                        <span class="form-error" role="alert"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large btn-block">
+                        <span class="btn-text">Create Account</span>
+                        <span class="btn-loader" style="display: none;"></span>
+                    </button>
+                </form>
+
+                <!-- OAuth Options -->
+                <div class="oauth-section">
+                    <div class="divider">
+                        <span>Or sign up with</span>
+                    </div>
+                    
+                    <div class="oauth-buttons">
+                        <button id="google-signup" class="btn btn-oauth btn-google" type="button">
+                            <span class="icon">G</span>
+                            <span>Google</span>
+                        </button>
+                        <button id="yandex-signup" class="btn btn-oauth btn-yandex" type="button">
+                            <span class="icon">Я</span>
+                            <span>Yandex</span>
+                        </button>
+                        <button id="telegram-signup" class="btn btn-oauth btn-telegram" type="button">
+                            <span class="icon">✈️</span>
+                            <span>Telegram</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Showcase -->
+        <div class="auth-features">
+            <div class="feature">
+                <span class="feature-icon">🤖</span>
+                <h3>AI Generation</h3>
+                <p>Create web apps using AI prompts</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🔄</span>
+                <h3>Remix & Fork</h3>
+                <p>Build upon others' creations</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">💬</span>
+                <h3>Social Features</h3>
+                <p>Comments, reactions, messaging</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- JavaScript Files -->
+    <script type="module" src="/assets/js/pages/auth.js"></script>
+</body>
+</html>

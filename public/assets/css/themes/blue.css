@@ -1,0 +1,51 @@
+/**
+ * Blue Theme
+ * Cool, professional look with blue shades
+ */
+
+[data-theme="blue"] {
+    /* Primary Colors */
+    --color-primary: #2563eb;
+    --color-primary-light: #3b82f6;
+    --color-primary-dark: #1d4ed8;
+    --color-primary-rgb: 37, 99, 235;
+    
+    /* Secondary Colors */
+    --color-secondary: #0891b2;
+    --color-secondary-light: #06b6d4;
+    --color-secondary-dark: #0e7490;
+    
+    /* Background Colors */
+    --color-background: #eff6ff;
+    --color-surface: #ffffff;
+    --color-surface-hover: #dbeafe;
+    --color-overlay: rgba(29, 78, 216, 0.5);
+    
+    /* Text Colors */
+    --color-text: #1e3a8a;
+    --color-text-secondary: #1e40af;
+    --color-text-tertiary: #3b82f6;
+    --color-text-inverse: #ffffff;
+    
+    /* Border Colors */
+    --color-border: #bfdbfe;
+    --color-border-light: #dbeafe;
+    --color-border-dark: #93c5fd;
+    
+    /* Semantic Colors */
+    --color-success: #16a34a;
+    --color-success-light: #22c55e;
+    --color-success-dark: #15803d;
+    
+    --color-error: #dc2626;
+    --color-error-light: #ef4444;
+    --color-error-dark: #b91c1c;
+    
+    --color-warning: #ea580c;
+    --color-warning-light: #f97316;
+    --color-warning-dark: #c2410c;
+    
+    --color-info: #0284c7;
+    --color-info-light: #0ea5e9;
+    --color-info-dark: #075985;
+}

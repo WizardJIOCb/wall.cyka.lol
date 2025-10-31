@@ -1,0 +1,51 @@
+/**
+ * Light Theme
+ * Clean, bright interface (Default)
+ */
+
+[data-theme="light"] {
+    /* Primary Colors */
+    --color-primary: #667eea;
+    --color-primary-light: #7c8ff5;
+    --color-primary-dark: #5568d3;
+    --color-primary-rgb: 102, 126, 234;
+    
+    /* Secondary Colors */
+    --color-secondary: #764ba2;
+    --color-secondary-light: #8b5eb8;
+    --color-secondary-dark: #5f3d82;
+    
+    /* Background Colors */
+    --color-background: #f5f7fa;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f8f9fa;
+    --color-overlay: rgba(0, 0, 0, 0.5);
+    
+    /* Text Colors */
+    --color-text: #1a202c;
+    --color-text-secondary: #4a5568;
+    --color-text-tertiary: #718096;
+    --color-text-inverse: #ffffff;
+    
+    /* Border Colors */
+    --color-border: #e2e8f0;
+    --color-border-light: #edf2f7;
+    --color-border-dark: #cbd5e0;
+    
+    /* Semantic Colors */
+    --color-success: #48bb78;
+    --color-success-light: #68d391;
+    --color-success-dark: #38a169;
+    
+    --color-error: #f56565;
+    --color-error-light: #fc8181;
+    --color-error-dark: #e53e3e;
+    
+    --color-warning: #ed8936;
+    --color-warning-light: #f6ad55;
+    --color-warning-dark: #dd6b20;
+    
+    --color-info: #4299e1;
+    --color-info-light: #63b3ed;
+    --color-info-dark: #3182ce;
+}
