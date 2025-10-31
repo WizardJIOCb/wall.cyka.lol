@@ -1,0 +1,141 @@
+services:
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: wall_nginx
+    ports:
+      - "8080:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./public:/var/www/html/public
+      - ./src:/var/www/html/src
+      - ./config:/var/www/html/config
+    depends_on:
+      - php
+    networks:
+      - wall_network
+    restart: unless-stopped
+
+  # PHP-FPM Application Server
+  php:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: wall_php
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=wall_social_platform
+      - DB_USER=wall_user
+      - DB_PASSWORD=wall_secure_password_123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - wall_network
+    restart: unless-stopped
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: wall_mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_change_in_production
+      MYSQL_DATABASE: wall_social_platform
+      MYSQL_USER: wall_user
+      MYSQL_PASSWORD: wall_secure_password_123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - wall_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache and Queue
+  redis:
+    image: redis:alpine
+    container_name: wall_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - wall_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama AI Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: wall_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - wall_network
+    restart: unless-stopped
+
+  # Queue Worker (AI Generation)
+  queue_worker:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: wall_queue_worker
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=wall_social_platform
+      - DB_USER=wall_user
+      - DB_PASSWORD=wall_secure_password_123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    command: php /var/www/html/workers/ai_generation_worker.php
+    networks:
+      - wall_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_data:
+    driver: local
+
+networks:
+  wall_network:
+    driver: bridge

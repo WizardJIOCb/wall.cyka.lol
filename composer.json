@@ -1,0 +1,57 @@
+{
+    "name": "wall/social-platform",
+    "description": "AI-Powered Social Network with AI-Generated Web Applications",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "ext-pdo": "*",
+        "ext-redis": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-curl": "*",
+        "ezyang/htmlpurifier": "^4.17",
+        "ramsey/uuid": "^4.7",
+        "firebase/php-jwt": "^6.10",
+        "guzzlehttp/guzzle": "^7.8",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5",
+        "phpstan/phpstan": "^1.10",
+        "squizlabs/php_codesniffer": "^3.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "Wall\\": "src/",
+            "Wall\\Controllers\\": "src/Controllers/",
+            "Wall\\Models\\": "src/Models/",
+            "Wall\\Services\\": "src/Services/",
+            "Wall\\Utils\\": "src/Utils/"
+        },
+        "files": [
+            "config/database.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Wall\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse src --level=5",
+        "cs-check": "phpcs --standard=PSR12 src",
+        "cs-fix": "phpcbf --standard=PSR12 src"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
