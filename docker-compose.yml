@@ -1,3 +1,80 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: wall_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./public:/var/www/html/public
+    depends_on:
+      - php
+    networks:
+      - wall_network
+
+  php:
+    build: ./docker/php
+    container_name: wall_php
+    volumes:
+      - ./:/var/www/html
+    environment:
+      DB_HOST: mysql
+      DB_NAME: wall_platform
+      DB_USER: wall_user
+      DB_PASSWORD: wall_secure_password
+      REDIS_HOST: redis
+      OLLAMA_HOST: ollama
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - wall_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: wall_mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: wall_platform
+      MYSQL_USER: wall_user
+      MYSQL_PASSWORD: wall_secure_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - wall_network
+
+  redis:
+    image: redis:alpine
+    container_name: wall_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - wall_network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: wall_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - wall_network
+
+volumes:
+  mysql_data:
+  redis_data:
+  ollama_data:
+
+networks:
+  wall_network:
 services:
   # Nginx Web Server
   nginx:
