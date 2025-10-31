@@ -114,11 +114,12 @@ class SessionManager
     private static function storeSessionInDb($sessionId, $userId, $sessionData)
     {
         $sql = "INSERT INTO sessions (
-            user_id, session_token, ip_address, user_agent, 
-            last_activity_at, created_at
-        ) VALUES (?, ?, ?, ?, NOW(), NOW())";
+            session_id, user_id, session_token, ip_address, user_agent,
+            last_activity_at, created_at, expires_at
+        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY))";
 
         $params = [
+            $sessionId,
             $userId,
             $sessionId,
             $sessionData['ip_address'],
@@ -139,7 +140,7 @@ class SessionManager
     /**
      * Get client IP address
      */
-    private static function getClientIp()
+    public static function getClientIp()
     {
         $ipHeaders = [
             'HTTP_CF_CONNECTING_IP',

@@ -152,6 +152,7 @@ class AuthPage {
             username: formData.get('username'),
             email: formData.get('email'),
             password: formData.get('password'),
+            password_confirm: formData.get('password_confirm'),
             display_name: formData.get('display_name')
         };
 

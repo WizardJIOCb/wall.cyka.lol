@@ -53,7 +53,7 @@ class User
             $data['display_name'] ?? $data['username'],
             $config['bricks']['starting_balance'],
             $data['theme_preference'] ?? 'light',
-            $data['email_verified'] ?? false
+            isset($data['email_verified']) ? (int)$data['email_verified'] : 0
         ];
 
         try {
@@ -206,7 +206,7 @@ class User
             'password_hash' => null, // OAuth users don't have password
             'display_name' => $userData['name'] ?? $username,
             'avatar_url' => $userData['picture'] ?? null,
-            'email_verified' => true // OAuth emails are verified
+            'email_verified' => 1 // OAuth emails are verified
         ]);
 
         // Link OAuth account

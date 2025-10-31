@@ -31,7 +31,7 @@ class AuthService
             'email' => Validator::sanitizeEmail($data['email']),
             'password_hash' => User::hashPassword($data['password']),
             'display_name' => Validator::sanitize($data['display_name'] ?? $data['username']),
-            'email_verified' => false
+            'email_verified' => 0
         ];
 
         $user = User::create($userData);
