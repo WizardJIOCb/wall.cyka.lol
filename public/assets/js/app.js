@@ -7,6 +7,7 @@ import router from './router.js';
 import authService from './services/auth-service.js';
 import themeService from './services/theme-service.js';
 import toast from './components/toast.js';
+import CreatePost from './components/create-post.js';
 
 class App {
     constructor() {
@@ -44,6 +45,9 @@ class App {
 
         this.isInitialized = true;
         console.log('App initialized successfully');
+        
+        // Start router - trigger initial route
+        router.handleRoute();
     }
 
     /**

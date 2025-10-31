@@ -161,11 +161,11 @@ const HomePage = {
                 <h2>Welcome to Wall!</h2>
                 <p class="text-secondary">Your feed is empty. Start following walls or create your first post!</p>
                 <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="window.location.hash = '/ai/generate'">
+                    <button class="btn btn-primary" onclick="window.location.hash = '#/ai'">
                         <span class="icon">🤖</span>
                         <span>Create AI App</span>
                     </button>
-                    <button class="btn btn-secondary" onclick="window.location.hash = '/discover'">
+                    <button class="btn btn-secondary" onclick="window.location.hash = '#/discover'">
                         <span class="icon">🔍</span>
                         <span>Discover Walls</span>
                     </button>

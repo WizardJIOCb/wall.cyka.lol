@@ -71,7 +71,8 @@ class Router {
         // Update sidebar navigation
         document.querySelectorAll('.nav-item').forEach(item => {
             const href = item.getAttribute('href');
-            if (href === `#${route}` || href === '#/') {
+            const targetRoute = href.replace('#', '');
+            if (targetRoute === route || (route === '/' && targetRoute === '/')) {
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
@@ -81,10 +82,13 @@ class Router {
         // Update bottom navigation
         document.querySelectorAll('.bottom-nav-item').forEach(item => {
             const href = item.getAttribute('href');
-            if (href === `#${route}` || href === '#/') {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
+            if (href) {
+                const targetRoute = href.replace('#', '');
+                if (targetRoute === route || (route === '/' && targetRoute === '/')) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
             }
         });
     }
