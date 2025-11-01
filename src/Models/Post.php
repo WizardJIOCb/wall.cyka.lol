@@ -25,7 +25,8 @@ class Post
     public static function getWallPosts($wallId, $limit = 20, $offset = 0)
     {
         $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
-                ai.status as ai_status, ai.app_id, ai.queue_position
+                ai.status as ai_status, ai.app_id, ai.queue_position, ai.user_prompt,
+                ai.html_content, ai.css_content, ai.js_content
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 LEFT JOIN ai_applications ai ON p.post_id = ai.post_id
@@ -205,7 +206,7 @@ class Post
     {
         if (!$post) return null;
 
-        return [
+        $publicData = [
             'post_id' => (int)$post['post_id'],
             'wall_id' => (int)$post['wall_id'],
             'author_id' => (int)$post['author_id'],
@@ -226,6 +227,20 @@ class Post
             'created_at' => $post['created_at'],
             'updated_at' => $post['updated_at'],
         ];
+
+        // Include AI content if it's a completed AI application
+        if ($post['post_type'] === 'ai_app' && $post['ai_status'] === 'completed') {
+            if (isset($post['user_prompt']) || isset($post['html_content'])) {
+                $publicData['ai_content'] = [
+                    'user_prompt' => $post['user_prompt'] ?? null,
+                    'html_content' => $post['html_content'] ?? null,
+                    'css_content' => $post['css_content'] ?? null,
+                    'js_content' => $post['js_content'] ?? null,
+                ];
+            }
+        }
+
+        return $publicData;
     }
 
 }

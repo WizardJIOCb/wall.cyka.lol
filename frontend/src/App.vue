@@ -1,9 +1,7 @@
 <template>
   <component :is="layout">
-    <router-view v-slot="{ Component }">
-      <transition name="page" mode="out-in">
-        <component :is="Component" />
-      </transition>
+    <router-view v-slot="{ Component, route }">
+      <component :is="Component" :key="route.name === 'wall' ? route.fullPath : route.name" />
     </router-view>
   </component>
 

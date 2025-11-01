@@ -77,6 +77,24 @@
               <div v-if="post.content_html" v-html="post.content_html"></div>
               <p v-else>{{ post.content_text }}</p>
             </div>
+            
+            <!-- AI Generated Content Preview (if completed) -->
+            <div v-if="post.post_type === 'ai_app' && post.ai_status === 'completed' && post.ai_content" class="ai-content-preview">
+              <div class="ai-preview-header">
+                <span class="preview-icon">✨</span>
+                <h4>Generated Application</h4>
+              </div>
+              <div class="ai-preview-prompt">
+                <strong>Prompt:</strong> {{ truncateText(post.ai_content.user_prompt, 150) }}
+              </div>
+              <div v-if="post.ai_content.html_content" class="ai-preview-code">
+                <pre>{{ truncateText(post.ai_content.html_content, 200) }}</pre>
+              </div>
+              <button @click="openAIModal(post)" class="btn-open-ai">
+                <span class="icon">👁️</span>
+                <span>Open Full Content</span>
+              </button>
+            </div>
             <div v-if="post.media_attachments && post.media_attachments.length > 0" class="post-media">
               <img v-for="media in post.media_attachments" :key="media.attachment_id" :src="media.file_url" :alt="media.file_name" />
             </div>
@@ -104,6 +122,59 @@
       </div>
     </div>
   </div>
+
+  <!-- AI Content Modal -->
+  <Teleport to="body">
+    <div v-if="showAIModal" class="modal-overlay" @click.self="closeAIModal">
+      <div class="modal-content ai-modal">
+        <div class="modal-header">
+          <h2>✨ AI Generated Application</h2>
+          <button @click="closeAIModal" class="btn-close">×</button>
+        </div>
+        
+        <div v-if="selectedAIPost" class="modal-body">
+          <div class="ai-modal-section">
+            <h3>📝 Prompt</h3>
+            <div class="ai-prompt-full">
+              {{ selectedAIPost.ai_content?.user_prompt || 'No prompt available' }}
+            </div>
+          </div>
+          
+          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content">
+            <div class="section-header">
+              <h3>🌐 HTML</h3>
+              <button @click="copyToClipboard(selectedAIPost.ai_content.html_content, 'HTML')" class="btn-copy-small">📋 Copy</button>
+            </div>
+            <pre class="code-block">{{ selectedAIPost.ai_content.html_content }}</pre>
+          </div>
+          
+          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.css_content">
+            <div class="section-header">
+              <h3>🎨 CSS</h3>
+              <button @click="copyToClipboard(selectedAIPost.ai_content.css_content, 'CSS')" class="btn-copy-small">📋 Copy</button>
+            </div>
+            <pre class="code-block">{{ selectedAIPost.ai_content.css_content }}</pre>
+          </div>
+          
+          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.js_content">
+            <div class="section-header">
+              <h3>⚡ JavaScript</h3>
+              <button @click="copyToClipboard(selectedAIPost.ai_content.js_content, 'JavaScript')" class="btn-copy-small">📋 Copy</button>
+            </div>
+            <pre class="code-block">{{ selectedAIPost.ai_content.js_content }}</pre>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="downloadAIApp" class="btn-primary">
+            <span>📥</span>
+            <span>Download Full App</span>
+          </button>
+          <button @click="closeAIModal" class="btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -315,12 +386,95 @@ const getAIStatusText = (status: string) => {
   return statusTextMap[status] || 'Processing...'
 }
 
+const truncateText = (text: string, maxLength: number) => {
+  if (!text) return ''
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
+}
+
+const selectedAIPost = ref<any>(null)
+const showAIModal = ref(false)
+
+const openAIModal = async (post: any) => {
+  try {
+    // Fetch full AI application data
+    const response: any = await apiClient.get(`/ai/apps/${post.ai_app_id}`)
+    
+    // Check if response has the expected structure
+    if (response?.success && response?.data?.app) {
+      selectedAIPost.value = {
+        ...post,
+        ai_content: response.data.app
+      }
+      showAIModal.value = true
+      // Lock body scroll
+      document.body.style.overflow = 'hidden'
+    }
+  } catch (err: any) {
+    console.error('Error loading AI content:', err)
+  }
+}
+
+const closeAIModal = () => {
+  showAIModal.value = false
+  selectedAIPost.value = null
+  // Restore body scroll
+  document.body.style.overflow = ''
+}
+
+const copyToClipboard = (text: string, label: string) => {
+  navigator.clipboard.writeText(text).then(() => {
+    // Successfully copied
+    console.log(`${label} copied to clipboard`)
+  }).catch(err => {
+    console.error('Failed to copy:', err)
+  })
+}
+
+const downloadAIApp = () => {
+  if (!selectedAIPost.value?.ai_content) return
+  
+  const content = selectedAIPost.value.ai_content
+  const scriptOpen = '<script>'
+  const scriptClose = '<' + '/script>'
+  const bodyClose = '<' + '/body>'
+  const htmlClose = '<' + '/html>'
+  
+  const fullHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Generated App</title>
+  <style>
+${content.css_content || ''}
+  </style>
+</head>
+<body>
+${content.html_content || ''}
+  ${scriptOpen}
+${content.js_content || ''}
+  ${scriptClose}
+${bodyClose}
+${htmlClose}`
+  
+  const blob = new Blob([fullHTML], { type: 'text/html' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ai-app-${selectedAIPost.value.post_id}.html`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 onMounted(() => {
   loadWall()
 })
 
 onUnmounted(() => {
   stopPolling()
+  // Restore body scroll in case modal was open
+  document.body.style.overflow = ''
 })
 </script>
 
@@ -622,6 +776,235 @@ onUnmounted(() => {
   margin: 0;
   font-size: 0.875rem;
   opacity: 0.9;
+}
+
+.ai-content-preview {
+  margin-top: var(--spacing-4);
+  padding: var(--spacing-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-primary);
+}
+
+.ai-preview-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.preview-icon {
+  font-size: 1.25rem;
+}
+
+.ai-preview-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.ai-preview-prompt {
+  padding: var(--spacing-3);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-3);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.ai-preview-code {
+  margin-bottom: var(--spacing-3);
+  background: #1e1e1e;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.ai-preview-code pre {
+  margin: 0;
+  padding: var(--spacing-3);
+  color: #d4d4d4;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.btn-open-ai {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #10b981 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-open-ai:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+  padding: var(--spacing-4) !important;
+  overflow-y: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.modal-content {
+  position: relative;
+  background: #ffffff !important;
+  border-radius: var(--radius-lg);
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  z-index: 10000;
+  pointer-events: auto !important;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.btn-close:hover {
+  background: var(--color-bg-secondary);
+}
+
+.modal-body {
+  padding: var(--spacing-5);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ai-modal-section {
+  margin-bottom: var(--spacing-6);
+}
+
+.ai-modal-section:last-child {
+  margin-bottom: 0;
+}
+
+.ai-modal-section h3 {
+  margin: 0 0 var(--spacing-3) 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-3);
+}
+
+.section-header h3 {
+  margin: 0;
+}
+
+.btn-copy-small {
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-copy-small:hover {
+  background: var(--color-primary-dark);
+}
+
+.ai-prompt-full {
+  padding: var(--spacing-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--color-primary);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  font-size: 0.9375rem;
+}
+
+.code-block {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: var(--spacing-4);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  padding: var(--spacing-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.modal-footer .btn-primary,
+.modal-footer .btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
 }
 
 @media (max-width: 768px) {

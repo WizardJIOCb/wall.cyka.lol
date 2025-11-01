@@ -6,7 +6,7 @@
 
     <!-- Search Bar -->
     <div class="search-section">
-      <div class="search-bar">
+      <div class="search-container">
         <input
           v-model="searchQuery"
           type="text"
@@ -14,8 +14,8 @@
           @keyup.enter="performSearch"
           class="search-input"
         />
-        <button @click="performSearch" class="search-btn">
-          <span>🔍</span>
+        <button @click="performSearch" class="search-button">
+          🔍
         </button>
       </div>
     </div>
@@ -288,24 +288,27 @@ onMounted(() => {
 }
 
 .search-section {
-  margin-bottom: var(--spacing-8);
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto var(--spacing-8);
 }
 
-.search-bar {
-  display: flex;
-  gap: var(--spacing-2);
-  max-width: 600px;
-  margin: 0 auto;
+.search-container {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
 }
 
 .search-input {
-  flex: 1;
-  padding: var(--spacing-4);
+  width: 100%;
+  padding: 14px 18px;
   border: 2px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   font-size: 1rem;
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
+  transition: border-color 0.2s;
 }
 
 .search-input:focus {
@@ -313,20 +316,26 @@ onMounted(() => {
   border-color: var(--color-primary);
 }
 
-.search-btn {
-  padding: var(--spacing-4) var(--spacing-6);
+.search-button {
+  width: 46px;
+  height: 39px;
   background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: var(--radius-lg);
-  font-size: 1.5rem;
+  border-radius: 12px;
+  font-size: 24px;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
-.search-btn:hover {
+.search-button:hover {
   background: var(--color-primary-dark);
   transform: scale(1.05);
+}
+
+.search-button:active {
+  transform: scale(0.95);
 }
 
 .content-section {

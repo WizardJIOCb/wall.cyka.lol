@@ -203,7 +203,7 @@ const loadingHistory = ref(false)
 let pollInterval: any = null
 
 const canGenerate = computed(() => {
-  return promptText.value.length >= 50 && estimatedCost.value <= bricksBalance.value
+  return promptText.value.length > 0 && estimatedCost.value <= bricksBalance.value
 })
 
 const jobProgress = computed(() => {
