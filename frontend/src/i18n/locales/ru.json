@@ -1,0 +1,191 @@
+{
+  "common": {
+    "buttons": {
+      "submit": "Отправить",
+      "cancel": "Отмена",
+      "save": "Сохранить",
+      "delete": "Удалить",
+      "edit": "Редактировать",
+      "confirm": "Подтвердить",
+      "close": "Закрыть",
+      "back": "Назад",
+      "next": "Далее",
+      "loadMore": "Загрузить ещё",
+      "ok": "ОК",
+      "yes": "Да",
+      "no": "Нет",
+      "create": "Создать",
+      "update": "Обновить"
+    },
+    "actions": {
+      "login": "Войти",
+      "logout": "Выйти",
+      "register": "Регистрация",
+      "search": "Поиск",
+      "filter": "Фильтр",
+      "sort": "Сортировка",
+      "upload": "Загрузить",
+      "download": "Скачать",
+      "share": "Поделиться",
+      "like": "Нравится",
+      "comment": "Комментарий",
+      "follow": "Подписаться",
+      "unfollow": "Отписаться"
+    },
+    "labels": {
+      "loading": "Загрузка...",
+      "noResults": "Результаты не найдены",
+      "error": "Ошибка",
+      "success": "Успешно",
+      "warning": "Предупреждение",
+      "info": "Информация"
+    }
+  },
+  "navigation": {
+    "home": "Главная",
+    "discover": "Обзор",
+    "messages": "Сообщения",
+    "notifications": "Уведомления",
+    "profile": "Профиль",
+    "settings": "Настройки",
+    "aiGenerate": "ИИ Генерация",
+    "wall": "Стена",
+    "myWall": "Моя Стена",
+    "myProfile": "Мой Профиль"
+  },
+  "auth": {
+    "login": {
+      "title": "Вход в Wall",
+      "subtitle": "С возвращением!",
+      "username": "Имя пользователя или Email",
+      "password": "Пароль",
+      "rememberMe": "Запомнить меня",
+      "forgotPassword": "Забыли пароль?",
+      "noAccount": "Нет аккаунта?",
+      "signUp": "Зарегистрироваться",
+      "loginButton": "Войти",
+      "loggingIn": "Вход..."
+    },
+    "register": {
+      "title": "Создать Аккаунт",
+      "subtitle": "Присоединяйтесь к Wall Social Platform",
+      "username": "Имя пользователя",
+      "email": "Email",
+      "password": "Пароль",
+      "confirmPassword": "Подтвердите пароль",
+      "haveAccount": "Уже есть аккаунт?",
+      "signIn": "Войти",
+      "registerButton": "Зарегистрироваться",
+      "registering": "Создание аккаунта...",
+      "terms": "Регистрируясь, вы соглашаетесь с нашими",
+      "termsLink": "Условиями использования",
+      "and": "и",
+      "privacyLink": "Политикой конфиденциальности"
+    },
+    "oauth": {
+      "googleLogin": "Войти через Google",
+      "yandexLogin": "Войти через Яндекс",
+      "telegramLogin": "Войти через Telegram"
+    }
+  },
+  "errors": {
+    "required": "Это поле обязательно",
+    "invalidEmail": "Неверный email адрес",
+    "invalidUsername": "Неверное имя пользователя",
+    "passwordTooShort": "Пароль должен содержать минимум 8 символов",
+    "passwordMismatch": "Пароли не совпадают",
+    "usernameExists": "Имя пользователя уже существует",
+    "emailExists": "Email уже зарегистрирован",
+    "invalidCredentials": "Неверное имя пользователя или пароль",
+    "networkError": "Ошибка сети. Попробуйте снова",
+    "serverError": "Ошибка сервера. Попробуйте позже",
+    "notFound": "Не найдено",
+    "accessDenied": "Доступ запрещён",
+    "unknownError": "Произошла неизвестная ошибка"
+  },
+  "success": {
+    "loginSuccess": "Вход выполнен успешно!",
+    "registerSuccess": "Регистрация выполнена успешно!",
+    "updateSuccess": "Обновлено успешно",
+    "deleteSuccess": "Удалено успешно",
+    "createSuccess": "Создано успешно",
+    "saveSuccess": "Сохранено успешно",
+    "uploadSuccess": "Загружено успешно",
+    "copySuccess": "Скопировано в буфер обмена"
+  },
+  "settings": {
+    "title": "Настройки",
+    "tabs": {
+      "account": "Аккаунт",
+      "profile": "Профиль",
+      "privacy": "Приватность",
+      "notifications": "Уведомления",
+      "appearance": "Внешний вид",
+      "bricks": "Кирпичи"
+    },
+    "account": {
+      "username": "Имя пользователя",
+      "email": "Email",
+      "password": "Пароль",
+      "changePassword": "Изменить пароль",
+      "currentPassword": "Текущий пароль",
+      "newPassword": "Новый пароль",
+      "confirmNewPassword": "Подтвердите новый пароль",
+      "deleteAccount": "Удалить аккаунт",
+      "deleteAccountWarning": "Это действие необратимо"
+    },
+    "appearance": {
+      "theme": "Тема",
+      "language": "Язык",
+      "fontSize": "Размер шрифта",
+      "lightTheme": "Светлая",
+      "darkTheme": "Тёмная",
+      "autoTheme": "Авто"
+    }
+  },
+  "walls": {
+    "myWall": "Моя Стена",
+    "wall": "Стена",
+    "createWall": "Создать Стену",
+    "editWall": "Редактировать Стену",
+    "deleteWall": "Удалить Стену",
+    "wallSlug": "URL Стены",
+    "displayName": "Отображаемое имя",
+    "description": "Описание",
+    "privacy": "Приватность",
+    "public": "Публичная",
+    "private": "Приватная",
+    "followers": "Только подписчики",
+    "stats": {
+      "posts": "Посты",
+      "followers": "Подписчики",
+      "views": "Просмотры"
+    }
+  },
+  "posts": {
+    "createPost": "Создать пост",
+    "editPost": "Редактировать пост",
+    "deletePost": "Удалить пост",
+    "postPlaceholder": "О чём вы думаете?",
+    "commentPlaceholder": "Напишите комментарий...",
+    "pinPost": "Закрепить пост",
+    "unpinPost": "Открепить пост",
+    "sharePost": "Поделиться постом",
+    "reportPost": "Пожаловаться на пост",
+    "viewPost": "Просмотреть пост",
+    "actions": {
+      "like": "Нравится",
+      "comment": "Комментарий",
+      "share": "Поделиться"
+    },
+    "time": {
+      "justNow": "только что",
+      "minutesAgo": "{count} мин назад",
+      "hoursAgo": "{count} ч назад",
+      "daysAgo": "{count} дн назад",
+      "weeksAgo": "{count} нед назад",
+      "edited": "изменено",
+      "pinned": "закреплено"
+    }
+  }
+}

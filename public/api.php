@@ -318,6 +318,11 @@ route('PATCH', 'api/v1/users/me/bio', function() {
     UserController::updateBio();
 });
 
+// Search users by username (must be before dynamic {userId} route)
+route('GET', 'api/v1/users/search', function() {
+    UserController::searchUsers();
+});
+
 // Get user profile by ID
 route('GET', 'api/v1/users/{userId}', function($params) {
     UserController::getUserProfile($params);
@@ -391,6 +396,11 @@ route('GET', 'api/v1/walls/check-slug/{slug}', function($params) {
 });
 
 // ==================== POST ROUTES ====================
+
+// Get feed posts
+route('GET', 'api/v1/posts/feed', function() {
+    PostController::getFeed();
+});
 
 // Create post
 route('POST', 'api/v1/posts', function() {
@@ -479,6 +489,11 @@ route('GET', 'api/v1/ai/apps/{appId}', function($params) {
 // Get user's AI applications
 route('GET', 'api/v1/users/{userId}/ai-apps', function($params) {
     AIController::getUserApplications($params);
+});
+
+// Get current user's AI history
+route('GET', 'api/v1/ai/history', function() {
+    AIController::getMyHistory();
 });
 
 // Get popular AI applications
@@ -593,6 +608,141 @@ route('PATCH', 'api/v1/comments/{commentId}', function($params) {
 // Delete comment
 route('DELETE', 'api/v1/comments/{commentId}', function($params) {
     SocialController::deleteComment($params);
+});
+
+// ==================== FOLLOW SYSTEM ROUTES ====================
+
+// Follow user
+route('POST', 'api/v1/users/{userId}/follow', function($params) {
+    FollowController::followUser($params);
+});
+
+// Unfollow user
+route('DELETE', 'api/v1/users/{userId}/follow', function($params) {
+    FollowController::unfollowUser($params);
+});
+
+// Get user's followers
+route('GET', 'api/v1/users/{userId}/followers', function($params) {
+    FollowController::getFollowers($params);
+});
+
+// Get users being followed
+route('GET', 'api/v1/users/{userId}/following', function($params) {
+    FollowController::getFollowing($params);
+});
+
+// Get follow status
+route('GET', 'api/v1/users/{userId}/follow-status', function($params) {
+    FollowController::getFollowStatus($params);
+});
+
+// ==================== NOTIFICATIONS ROUTES ====================
+
+// Get notifications
+route('GET', 'api/v1/notifications', function() {
+    NotificationController::getNotifications();
+});
+
+// Get unread count
+route('GET', 'api/v1/notifications/unread-count', function() {
+    NotificationController::getUnreadCount();
+});
+
+// Mark notification as read
+route('PATCH', 'api/v1/notifications/{notificationId}/read', function($params) {
+    NotificationController::markAsRead($params);
+});
+
+// Mark all notifications as read
+route('POST', 'api/v1/notifications/mark-all-read', function() {
+    NotificationController::markAllAsRead();
+});
+
+// ==================== DISCOVER ROUTES ====================
+
+// Get trending walls
+route('GET', 'api/v1/discover/trending-walls', function() {
+    DiscoverController::getTrendingWalls();
+});
+
+// Get popular posts
+route('GET', 'api/v1/discover/popular-posts', function() {
+    DiscoverController::getPopularPosts();
+});
+
+// Get suggested users
+route('GET', 'api/v1/discover/suggested-users', function() {
+    DiscoverController::getSuggestedUsers();
+});
+
+// Global search
+route('GET', 'api/v1/search', function() {
+    DiscoverController::search();
+});
+
+// ==================== SETTINGS ROUTES ====================
+
+// Get user settings
+route('GET', 'api/v1/users/me/settings', function() {
+    SettingsController::getSettings();
+});
+
+// Update user settings
+route('PATCH', 'api/v1/users/me/settings', function() {
+    SettingsController::updateSettings();
+});
+
+// Change password
+route('POST', 'api/v1/users/me/change-password', function() {
+    SettingsController::changePassword();
+});
+
+// Delete account
+route('DELETE', 'api/v1/users/me/account', function() {
+    SettingsController::deleteAccount();
+});
+
+// ==================== MESSAGING ROUTES ====================
+
+// Get conversations
+route('GET', 'api/v1/conversations', function() {
+    MessagingController::getConversations();
+});
+
+// Create conversation
+route('POST', 'api/v1/conversations', function() {
+    MessagingController::createConversation();
+});
+
+// Get conversation messages
+route('GET', 'api/v1/conversations/{conversationId}/messages', function($params) {
+    MessagingController::getMessages($params);
+});
+
+// Send message
+route('POST', 'api/v1/conversations/{conversationId}/messages', function($params) {
+    MessagingController::sendMessage($params);
+});
+
+// Mark conversation as read
+route('PATCH', 'api/v1/conversations/{conversationId}/read', function($params) {
+    MessagingController::markAsRead($params);
+});
+
+// Delete conversation
+route('DELETE', 'api/v1/conversations/{conversationId}', function($params) {
+    MessagingController::deleteConversation($params);
+});
+
+// Get typing indicators
+route('GET', 'api/v1/conversations/{conversationId}/typing', function($params) {
+    MessagingController::getTypingIndicators($params);
+});
+
+// Set typing indicator
+route('POST', 'api/v1/conversations/{conversationId}/typing', function($params) {
+    MessagingController::setTypingIndicator($params);
 });
 
 // 404 Not Found

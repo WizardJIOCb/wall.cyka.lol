@@ -26,6 +26,15 @@ class User
     }
 
     /**
+     * Search users by username (partial match)
+     */
+    public static function searchByUsername($query, $limit = 10)
+    {
+        $sql = "SELECT * FROM users WHERE username LIKE ? AND is_active = TRUE LIMIT ?";
+        return Database::fetchAll($sql, ["%$query%", $limit]);
+    }
+
+    /**
      * Find user by email
      */
     public static function findByEmail($email)

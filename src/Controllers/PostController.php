@@ -8,6 +8,44 @@
 class PostController
 {
     /**
+     * Get feed posts (home feed)
+     * GET /api/v1/posts/feed
+     */
+    public static function getFeed()
+    {
+        $user = AuthMiddleware::requireAuth();
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 20;
+        $sortBy = $_GET['sort_by'] ?? 'recent';
+
+        $offset = ($page - 1) * $perPage;
+        $limit = $perPage;
+
+        try {
+            // Get posts from user's own wall and followed users' walls
+            // For now, just get recent posts from all public walls
+            $posts = Post::getFeedPosts($user['user_id'], $limit, $offset, $sortBy);
+            
+            // Get media for each post
+            $postsWithMedia = array_map(function($post) {
+                $media = MediaAttachment::getPostMedia($post['post_id']);
+                $post['media_attachments'] = $media;
+                return Post::getPublicData($post);
+            }, $posts);
+
+            self::jsonResponse(true, [
+                'posts' => $postsWithMedia,
+                'count' => count($postsWithMedia),
+                'page' => $page,
+                'per_page' => $perPage,
+                'has_more' => count($postsWithMedia) === $perPage
+            ]);
+        } catch (Exception $e) {
+            self::jsonResponse(false, ['code' => 'FEED_ERROR'], $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Create new post
      * POST /api/v1/posts
      */

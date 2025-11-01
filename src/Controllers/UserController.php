@@ -119,6 +119,26 @@ class UserController
     }
 
     /**
+     * Search users by username
+     * GET /api/v1/users/search?q=username
+     */
+    public static function searchUsers()
+    {
+        $query = $_GET['q'] ?? '';
+        
+        if (empty($query)) {
+            self::jsonResponse(false, ['code' => 'INVALID_QUERY'], 'Search query is required', 400);
+        }
+
+        $users = User::searchByUsername($query);
+
+        self::jsonResponse(true, [
+            'users' => array_map(fn($u) => User::getPublicData($u), $users),
+            'count' => count($users)
+        ]);
+    }
+
+    /**
      * Get user social links
      * GET /api/v1/users/me/links
      */

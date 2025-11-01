@@ -234,13 +234,16 @@ class BricksService
             $sql = "UPDATE users SET bricks_balance = bricks_balance + ? WHERE user_id = ?";
             Database::query($sql, [$amount, $targetUserId]);
 
+            // Get new balance
+            $newBalance = self::getUserBalance($targetUserId);
+
             // Record transaction
             $transSql = "INSERT INTO bricks_transactions (
-                user_id, amount, transaction_type, description, created_at
-            ) VALUES (?, ?, 'credit', ?, NOW())";
-            
+                user_id, amount, transaction_type, balance_after, source, description, created_at
+            ) VALUES (?, ?, 'bonus', ?, 'admin', ?, NOW())";
+
             $description = $reason ? "Admin add: $reason" : "Admin add";
-            Database::query($transSql, [$targetUserId, $amount, $description]);
+            Database::query($transSql, [$targetUserId, $amount, $newBalance, $description]);
 
             Database::commit();
 
@@ -285,13 +288,16 @@ class BricksService
             $sql = "UPDATE users SET bricks_balance = bricks_balance - ? WHERE user_id = ?";
             Database::query($sql, [$amount, $targetUserId]);
 
+            // Get new balance
+            $newBalance = self::getUserBalance($targetUserId);
+
             // Record transaction
             $transSql = "INSERT INTO bricks_transactions (
-                user_id, amount, transaction_type, description, created_at
-            ) VALUES (?, ?, 'debit', ?, NOW())";
+                user_id, amount, transaction_type, balance_after, source, description, created_at
+            ) VALUES (?, ?, 'spent', ?, 'admin', ?, NOW())";
             
             $description = $reason ? "Admin remove: $reason" : "Admin remove";
-            Database::query($transSql, [$targetUserId, $amount, $description]);
+            Database::query($transSql, [$targetUserId, $amount, $newBalance, $description]);
 
             Database::commit();
 

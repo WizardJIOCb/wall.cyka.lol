@@ -7,24 +7,24 @@
         :class="{ active: activeTab === 'login' }"
         @click="activeTab = 'login'"
       >
-        Login
+        {{ $t('auth.login.loginButton') }}
       </button>
       <button
         class="auth-tab"
         :class="{ active: activeTab === 'register' }"
         @click="activeTab = 'register'"
       >
-        Register
+        {{ $t('common.actions.register') }}
       </button>
     </div>
 
     <!-- Login Form -->
     <form v-if="activeTab === 'login'" class="auth-form" @submit.prevent="handleLogin">
-      <h2 class="form-title">Welcome Back</h2>
+      <h2 class="form-title">{{ $t('auth.login.subtitle') }}</h2>
 
       <AppInput
         v-model="loginForm.identifier"
-        label="Username or Email"
+        :label="$t('auth.login.username')"
         type="text"
         autocomplete="username"
         required
@@ -33,7 +33,7 @@
 
       <AppInput
         v-model="loginForm.password"
-        label="Password"
+        :label="$t('auth.login.password')"
         type="password"
         autocomplete="current-password"
         required
@@ -42,25 +42,25 @@
 
       <div class="form-checkbox">
         <input v-model="loginForm.remember" type="checkbox" id="remember-me" />
-        <label for="remember-me">Remember me</label>
+        <label for="remember-me">{{ $t('auth.login.rememberMe') }}</label>
       </div>
 
       <AppButton type="submit" variant="primary" size="lg" block :loading="loading">
-        Login
+        {{ loading ? $t('auth.login.loggingIn') : $t('auth.login.loginButton') }}
       </AppButton>
 
       <div class="form-footer">
-        <a href="#/forgot-password" class="link-secondary">Forgot password?</a>
+        <a href="#/forgot-password" class="link-secondary">{{ $t('auth.login.forgotPassword') }}</a>
       </div>
     </form>
 
     <!-- Register Form -->
     <form v-else class="auth-form" @submit.prevent="handleRegister">
-      <h2 class="form-title">Create Account</h2>
+      <h2 class="form-title">{{ $t('auth.register.title') }}</h2>
 
       <AppInput
         v-model="registerForm.username"
-        label="Username"
+        :label="$t('auth.register.username')"
         type="text"
         autocomplete="username"
         required
@@ -70,7 +70,7 @@
 
       <AppInput
         v-model="registerForm.email"
-        label="Email"
+        :label="$t('auth.register.email')"
         type="email"
         autocomplete="email"
         required
@@ -79,7 +79,7 @@
 
       <AppInput
         v-model="registerForm.password"
-        label="Password"
+        :label="$t('auth.register.password')"
         type="password"
         autocomplete="new-password"
         required
@@ -100,7 +100,7 @@
 
       <AppInput
         v-model="registerForm.password_confirm"
-        label="Confirm Password"
+        :label="$t('auth.register.confirmPassword')"
         type="password"
         autocomplete="new-password"
         required
@@ -118,13 +118,13 @@
       <div class="form-checkbox">
         <input v-model="registerForm.terms" type="checkbox" id="terms-accept" required />
         <label for="terms-accept">
-          I agree to the <a href="/terms" target="_blank">Terms of Service</a>
+          {{ $t('auth.register.terms') }} <a href="/terms" target="_blank">{{ $t('auth.register.termsLink') }}</a>
         </label>
         <span v-if="registerErrors.terms" class="form-error">{{ registerErrors.terms }}</span>
       </div>
 
       <AppButton type="submit" variant="primary" size="lg" block :loading="loading">
-        Create Account
+        {{ loading ? $t('auth.register.registering') : $t('auth.register.registerButton') }}
       </AppButton>
     </form>
 
@@ -137,15 +137,15 @@
       <div class="oauth-buttons">
         <button class="btn-oauth btn-google" type="button" @click="handleOAuth('google')">
           <span class="icon">G</span>
-          <span>Google</span>
+          <span>{{ $t('auth.oauth.googleLogin').replace('Sign in with ', '') }}</span>
         </button>
         <button class="btn-oauth btn-yandex" type="button" @click="handleOAuth('yandex')">
           <span class="icon">Я</span>
-          <span>Yandex</span>
+          <span>{{ $t('auth.oauth.yandexLogin').replace('Sign in with ', '').replace('Войти через ', '') }}</span>
         </button>
         <button class="btn-oauth btn-telegram" type="button" @click="handleOAuth('telegram')">
           <span class="icon">✈️</span>
-          <span>Telegram</span>
+          <span>{{ $t('auth.oauth.telegramLogin').replace('Sign in with ', '').replace('Войти через ', '') }}</span>
         </button>
       </div>
     </div>

@@ -54,7 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authAPI.login(credentials)
       if (response.success && response.data) {
-        setAuth(response.data.user, response.data.token)
+        setAuth(response.data.user, response.data.session_token)
         router.push('/')
         return response
       }
@@ -68,7 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authAPI.register(userData)
       if (response.success && response.data) {
-        setAuth(response.data.user, response.data.token)
+        setAuth(response.data.user, response.data.session_token)
         router.push('/')
         return response
       }

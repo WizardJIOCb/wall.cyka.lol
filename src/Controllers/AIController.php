@@ -380,6 +380,24 @@ class AIController
     }
 
     /**
+     * Get current user's AI generation history
+     * GET /api/v1/ai/history
+     */
+    public static function getMyHistory()
+    {
+        $user = AuthMiddleware::requireAuth();
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+        $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+
+        $apps = AIApplication::getUserApplications($user['user_id'], $limit, $offset);
+
+        self::jsonResponse(true, [
+            'history' => $apps,
+            'count' => count($apps)
+        ]);
+    }
+
+    /**
      * Get request JSON data
      */
     private static function getRequestData()

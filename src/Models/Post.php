@@ -50,6 +50,33 @@ class Post
     }
 
     /**
+     * Get feed posts for user
+     * Returns posts from public walls that the user can view
+     */
+    public static function getFeedPosts($userId, $limit = 20, $offset = 0, $sortBy = 'recent')
+    {
+        // Determine sort order
+        $orderBy = 'p.created_at DESC';
+        if ($sortBy === 'popular') {
+            $orderBy = 'p.reaction_count DESC, p.created_at DESC';
+        } elseif ($sortBy === 'trending') {
+            $orderBy = 'p.view_count DESC, p.created_at DESC';
+        }
+
+        $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
+                w.privacy_level
+                FROM posts p
+                JOIN users u ON p.author_id = u.user_id
+                JOIN walls w ON p.wall_id = w.wall_id
+                WHERE p.is_deleted = FALSE 
+                AND w.privacy_level = 'public'
+                ORDER BY {$orderBy}
+                LIMIT ? OFFSET ?";
+        
+        return Database::fetchAll($sql, [$limit, $offset]);
+    }
+
+    /**
      * Create new post
      */
     public static function create($data)

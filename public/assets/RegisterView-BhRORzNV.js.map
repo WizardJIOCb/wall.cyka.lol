@@ -1,0 +1,1 @@
+{"version":3,"file":"RegisterView-BhRORzNV.js","sources":["../../frontend/src/views/RegisterView.vue"],"sourcesContent":["<template>\n  <LoginView />\n</template>\n\n<script setup lang=\"ts\">\nimport LoginView from './LoginView.vue'\n</script>\n"],"names":["_createBlock","LoginView"],"mappings":"kNACEA,EAAaC,CAAA"}

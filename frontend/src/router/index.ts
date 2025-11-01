@@ -29,6 +29,10 @@ const router = createRouter({
       meta: { title: 'Home' }
     },
     {
+      path: '/wall',
+      redirect: '/wall/me'
+    },
+    {
       path: '/wall/:wallId',
       name: 'wall',
       component: () => import('@/views/WallView.vue'),
@@ -72,6 +76,13 @@ const router = createRouter({
       component: () => import('@/views/SettingsView.vue'),
       beforeEnter: requireAuth,
       meta: { title: 'Settings' }
+    },
+    {
+      path: '/admin/bricks',
+      name: 'admin-bricks',
+      component: () => import('@/views/AdminBricksView.vue'),
+      beforeEnter: requireAuth,
+      meta: { title: 'Admin - Bricks Management', requireAdmin: true }
     },
     {
       path: '/ai/:jobId?',
