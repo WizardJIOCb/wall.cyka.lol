@@ -531,6 +531,16 @@ route('GET', 'api/v1/ai/models', function() {
     AIController::getModels();
 });
 
+// Stream generation progress via SSE
+route('GET', 'api/v1/ai/generation/{jobId}/progress', function($params) {
+    AIGenerationProgressController::streamProgress($params['jobId']);
+});
+
+// Get generation status (non-streaming)
+route('GET', 'api/v1/ai/generation/{jobId}/status', function($params) {
+    AIGenerationProgressController::getStatus($params['jobId']);
+});
+
 // ==================== BRICKS CURRENCY ROUTES ====================
 
 // Get user's brick balance

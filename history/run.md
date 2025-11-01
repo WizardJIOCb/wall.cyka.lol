@@ -128,25 +128,38 @@ Backend API will be available at: **http://localhost:8080/api/v1**
 
 ### AI Generation Worker
 
-To enable AI generation processing, you have two options:
+To enable AI generation processing with **real-time progress tracking**, you have two options:
 
 **Option 1: Run worker in foreground (for debugging):**
 ```bash
 cd C:\Projects\wall.cyka.lol
 docker-compose exec php php workers/ai_generation_worker.php
 ```
-Keep this terminal open while processing AI generation jobs. Press Ctrl+C to stop.
+Keep this terminal open while processing AI generation jobs. You'll see **real-time token counts** and **generation progress**. Press Ctrl+C to stop.
 
-**Option 2: Run worker in background (recommended for development):**
+**Option 2: Run worker as a service (automatic with docker-compose):**
+
+The worker runs automatically as the `wall_queue_worker` container when you start the application:
 ```bash
-cd C:\Projects\wall.cyka.lol
-docker-compose exec -d php php workers/ai_generation_worker.php
+docker-compose up -d
 ```
-Worker will run in background. Check logs with `docker-compose logs -f php`
+
+The worker now supports:
+- **Real-time streaming** from Ollama API
+- **Live token count updates** (updates every 0.5 seconds)
+- **Tokens per second** speed tracking
+- **Elapsed time** tracking in milliseconds
+- **Estimated time remaining** calculation
+- **Progress percentage** (0-100%)
 
 **Check worker status:**
 ```bash
-docker-compose exec php ps aux | grep ai_generation
+docker logs wall_queue_worker --tail 50 -f
+```
+
+**Restart worker to pick up code changes:**
+```bash
+docker restart wall_queue_worker
 ```
 
 ---

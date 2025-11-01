@@ -144,61 +144,158 @@ function processJob($jobId, $config, $connections) {
         echo "  Status updated to 'processing'\n";
         
         // 3. Prepare prompt for code generation
-        $systemPrompt = "You are an expert web developer. Generate a complete, working HTML application with embedded CSS and JavaScript. " .
-                       "The application should be self-contained in a single HTML file. " .
-                       "Use modern HTML5, CSS3, and vanilla JavaScript. " .
-                       "Make it visually appealing and fully functional. " .
-                       "Return ONLY the HTML code, no explanations.";
+        // Use user's prompt directly without forcing HTML generation
+        $fullPrompt = $job['user_prompt'];
         
-        $fullPrompt = $systemPrompt . "\n\nUser Request: " . $job['user_prompt'];
-        
-        // 4. Send request to Ollama API
+        // 4. Send request to Ollama API with streaming
         $selectedModel = $job['generation_model'] ?: $config['ollama_model'];
         $ollamaUrl = "http://{$config['ollama_host']}:{$config['ollama_port']}/api/generate";
         $requestData = [
             'model' => $selectedModel,
             'prompt' => $fullPrompt,
-            'stream' => false,
+            'stream' => true, // Enable streaming for real-time updates
             'options' => [
                 'temperature' => 0.7,
                 'top_p' => 0.9,
             ]
         ];
         
-        echo "  Sending request to Ollama...\n";
+        echo "  Sending streaming request to Ollama...\n";
         $startTime = microtime(true);
         
+        // Initialize tracking variables
+        $generatedCode = '';
+        $promptTokens = 0;
+        $completionTokens = 0;
+        $totalTokens = 0;
+        $lastUpdateTime = $startTime;
+        $updateInterval = 0.5; // Update database every 0.5 seconds
+        $responseChunkCount = 0; // Track response chunks as proxy for progress
+        
+        // Setup streaming request
         $ch = curl_init($ollamaUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestData));
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 600); // 10 minutes timeout for large models
+        curl_setopt($ch, CURLOPT_TIMEOUT, 600); // 10 minutes timeout
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (
+            &$generatedCode, &$promptTokens, &$completionTokens, &$totalTokens, 
+            $startTime, &$lastUpdateTime, $updateInterval, $jobId, &$responseChunkCount
+        ) {
+            $currentTime = microtime(true);
+            $elapsedMs = round(($currentTime - $startTime) * 1000);
+            
+            // Parse streaming JSON response
+            $lines = explode("\n", trim($data));
+            foreach ($lines as $line) {
+                if (empty($line)) continue;
+                
+                $chunk = json_decode($line, true);
+                if (!$chunk) continue;
+                
+                // Accumulate generated content
+                if (isset($chunk['response'])) {
+                    $generatedCode .= $chunk['response'];
+                    $responseChunkCount++; // Count chunks for progress indication
+                }
+                
+                // Track token counts from Ollama
+                if (isset($chunk['prompt_eval_count'])) {
+                    $promptTokens = $chunk['prompt_eval_count'];
+                }
+                if (isset($chunk['eval_count'])) {
+                    $completionTokens = $chunk['eval_count'];
+                }
+                
+                // Calculate tokens from content length
+                // Real-time estimation: ~4 characters per token on average
+                $contentLength = strlen($generatedCode);
+                $estimatedTokensFromContent = round($contentLength / 4);
+                
+                // Use the higher of: Ollama's count or our estimate
+                if ($estimatedTokensFromContent > $completionTokens) {
+                    $completionTokens = $estimatedTokensFromContent;
+                }
+                
+                $totalTokens = $promptTokens + $completionTokens;
+                
+                // Update database periodically (not on every chunk to avoid overhead)
+                if ($currentTime - $lastUpdateTime >= $updateInterval) {
+                    $tokensPerSec = $completionTokens > 0 ? round($completionTokens / ($elapsedMs / 1000), 2) : 0;
+                    $contentGenerationRate = $contentLength > 0 ? round($contentLength / ($elapsedMs / 1000), 2) : 0;
+                    $estimatedRemainingMs = 0;
+                    
+                    // Estimate time remaining based on average speed
+                    // Assume completion tokens will be ~2x prompt tokens (rough estimate)
+                    if ($tokensPerSec > 0 && $promptTokens > 0) {
+                        $estimatedTotal = $promptTokens * 2.5;
+                        $tokensRemaining = max(0, $estimatedTotal - $completionTokens);
+                        $estimatedRemainingMs = round(($tokensRemaining / $tokensPerSec) * 1000);
+                    }
+                    
+                    // Calculate progress percentage (0-90% during generation, 90-100% for post-processing)
+                    $progressPercent = 0;
+                    
+                    if ($contentLength > 0) {
+                        // Use content length to estimate progress
+                        // Average web app: 500-2000 tokens = 2000-8000 chars
+                        // Conservative estimate: assume 3000 chars for typical output
+                        $estimatedTotalChars = 3000;
+                        $progressPercent = min(90, round(($contentLength / $estimatedTotalChars) * 90));
+                    } elseif ($promptTokens > 0 && $completionTokens > 0) {
+                        // Fallback: use token-based calculation if available
+                        $progressPercent = min(90, round(($completionTokens / ($promptTokens * 2.5)) * 90));
+                    }
+                    
+                    // Update job progress in database
+                    try {
+                        Database::query(
+                            "UPDATE ai_generation_jobs SET 
+                                current_tokens = ?,
+                                tokens_per_second = ?,
+                                elapsed_time = ?,
+                                estimated_time_remaining = ?,
+                                progress_percentage = ?,
+                                partial_content_length = ?,
+                                content_generation_rate = ?,
+                                last_update_at = NOW(),
+                                updated_at = NOW()
+                            WHERE job_id = ?",
+                            [$completionTokens, $tokensPerSec, $elapsedMs, $estimatedRemainingMs, $progressPercent, $contentLength, $contentGenerationRate, $jobId]
+                        );
+                    } catch (Exception $e) {
+                        // Ignore update errors, continue processing
+                    }
+                    
+                    $lastUpdateTime = $currentTime;
+                    
+                    echo "  Progress: {$completionTokens} tokens ({$contentLength} chars) | {$tokensPerSec} tok/s | {$progressPercent}% | " .
+                         round($elapsedMs / 1000, 1) . "s elapsed\n";
+                }
+            }
+            
+            return strlen($data);
+        });
         
-        $response = curl_exec($ch);
+        curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
         curl_close($ch);
         
-        $generationTime = round((microtime(true) - $startTime) * 1000); // milliseconds
+        $generationTime = round((microtime(true) - $startTime) * 1000);
         
-        if ($httpCode !== 200 || !$response) {
+        if ($httpCode !== 200) {
             throw new Exception("Ollama API error (HTTP {$httpCode}): " . ($curlError ?: 'Unknown error'));
         }
         
-        $result = json_decode($response, true);
-        
-        if (!isset($result['response'])) {
-            throw new Exception("Invalid Ollama API response: " . json_encode($result));
+        if (empty($generatedCode)) {
+            throw new Exception("No content generated from Ollama");
         }
         
-        $generatedCode = trim($result['response']);
-        $promptTokens = $result['prompt_eval_count'] ?? 0;
-        $completionTokens = $result['eval_count'] ?? 0;
-        $totalTokens = $promptTokens + $completionTokens;
+        $generatedCode = trim($generatedCode);
         
         echo "  Generation completed in {$generationTime}ms\n";
-        echo "  Tokens: {$totalTokens} (prompt: {$promptTokens})\n";
+        echo "  Tokens: {$totalTokens} (prompt: {$promptTokens}, completion: {$completionTokens})\n";
         echo "  Code length: " . strlen($generatedCode) . " chars\n";
         
         // 5. Extract HTML, CSS, JS (if code contains style/script tags)

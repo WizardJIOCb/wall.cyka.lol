@@ -62,6 +62,10 @@ class Database {
         
         try {
             self::$connection = new PDO($dsn, self::$username, self::$password, $options);
+            
+            // Verify charset is set correctly
+            $charset = self::$connection->query("SELECT @@character_set_client, @@character_set_connection, @@character_set_results")->fetch();
+            error_log("[Database] Charset verification: " . json_encode($charset));
         } catch (PDOException $e) {
             error_log('Database connection failed: ' . $e->getMessage());
             throw new PDOException('Database connection failed. Please try again later.');
@@ -101,6 +105,32 @@ class Database {
      */
     public static function lastInsertId(): string {
         return self::getConnection()->lastInsertId();
+    }
+    
+    /**
+     * Execute a query with parameters
+     */
+    public static function query($sql, $params = []) {
+        $conn = self::getConnection();
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt;
+    }
+    
+    /**
+     * Fetch single row
+     */
+    public static function fetchOne($sql, $params = []) {
+        $stmt = self::query($sql, $params);
+        return $stmt->fetch();
+    }
+    
+    /**
+     * Fetch all rows
+     */
+    public static function fetchAll($sql, $params = []) {
+        $stmt = self::query($sql, $params);
+        return $stmt->fetchAll();
     }
 }
 

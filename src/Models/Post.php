@@ -25,7 +25,7 @@ class Post
     public static function getWallPosts($wallId, $limit = 20, $offset = 0)
     {
         $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
-                ai.status as ai_status, ai.app_id, ai.queue_position, ai.user_prompt,
+                ai.status as ai_status, ai.app_id, ai.job_id, ai.queue_position, ai.user_prompt,
                 ai.html_content, ai.css_content, ai.js_content, ai.generation_model,
                 ai.generation_time, ai.input_tokens, ai.output_tokens, ai.total_tokens
                 FROM posts p
@@ -222,6 +222,8 @@ class Post
             'repost_commentary' => $post['repost_commentary'] ?? null,
             'ai_status' => $post['ai_status'] ?? null,
             'ai_app_id' => $post['app_id'] ?? null,
+            'job_id' => $post['job_id'] ?? null,
+            'ai_model' => $post['generation_model'] ?? null,
             'ai_queue_position' => $post['queue_position'] ?? null,
             'media_attachments' => $post['media_attachments'] ?? [],
             'location' => $post['location'] ?? null,

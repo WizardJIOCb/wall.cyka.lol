@@ -53,17 +53,15 @@
 
         <div v-else class="posts-grid">
           <div v-for="post in posts" :key="post.post_id" class="post-card" :class="{ 'ai-post': post.post_type === 'ai_app' }">
-            <!-- AI Generation Status (if AI post) -->
-            <div v-if="post.post_type === 'ai_app' && post.ai_status !== 'completed'" class="ai-generation-status">
-              <div class="status-header">
-                <span class="status-icon">🤖</span>
-                <h3>AI Application Generating...</h3>
-              </div>
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: getAIProgress(post.ai_status) + '%' }"></div>
-              </div>
-              <p class="status-text">{{ getAIStatusText(post.ai_status) }}</p>
-            </div>
+            <!-- AI Generation Real-time Progress (if AI post is generating) -->
+            <AIGenerationProgress 
+              v-if="post.post_type === 'ai_app' && (post.ai_status === 'queued' || post.ai_status === 'processing') && post.job_id"
+              :jobId="post.job_id"
+              :modelName="post.ai_model"
+              :auto-start="true"
+              @complete="handleGenerationComplete(post)"
+              @error="handleGenerationError(post, $event)"
+            />
             
             <!-- Regular Post Content -->
             <div class="post-header">
@@ -208,6 +206,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api/client'
+import AIGenerationProgress from '@/components/ai/AIGenerationProgress.vue'
 
 const props = defineProps<{ wallId?: string }>()
 
@@ -390,6 +389,21 @@ const loadMorePosts = () => {
 const createPost = () => {
   // Navigate to post creation (to be implemented)
   console.log('Create post functionality coming soon')
+}
+
+// Handle AI generation completion
+const handleGenerationComplete = async (post: any) => {
+  console.log('Generation completed for post:', post.post_id)
+  // Reload posts to get the updated content
+  await loadPosts()
+  stopPolling()
+}
+
+// Handle AI generation error
+const handleGenerationError = (post: any, errorMsg: string) => {
+  console.error('Generation failed for post:', post.post_id, errorMsg)
+  // Reload posts to reflect failed status
+  loadPosts()
 }
 
 const getAIProgress = (status: string) => {
