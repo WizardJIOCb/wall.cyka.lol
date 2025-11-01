@@ -194,7 +194,7 @@ route('GET', '', function() {
             <div class="status">
                 <strong>Status:</strong>
                 <span class="status-ok">✓ Application Running</span><br>
-                <small>Phase 5: Social Features Complete - 77 API Endpoints!</small>
+                <small>Phase 5: Social Features Complete - 80 API Endpoints!</small>
             </div>
         </div>
     </body>
@@ -585,29 +585,56 @@ route('GET', 'api/v1/reactions/{reactableType}/{reactableId}', function($params)
     SocialController::getReactions($params);
 });
 
-// Create comment
-route('POST', 'api/v1/comments', function() {
-    SocialController::createComment();
-});
+// ==================== COMMENTS ROUTES ====================
 
 // Get post comments
 route('GET', 'api/v1/posts/{postId}/comments', function($params) {
-    SocialController::getPostComments($params);
+    CommentController::getPostComments($params);
 });
 
-// Get comment
+// Create comment on post
+route('POST', 'api/v1/posts/{postId}/comments', function($params) {
+    CommentController::createComment($params);
+});
+
+// Get single comment
 route('GET', 'api/v1/comments/{commentId}', function($params) {
-    SocialController::getComment($params);
+    CommentController::getComment($params);
+});
+
+// Create reply to comment
+route('POST', 'api/v1/comments/{commentId}/replies', function($params) {
+    CommentController::createReply($params);
 });
 
 // Update comment
 route('PATCH', 'api/v1/comments/{commentId}', function($params) {
-    SocialController::updateComment($params);
+    CommentController::updateComment($params);
 });
 
 // Delete comment
 route('DELETE', 'api/v1/comments/{commentId}', function($params) {
-    SocialController::deleteComment($params);
+    CommentController::deleteComment($params);
+});
+
+// React to comment
+route('POST', 'api/v1/comments/{commentId}/reactions', function($params) {
+    CommentController::reactToComment($params);
+});
+
+// Remove reaction from comment
+route('DELETE', 'api/v1/comments/{commentId}/reactions', function($params) {
+    CommentController::removeCommentReaction($params);
+});
+
+// Get comment reactions
+route('GET', 'api/v1/comments/{commentId}/reactions', function($params) {
+    CommentController::getCommentReactions($params);
+});
+
+// Get users who reacted to comment
+route('GET', 'api/v1/comments/{commentId}/reactions/users', function($params) {
+    CommentController::getCommentReactionUsers($params);
 });
 
 // ==================== FOLLOW SYSTEM ROUTES ====================

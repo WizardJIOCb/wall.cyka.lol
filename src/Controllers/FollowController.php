@@ -1,250 +1,269 @@
 <?php
-/**
- * Wall Social Platform - Follow Controller
- * 
- * Handles user follow/unfollow operations
- */
+
+namespace App\Controllers;
+
+use App\Models\User;
+use App\Models\UserFollow;
+use App\Services\NotificationService;
+use App\Middleware\AuthMiddleware;
 
 class FollowController
 {
     /**
      * Follow a user
-     * POST /api/v1/users/:userId/follow
+     * POST /api/v1/users/{userId}/follow
      */
     public static function followUser($params)
     {
-        $currentUser = AuthMiddleware::requireAuth();
-        $targetUserId = $params['userId'] ?? null;
-        
-        if (!$targetUserId) {
-            self::jsonResponse(false, ['code' => 'INVALID_USER_ID'], 'User ID is required', 400);
-        }
-        
-        // Prevent self-follow
-        if ($currentUser['user_id'] == $targetUserId) {
-            self::jsonResponse(false, ['code' => 'SELF_FOLLOW'], 'Cannot follow yourself', 400);
-        }
-        
-        // Check if target user exists
-        $sql = "SELECT user_id, username FROM users WHERE user_id = ?";
-        $targetUser = Database::fetchOne($sql, [$targetUserId]);
-        
+        $currentUserId = AuthMiddleware::getUserId();
+        $targetUserId = (int)$params['userId'];
+
+        // Validate target user exists
+        $targetUser = User::find($targetUserId);
         if (!$targetUser) {
-            self::jsonResponse(false, ['code' => 'USER_NOT_FOUND'], 'User not found', 404);
+            jsonResponse(false, null, 'User not found', 404);
         }
-        
+
+        // Cannot follow yourself
+        if ($currentUserId === $targetUserId) {
+            jsonResponse(false, null, 'Cannot follow yourself', 400);
+        }
+
         // Check if already following
-        $sql = "SELECT follow_id FROM user_follows 
-                WHERE follower_id = ? AND following_id = ?";
-        $existing = Database::fetchOne($sql, [$currentUser['user_id'], $targetUserId]);
-        
-        if ($existing) {
-            self::jsonResponse(false, ['code' => 'ALREADY_FOLLOWING'], 'Already following this user', 400);
+        $existingFollow = UserFollow::getFollow($currentUserId, $targetUserId);
+        if ($existingFollow) {
+            jsonResponse(false, null, 'Already following this user', 409);
         }
-        
+
         try {
+            Database::beginTransaction();
+
             // Create follow relationship
-            $sql = "INSERT INTO user_follows (follower_id, following_id, created_at) 
-                    VALUES (?, ?, NOW())";
-            Database::query($sql, [$currentUser['user_id'], $targetUserId]);
-            
-            // Update follower counts
-            $sql = "UPDATE users SET following_count = following_count + 1 WHERE user_id = ?";
-            Database::query($sql, [$currentUser['user_id']]);
-            
-            $sql = "UPDATE users SET followers_count = followers_count + 1 WHERE user_id = ?";
-            Database::query($sql, [$targetUserId]);
-            
-            // Create notification
-            NotificationService::createFollowNotification($currentUser['user_id'], $targetUserId);
-            
-            // Get updated follower count
-            $sql = "SELECT followers_count FROM users WHERE user_id = ?";
-            $result = Database::fetchOne($sql, [$targetUserId]);
-            
-            self::jsonResponse(true, [
-                'message' => 'User followed successfully',
-                'followers_count' => (int)$result['followers_count']
+            $follow = UserFollow::create([
+                'follower_id' => $currentUserId,
+                'following_id' => $targetUserId,
+                'created_at' => date('Y-m-d H:i:s')
             ]);
-            
-        } catch (Exception $e) {
-            self::jsonResponse(false, ['code' => 'FOLLOW_FAILED'], $e->getMessage(), 500);
+
+            // Increment follower count on target user
+            User::incrementFollowerCount($targetUserId);
+
+            // Increment following count on current user
+            User::incrementFollowingCount($currentUserId);
+
+            // Create notification for target user
+            NotificationService::createNotification([
+                'user_id' => $targetUserId,
+                'type' => 'new_follower',
+                'title' => 'New Follower',
+                'message' => User::getDisplayName($currentUserId) . ' started following you',
+                'action_url' => '/users/' . $currentUserId,
+                'action_user_id' => $currentUserId
+            ]);
+
+            Database::commit();
+
+            jsonResponse(true, [
+                'follow_id' => $follow['id'],
+                'follower_id' => $currentUserId,
+                'following_id' => $targetUserId,
+                'created_at' => $follow['created_at'],
+                'is_following' => true
+            ], 'Successfully followed user', 201);
+
+        } catch (\Exception $e) {
+            Database::rollback();
+            error_log("Follow user error: " . $e->getMessage());
+            jsonResponse(false, null, 'Failed to follow user', 500);
         }
     }
-    
+
     /**
      * Unfollow a user
-     * DELETE /api/v1/users/:userId/follow
+     * DELETE /api/v1/users/{userId}/unfollow
      */
     public static function unfollowUser($params)
     {
-        $currentUser = AuthMiddleware::requireAuth();
-        $targetUserId = $params['userId'] ?? null;
-        
-        if (!$targetUserId) {
-            self::jsonResponse(false, ['code' => 'INVALID_USER_ID'], 'User ID is required', 400);
+        $currentUserId = AuthMiddleware::getUserId();
+        $targetUserId = (int)$params['userId'];
+
+        // Validate target user exists
+        $targetUser = User::find($targetUserId);
+        if (!$targetUser) {
+            jsonResponse(false, null, 'User not found', 404);
         }
-        
-        // Check if following
-        $sql = "SELECT follow_id FROM user_follows 
-                WHERE follower_id = ? AND following_id = ?";
-        $existing = Database::fetchOne($sql, [$currentUser['user_id'], $targetUserId]);
-        
-        if (!$existing) {
-            self::jsonResponse(false, ['code' => 'NOT_FOLLOWING'], 'Not following this user', 400);
+
+        // Check if following relationship exists
+        $existingFollow = UserFollow::getFollow($currentUserId, $targetUserId);
+        if (!$existingFollow) {
+            jsonResponse(false, null, 'Not following this user', 404);
         }
-        
+
         try {
+            Database::beginTransaction();
+
             // Delete follow relationship
-            $sql = "DELETE FROM user_follows 
-                    WHERE follower_id = ? AND following_id = ?";
-            Database::query($sql, [$currentUser['user_id'], $targetUserId]);
-            
-            // Update follower counts
-            $sql = "UPDATE users SET following_count = following_count - 1 WHERE user_id = ?";
-            Database::query($sql, [$currentUser['user_id']]);
-            
-            $sql = "UPDATE users SET followers_count = followers_count - 1 WHERE user_id = ?";
-            Database::query($sql, [$targetUserId]);
-            
-            // Get updated follower count
-            $sql = "SELECT followers_count FROM users WHERE user_id = ?";
-            $result = Database::fetchOne($sql, [$targetUserId]);
-            
-            self::jsonResponse(true, [
-                'message' => 'User unfollowed successfully',
-                'followers_count' => (int)$result['followers_count']
-            ]);
-            
-        } catch (Exception $e) {
-            self::jsonResponse(false, ['code' => 'UNFOLLOW_FAILED'], $e->getMessage(), 500);
+            UserFollow::delete($currentUserId, $targetUserId);
+
+            // Decrement follower count on target user
+            User::decrementFollowerCount($targetUserId);
+
+            // Decrement following count on current user
+            User::decrementFollowingCount($currentUserId);
+
+            Database::commit();
+
+            jsonResponse(true, [
+                'follower_id' => $currentUserId,
+                'following_id' => $targetUserId,
+                'is_following' => false
+            ], 'Successfully unfollowed user', 200);
+
+        } catch (\Exception $e) {
+            Database::rollback();
+            error_log("Unfollow user error: " . $e->getMessage());
+            jsonResponse(false, null, 'Failed to unfollow user', 500);
         }
     }
-    
+
     /**
      * Get user's followers
-     * GET /api/v1/users/:userId/followers
+     * GET /api/v1/users/{userId}/followers
      */
     public static function getFollowers($params)
     {
-        $userId = $params['userId'] ?? null;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
-        $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
-        
-        if (!$userId) {
-            self::jsonResponse(false, ['code' => 'INVALID_USER_ID'], 'User ID is required', 400);
+        $userId = (int)$params['userId'];
+        $currentUserId = AuthMiddleware::getUserIdOptional();
+
+        // Validate user exists
+        $user = User::find($userId);
+        if (!$user) {
+            jsonResponse(false, null, 'User not found', 404);
         }
-        
-        $sql = "SELECT u.user_id, u.username, u.display_name, u.avatar_url, u.bio, 
-                uf.created_at as followed_at
-                FROM user_follows uf
-                JOIN users u ON uf.follower_id = u.user_id
-                WHERE uf.following_id = ?
-                ORDER BY uf.created_at DESC
-                LIMIT ? OFFSET ?";
-        
-        $followers = Database::fetchAll($sql, [$userId, $limit, $offset]);
-        
-        self::jsonResponse(true, [
+
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = isset($_GET['limit']) ? min(50, max(1, (int)$_GET['limit'])) : 20;
+        $offset = ($page - 1) * $limit;
+
+        // Get followers
+        $followers = UserFollow::getFollowers($userId, $limit, $offset);
+        $totalCount = UserFollow::getFollowerCount($userId);
+
+        // Enrich with current user's follow status
+        if ($currentUserId) {
+            foreach ($followers as &$follower) {
+                $follower['is_followed_by_you'] = UserFollow::isFollowing($currentUserId, $follower['user_id']);
+                $follower['is_mutual'] = UserFollow::isFollowing($follower['user_id'], $currentUserId);
+            }
+        }
+
+        jsonResponse(true, [
             'followers' => $followers,
-            'count' => count($followers),
-            'limit' => $limit,
-            'offset' => $offset
-        ]);
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $totalCount,
+                'has_more' => ($offset + count($followers)) < $totalCount
+            ]
+        ], 'Followers retrieved successfully', 200);
     }
-    
+
     /**
-     * Get users being followed
-     * GET /api/v1/users/:userId/following
+     * Get users that a user is following
+     * GET /api/v1/users/{userId}/following
      */
     public static function getFollowing($params)
     {
-        $userId = $params['userId'] ?? null;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
-        $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
-        
-        if (!$userId) {
-            self::jsonResponse(false, ['code' => 'INVALID_USER_ID'], 'User ID is required', 400);
+        $userId = (int)$params['userId'];
+        $currentUserId = AuthMiddleware::getUserIdOptional();
+
+        // Validate user exists
+        $user = User::find($userId);
+        if (!$user) {
+            jsonResponse(false, null, 'User not found', 404);
         }
-        
-        $sql = "SELECT u.user_id, u.username, u.display_name, u.avatar_url, u.bio,
-                uf.created_at as followed_at
-                FROM user_follows uf
-                JOIN users u ON uf.following_id = u.user_id
-                WHERE uf.follower_id = ?
-                ORDER BY uf.created_at DESC
-                LIMIT ? OFFSET ?";
-        
-        $following = Database::fetchAll($sql, [$userId, $limit, $offset]);
-        
-        self::jsonResponse(true, [
+
+        // Pagination
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $limit = isset($_GET['limit']) ? min(50, max(1, (int)$_GET['limit'])) : 20;
+        $offset = ($page - 1) * $limit;
+
+        // Get following
+        $following = UserFollow::getFollowing($userId, $limit, $offset);
+        $totalCount = UserFollow::getFollowingCount($userId);
+
+        // Enrich with current user's follow status
+        if ($currentUserId) {
+            foreach ($following as &$user) {
+                $user['is_followed_by_you'] = UserFollow::isFollowing($currentUserId, $user['user_id']);
+                $user['is_mutual'] = UserFollow::isFollowing($user['user_id'], $currentUserId);
+            }
+        }
+
+        jsonResponse(true, [
             'following' => $following,
-            'count' => count($following),
-            'limit' => $limit,
-            'offset' => $offset
-        ]);
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $totalCount,
+                'has_more' => ($offset + count($following)) < $totalCount
+            ]
+        ], 'Following list retrieved successfully', 200);
     }
-    
+
     /**
-     * Get follow status between users
-     * GET /api/v1/users/:userId/follow-status
+     * Check follow status between users
+     * GET /api/v1/users/{userId}/follow-status
      */
     public static function getFollowStatus($params)
     {
-        $currentUser = AuthMiddleware::optionalAuth();
-        $targetUserId = $params['userId'] ?? null;
-        
-        if (!$targetUserId) {
-            self::jsonResponse(false, ['code' => 'INVALID_USER_ID'], 'User ID is required', 400);
+        $currentUserId = AuthMiddleware::getUserId();
+        $targetUserId = (int)$params['userId'];
+
+        // Validate target user exists
+        $targetUser = User::find($targetUserId);
+        if (!$targetUser) {
+            jsonResponse(false, null, 'User not found', 404);
         }
-        
-        if (!$currentUser) {
-            self::jsonResponse(true, [
-                'is_following' => false,
-                'follows_you' => false,
-                'is_mutual' => false
-            ]);
-            return;
-        }
-        
-        // Check if current user follows target
-        $sql = "SELECT follow_id FROM user_follows 
-                WHERE follower_id = ? AND following_id = ?";
-        $isFollowing = Database::fetchOne($sql, [$currentUser['user_id'], $targetUserId]);
-        
-        // Check if target follows current user
-        $sql = "SELECT follow_id FROM user_follows 
-                WHERE follower_id = ? AND following_id = ?";
-        $followsYou = Database::fetchOne($sql, [$targetUserId, $currentUser['user_id']]);
-        
-        $isFollowingBool = (bool)$isFollowing;
-        $followsYouBool = (bool)$followsYou;
-        
-        self::jsonResponse(true, [
-            'is_following' => $isFollowingBool,
-            'follows_you' => $followsYouBool,
-            'is_mutual' => $isFollowingBool && $followsYouBool
-        ]);
+
+        $isFollowing = UserFollow::isFollowing($currentUserId, $targetUserId);
+        $isFollowedBy = UserFollow::isFollowing($targetUserId, $currentUserId);
+        $isMutual = $isFollowing && $isFollowedBy;
+
+        jsonResponse(true, [
+            'user_id' => $targetUserId,
+            'is_following' => $isFollowing,
+            'is_followed_by' => $isFollowedBy,
+            'is_mutual' => $isMutual,
+            'follower_count' => $targetUser['followers_count'] ?? 0,
+            'following_count' => $targetUser['following_count'] ?? 0
+        ], 'Follow status retrieved successfully', 200);
     }
-    
-    /**
-     * Send JSON response
-     */
-    private static function jsonResponse($success, $data = [], $message = '', $statusCode = 200)
-    {
-        http_response_code($statusCode);
-        header('Content-Type: application/json');
-        
-        $response = [
-            'success' => $success,
-            'data' => $data
-        ];
 
-        if ($message) {
-            $response['message'] = $message;
+    /**
+     * Get mutual followers between two users
+     * GET /api/v1/users/{userId}/mutual-followers
+     */
+    public static function getMutualFollowers($params)
+    {
+        $currentUserId = AuthMiddleware::getUserId();
+        $targetUserId = (int)$params['userId'];
+
+        // Validate target user exists
+        $targetUser = User::find($targetUserId);
+        if (!$targetUser) {
+            jsonResponse(false, null, 'User not found', 404);
         }
 
-        echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        exit;
+        // Pagination
+        $limit = isset($_GET['limit']) ? min(50, max(1, (int)$_GET['limit'])) : 20;
+
+        $mutualFollowers = UserFollow::getMutualFollowers($currentUserId, $targetUserId, $limit);
+
+        jsonResponse(true, [
+            'mutual_followers' => $mutualFollowers,
+            'count' => count($mutualFollowers)
+        ], 'Mutual followers retrieved successfully', 200);
     }
 }

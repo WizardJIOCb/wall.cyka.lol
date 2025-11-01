@@ -158,4 +158,118 @@ class Reaction
         
         return $result;
     }
+    
+    /**
+     * Add or update reaction (toggle behavior)
+     * Returns action: 'created', 'updated', or 'removed'
+     */
+    public static function addOrUpdate($userId, $targetType, $targetId, $reactionType)
+    {
+        try {
+            Database::beginTransaction();
+            
+            // Check if reaction exists
+            $existing = self::getUserReaction($userId, $targetType, $targetId);
+            
+            $action = 'created';
+            
+            if ($existing) {
+                if ($existing['reaction_type'] === $reactionType) {
+                    // Same reaction - remove it (toggle off)
+                    self::removeReaction($userId, $targetType, $targetId);
+                    Database::commit();
+                    return ['action' => 'removed'];
+                } else {
+                    // Different reaction - update it
+                    $action = 'updated';
+                }
+            }
+            
+            // Add or update reaction
+            self::addReaction([
+                'user_id' => $userId,
+                'reactable_type' => $targetType,
+                'reactable_id' => $targetId,
+                'reaction_type' => $reactionType
+            ]);
+            
+            Database::commit();
+            return ['action' => $action];
+            
+        } catch (Exception $e) {
+            Database::rollback();
+            throw $e;
+        }
+    }
+    
+    /**
+     * Remove reaction (wrapper for consistency)
+     */
+    public static function remove($userId, $targetType, $targetId)
+    {
+        return self::removeReaction($userId, $targetType, $targetId);
+    }
+    
+    /**
+     * Get reaction summary grouped by type
+     */
+    public static function getSummary($targetType, $targetId)
+    {
+        $sql = "SELECT reaction_type, COUNT(*) as count
+                FROM reactions
+                WHERE reactable_type = ? AND reactable_id = ?
+                GROUP BY reaction_type
+                ORDER BY count DESC";
+        
+        $results = Database::fetchAll($sql, [$targetType, $targetId]);
+        
+        return array_map(function($row) {
+            return [
+                'type' => $row['reaction_type'],
+                'count' => (int)$row['count']
+            ];
+        }, $results);
+    }
+    
+    /**
+     * Get users who reacted with pagination
+     */
+    public static function getUsers($targetType, $targetId, $reactionType = null, $limit = 20, $offset = 0)
+    {
+        $sql = "SELECT r.reaction_type, u.user_id, u.username, u.display_name, u.avatar_url, r.created_at
+                FROM reactions r
+                JOIN users u ON r.user_id = u.user_id
+                WHERE r.reactable_type = ? AND r.reactable_id = ?";
+        
+        $params = [$targetType, $targetId];
+        
+        if ($reactionType) {
+            $sql .= " AND r.reaction_type = ?";
+            $params[] = $reactionType;
+        }
+        
+        $sql .= " ORDER BY r.created_at DESC LIMIT ? OFFSET ?";
+        $params[] = $limit;
+        $params[] = $offset;
+        
+        return Database::fetchAll($sql, $params);
+    }
+    
+    /**
+     * Get user reactions for multiple targets (bulk query)
+     */
+    public static function getUserReactions($userId, $targetType, array $targetIds)
+    {
+        if (empty($targetIds)) {
+            return [];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($targetIds), '?'));
+        $sql = "SELECT * FROM reactions 
+                WHERE user_id = ? AND reactable_type = ? AND reactable_id IN ($placeholders)";
+        
+        $params = array_merge([$userId, $targetType], $targetIds);
+        
+        return Database::fetchAll($sql, $params);
+    }
 }
