@@ -68,6 +68,7 @@ const handleAction = (toast: Toast) => {
   flex-direction: column;
   gap: var(--spacing-2);
   max-width: 400px;
+  pointer-events: none; /* Don't block clicks on the container */
 }
 
 .toast {
@@ -81,6 +82,7 @@ const handleAction = (toast: Toast) => {
   box-shadow: var(--shadow-lg);
   border-left: 4px solid;
   min-width: 300px;
+  pointer-events: auto; /* But allow clicks on individual toasts */
 }
 
 .toast-success {
@@ -197,13 +199,28 @@ const handleAction = (toast: Toast) => {
 
 @media (max-width: 768px) {
   .toast-container {
-    left: var(--spacing-4);
-    right: var(--spacing-4);
-    max-width: none;
+    top: var(--spacing-3);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    max-width: calc(100% - 2rem);
+    width: fit-content; /* Fit content width */
   }
   
   .toast {
-    min-width: auto;
+    min-width: 0; /* Remove min-width on mobile */
+    max-width: 100%;
+    padding: var(--spacing-2) var(--spacing-3); /* Compact padding */
+    font-size: 0.875rem;
+    white-space: nowrap; /* Keep text on one line */
+  }
+  
+  .toast-message {
+    font-size: 0.875rem;
+  }
+  
+  .toast-icon {
+    font-size: 1rem; /* Smaller icon */
   }
 }
 </style>

@@ -594,7 +594,7 @@ const shareAIResponse = () => {
   
   navigator.clipboard.writeText(shareUrl).then(() => {
     console.log('Share link copied to clipboard:', shareUrl)
-    displayToast('✓ Share link copied to clipboard!')
+    displayToast('✓ Link copied!')
   }).catch(err => {
     console.error('Failed to copy share link:', err)
     displayToast('✗ Failed to copy link')
@@ -1071,7 +1071,7 @@ onUnmounted(() => {
   padding: 0;
   background: transparent;
   border-radius: var(--radius-sm);
-  margin-bottom: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
   font-size: 0.875rem;
   color: var(--color-text-secondary);
   line-height: 1.5;
@@ -1650,9 +1650,7 @@ onUnmounted(() => {
   .ai-stats .stats-grid {
     grid-template-columns: 1fr;
   }
-}
-
-@media (max-width: 768px) {
+  
   .wall-banner {
     height: 120px;
   }
@@ -1665,6 +1663,77 @@ onUnmounted(() => {
   
   .wall-title {
     font-size: 1.5rem;
+  }
+  
+  /* Mobile modal layout */
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-start !important;
+  }
+  
+  .modal-content {
+    max-height: 100vh !important;
+    height: 100vh !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    touch-action: pan-y !important;
+  }
+  
+  .modal-body {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overflow-y: scroll !important;
+  }
+  
+  /* Mobile modal footer layout */
+  .modal-footer {
+    flex-direction: column;
+    gap: var(--spacing-2);
+    padding: var(--spacing-3);
+  }
+  
+  .action-buttons-group {
+    width: 100%;
+    gap: var(--spacing-2);
+  }
+  
+  .btn-share,
+  .btn-copy {
+    flex: 1;
+    padding: var(--spacing-3);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    touch-action: manipulation;
+  }
+  
+  .modal-footer .btn-secondary {
+    width: 100%;
+    padding: var(--spacing-3);
+    touch-action: manipulation;
+  }
+  
+  .btn-close {
+    touch-action: manipulation;
+  }
+  
+  /* Mobile toast positioning - top center */
+  .toast-notification {
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    bottom: auto;
+    width: auto;
+    max-width: calc(100% - 3rem);
+    min-height: auto; /* No min height */
+    max-height: 2.5rem; /* Limit height */
+    padding: 0.4rem 0.75rem; /* Very tight padding */
+    font-size: 0.75rem; /* Even smaller font (12px) */
+    line-height: 1.4; /* Tighter line height */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: slideInDown 0.3s ease-out, fadeOut 0.3s ease-in 1.7s;
   }
 }
 
@@ -1680,11 +1749,12 @@ onUnmounted(() => {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   font-weight: 600;
   font-size: 0.9375rem;
-  z-index: 10001;
+  z-index: 10100;
   animation: slideInUp 0.3s ease-out, fadeOut 0.3s ease-in 1.7s;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  pointer-events: none; /* Don't block clicks */
 }
 
 @keyframes slideInUp {
@@ -1694,6 +1764,17 @@ onUnmounted(() => {
   }
   to {
     transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateX(-50%) translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
     opacity: 1;
   }
 }
