@@ -198,6 +198,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Followers/Following Modal -->
+    <FollowersModal
+      :is-open="showFollowersModal"
+      :user-id="profile?.user_id || 0"
+      :type="followersModalType"
+      @close="showFollowersModal = false"
+      @followChanged="handleFollowChanged"
+    />
   </div>
 </template>
 
@@ -205,7 +214,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import apiClient from '@/services/api/client'
+import FollowersModal from '@/components/modals/FollowersModal.vue'
 
 const props = defineProps<{ username?: string }>()
 
@@ -350,18 +361,26 @@ const loadMorePosts = () => {
 }
 
 const toggleFollow = async () => {
+  const previousState = isFollowing.value
+  const previousCount = stats.value.followersCount
+  
   try {
-    if (isFollowing.value) {
+    // Optimistic update
+    isFollowing.value = !previousState
+    stats.value.followersCount += isFollowing.value ? 1 : -1
+    
+    if (previousState) {
       await apiClient.delete(`/users/${profile.value.user_id}/follow`)
-      isFollowing.value = false
-      stats.value.followersCount--
+      toast.success('Unfollowed successfully')
     } else {
       await apiClient.post(`/users/${profile.value.user_id}/follow`)
-      isFollowing.value = true
-      stats.value.followersCount++
+      toast.success('Following successfully')
     }
   } catch (err: any) {
-    alert(err.response?.data?.message || 'Failed to update follow status')
+    // Rollback on error
+    isFollowing.value = previousState
+    stats.value.followersCount = previousCount
+    toast.error(err.message || 'Failed to update follow status')
   }
 }
 
@@ -370,11 +389,18 @@ const sendMessage = () => {
 }
 
 const showFollowers = () => {
-  console.log('Show followers modal')
+  followersModalType.value = 'followers'
+  showFollowersModal.value = true
 }
 
 const showFollowing = () => {
-  console.log('Show following modal')
+  followersModalType.value = 'following'
+  showFollowersModal.value = true
+}
+
+const handleFollowChanged = () => {
+  // Reload stats when follow state changes in modal
+  loadStats()
 }
 
 onMounted(() => {

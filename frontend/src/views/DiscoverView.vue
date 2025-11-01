@@ -139,13 +139,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDebounce } from '@/composables/useDebounce'
+import { useToast } from '@/composables/useToast'
 import apiClient from '@/services/api/client'
 
 const router = useRouter()
+const toast = useToast()
 
-const searchQuery = ref('')
+const { value: searchQuery, debouncedValue: debouncedSearch } = useDebounce('', 300)
 const trendingTimeframe = ref('7d')
 const trendingWalls = ref<any[]>([])
 const popularPosts = ref<any[]>([])
@@ -168,10 +171,19 @@ const formatDate = (dateString: string) => {
 }
 
 const performSearch = () => {
-  if (searchQuery.value.trim()) {
-    router.push(`/search?q=${encodeURIComponent(searchQuery.value)}`)
+  if (debouncedSearch.value.trim().length >= 2) {
+    router.push(`/search?q=${encodeURIComponent(debouncedSearch.value)}`)
+  } else if (searchQuery.value.trim().length > 0 && searchQuery.value.trim().length < 2) {
+    toast.warning('Please enter at least 2 characters to search')
   }
 }
+
+// Watch debounced search value
+watch(debouncedSearch, (newValue) => {
+  if (newValue.trim().length >= 2) {
+    performSearch()
+  }
+})
 
 const loadTrendingWalls = async () => {
   try {
@@ -223,17 +235,28 @@ const followUser = async (userId: number) => {
     const user = suggestedUsers.value.find(u => u.user_id === userId)
     if (!user) return
 
-    if (user.is_following) {
+    const previousState = user.is_following
+    const previousCount = user.followers_count
+
+    // Optimistic update
+    user.is_following = !previousState
+    user.followers_count += user.is_following ? 1 : -1
+
+    if (previousState) {
       await apiClient.delete(`/users/${userId}/follow`)
-      user.is_following = false
-      user.followers_count--
+      toast.success('Unfollowed successfully')
     } else {
       await apiClient.post(`/users/${userId}/follow`)
-      user.is_following = true
-      user.followers_count++
+      toast.success('Following successfully')
     }
   } catch (err: any) {
-    alert(err.response?.data?.message || 'Failed to update follow status')
+    // Rollback on error
+    const user = suggestedUsers.value.find(u => u.user_id === userId)
+    if (user) {
+      user.is_following = !user.is_following
+      user.followers_count += user.is_following ? 1 : -1
+    }
+    toast.error(err.message || 'Failed to update follow status')
   }
 }
 

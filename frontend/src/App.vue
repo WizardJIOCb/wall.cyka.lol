@@ -8,7 +8,7 @@
   </component>
 
   <!-- Global Toast Component -->
-  <AppToast ref="toastRef" />
+  <ToastContainer />
 </template>
 
 <script setup lang="ts">
@@ -19,13 +19,11 @@ import { useAuthStore } from '@/stores/auth'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import MinimalLayout from '@/layouts/MinimalLayout.vue'
-import AppToast from '@/components/common/AppToast.vue'
+import ToastContainer from '@/components/common/ToastContainer.vue'
 
 const route = useRoute()
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
-
-const toastRef = ref()
 
 // Determine which layout to use based on route meta
 const layout = computed(() => {
@@ -47,10 +45,7 @@ onMounted(async () => {
   await authStore.init()
 })
 
-// Expose toast for global access
-defineExpose({
-  toast: toastRef
-})
+
 </script>
 
 <style>

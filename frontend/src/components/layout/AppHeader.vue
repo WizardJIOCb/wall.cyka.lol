@@ -35,9 +35,9 @@
           <span class="text">Create</span>
         </AppButton>
 
-        <button class="btn-icon" aria-label="Notifications">
+        <button class="btn-icon" aria-label="Notifications" @click="goToNotifications">
           <span class="icon">🔔</span>
-          <span v-if="notificationCount > 0" class="badge">{{ notificationCount }}</span>
+          <span v-if="unreadCount > 0" class="badge">{{ formatCount(unreadCount) }}</span>
         </button>
 
         <AppDropdown position="bottom-right">
@@ -66,17 +66,29 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import { useNotifications } from '@/composables/useNotifications'
 import AppButton from '@/components/common/AppButton.vue'
 import AppAvatar from '@/components/common/AppAvatar.vue'
 import AppDropdown from '@/components/common/AppDropdown.vue'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const { unreadCount } = useNotifications()
 
 const currentUser = computed(() => authStore.user)
-const notificationCount = computed(() => 0) // TODO: Get from notifications store
+
+const formatCount = (count: number) => {
+  if (count > 99) return '99+'
+  return count.toString()
+}
+
+const goToNotifications = () => {
+  router.push('/notifications')
+}
 
 const toggleSidebar = () => {
   uiStore.toggleSidebar()

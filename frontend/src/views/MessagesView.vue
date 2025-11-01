@@ -208,7 +208,6 @@ const isTyping = ref(false)
 const showNewMessageModal = ref(false)
 const newMessageUsername = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
-let pollInterval: any = null
 let typingTimeout: any = null
 
 const filteredConversations = computed(() => {
@@ -295,31 +294,49 @@ const selectConversation = (conversationId: number) => {
 const sendMessage = async () => {
   if (!messageText.value.trim() || !activeConversationId.value) return
 
+  const optimisticMessage = {
+    message_id: Date.now(),
+    message_text: messageText.value.trim(),
+    is_own: true,
+    created_at: new Date().toISOString(),
+    sending: true
+  }
+
   try {
+    // Optimistic update
+    messages.value.push(optimisticMessage)
+    const textToSend = messageText.value.trim()
+    messageText.value = ''
+    
+    await nextTick()
+    scrollToBottom()
+
     const response = await apiClient.post(`/conversations/${activeConversationId.value}/messages`, {
-      message_text: messageText.value.trim()
+      message_text: textToSend
     })
 
     if (response.data.success && response.data.data.message) {
-      const newMessage = {
-        ...response.data.data.message,
-        is_own: true
+      // Replace optimistic message with real one
+      const index = messages.value.findIndex(m => m.message_id === optimisticMessage.message_id)
+      if (index !== -1) {
+        messages.value[index] = {
+          ...response.data.data.message,
+          is_own: true
+        }
       }
-      messages.value.push(newMessage)
-      messageText.value = ''
-      
-      await nextTick()
-      scrollToBottom()
       
       // Update conversation last message
       const conv = conversations.value.find(c => c.conversation_id === activeConversationId.value)
       if (conv) {
-        conv.last_message = newMessage.message_text
-        conv.updated_at = newMessage.created_at
+        conv.last_message = textToSend
+        conv.updated_at = response.data.data.message.created_at
       }
     }
   } catch (err: any) {
-    alert(err.response?.data?.message || 'Failed to send message')
+    // Remove optimistic message on error
+    messages.value = messages.value.filter(m => m.message_id !== optimisticMessage.message_id)
+    messageText.value = optimisticMessage.message_text
+    toast.error(err.message || 'Failed to send message')
   }
 }
 
@@ -470,11 +487,11 @@ onMounted(() => {
     loadMessages()
   }
   
-  startPolling()
+  messagePoller.start()
 })
 
 onUnmounted(() => {
-  stopPolling()
+  messagePoller.stop()
   if (typingTimeout) {
     clearTimeout(typingTimeout)
   }
