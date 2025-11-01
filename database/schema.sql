@@ -128,6 +128,9 @@ CREATE TABLE IF NOT EXISTS ai_applications (
   js_content TEXT NULL,
   preview_image_url VARCHAR(500) NULL,
   generation_model VARCHAR(100) NULL,
+  input_tokens INT DEFAULT 0,
+  output_tokens INT DEFAULT 0,
+  total_tokens INT DEFAULT 0,
   generation_time INT NULL,
   status ENUM('queued', 'processing', 'completed', 'failed') DEFAULT 'queued' NOT NULL,
   queue_position INT NULL,
@@ -140,6 +143,7 @@ CREATE TABLE IF NOT EXISTS ai_applications (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
   FOREIGN KEY (original_app_id) REFERENCES ai_applications(app_id) ON DELETE SET NULL,
+  INDEX idx_model_tokens (generation_model, total_tokens),
   FULLTEXT INDEX idx_prompt (user_prompt)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

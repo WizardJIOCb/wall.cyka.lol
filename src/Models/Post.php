@@ -26,7 +26,8 @@ class Post
     {
         $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
                 ai.status as ai_status, ai.app_id, ai.queue_position, ai.user_prompt,
-                ai.html_content, ai.css_content, ai.js_content
+                ai.html_content, ai.css_content, ai.js_content, ai.generation_model,
+                ai.generation_time, ai.input_tokens, ai.output_tokens, ai.total_tokens
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 LEFT JOIN ai_applications ai ON p.post_id = ai.post_id
@@ -236,6 +237,11 @@ class Post
                     'html_content' => $post['html_content'] ?? null,
                     'css_content' => $post['css_content'] ?? null,
                     'js_content' => $post['js_content'] ?? null,
+                    'generation_model' => $post['generation_model'] ?? null,
+                    'generation_time' => isset($post['generation_time']) ? (int)$post['generation_time'] : null,
+                    'input_tokens' => isset($post['input_tokens']) ? (int)$post['input_tokens'] : 0,
+                    'output_tokens' => isset($post['output_tokens']) ? (int)$post['output_tokens'] : 0,
+                    'total_tokens' => isset($post['total_tokens']) ? (int)$post['total_tokens'] : 0,
                 ];
             }
         }

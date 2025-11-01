@@ -105,6 +105,7 @@
         <div class="option-group">
           <label class="form-label">Model</label>
           <select v-model="selectedModel" class="form-select" @change="calculateCost">
+            <option value="gpt-oss:20b">gpt-oss:20b</option>
             <option value="deepseek-coder">DeepSeek Coder (Recommended)</option>
             <option value="llama-coder">Llama Coder</option>
             <option value="codellama">CodeLlama</option>
@@ -292,11 +293,17 @@ const submitGeneration = async () => {
   try {
     generating.value = true
     
-    const response = await apiClient.post('/ai/generate', {
+    console.log('[AIGenerateView] Submitting generation with model:', selectedModel.value)
+    
+    const requestData = {
       prompt: promptText.value,
       model: selectedModel.value,
       priority: priority.value
-    })
+    }
+    
+    console.log('[AIGenerateView] Full request data:', requestData)
+    
+    const response = await apiClient.post('/ai/generate', requestData)
 
     console.log('AI Generate Response:', response)
 

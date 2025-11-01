@@ -114,7 +114,7 @@ function processJob($jobId, $config, $connections) {
     try {
         // 1. Fetch job details from database
         $job = Database::fetchOne(
-            "SELECT j.*, a.user_prompt, a.app_id, a.post_id 
+            "SELECT j.*, a.user_prompt, a.app_id, a.post_id, a.generation_model 
              FROM ai_generation_jobs j 
              JOIN ai_applications a ON j.app_id = a.app_id 
              WHERE j.job_id = ?",
@@ -128,7 +128,7 @@ function processJob($jobId, $config, $connections) {
         
         echo "  User ID: {$job['user_id']}\n";
         echo "  App ID: {$job['app_id']}\n";
-        echo "  Model: " . ($config['ollama_model']) . "\n";
+        echo "  Model: " . ($job['generation_model'] ?: $config['ollama_model']) . "\n";
         echo "  Prompt: " . substr($job['user_prompt'], 0, 100) . "...\n";
         
         // 2. Update status to 'processing'
@@ -153,9 +153,10 @@ function processJob($jobId, $config, $connections) {
         $fullPrompt = $systemPrompt . "\n\nUser Request: " . $job['user_prompt'];
         
         // 4. Send request to Ollama API
+        $selectedModel = $job['generation_model'] ?: $config['ollama_model'];
         $ollamaUrl = "http://{$config['ollama_host']}:{$config['ollama_port']}/api/generate";
         $requestData = [
-            'model' => $config['ollama_model'],
+            'model' => $selectedModel,
             'prompt' => $fullPrompt,
             'stream' => false,
             'options' => [
@@ -192,8 +193,9 @@ function processJob($jobId, $config, $connections) {
         }
         
         $generatedCode = trim($result['response']);
-        $totalTokens = $result['eval_count'] ?? 0;
         $promptTokens = $result['prompt_eval_count'] ?? 0;
+        $completionTokens = $result['eval_count'] ?? 0;
+        $totalTokens = $promptTokens + $completionTokens;
         
         echo "  Generation completed in {$generationTime}ms\n";
         echo "  Tokens: {$totalTokens} (prompt: {$promptTokens})\n";
@@ -226,10 +228,13 @@ function processJob($jobId, $config, $connections) {
                 js_content = ?, 
                 generation_model = ?,
                 generation_time = ?,
+                input_tokens = ?,
+                output_tokens = ?,
+                total_tokens = ?,
                 status = 'completed', 
                 updated_at = NOW() 
              WHERE app_id = ?",
-            [$htmlContent, $cssContent, $jsContent, $config['ollama_model'], $generationTime, $job['app_id']]
+            [$htmlContent, $cssContent, $jsContent, $selectedModel, $generationTime, $promptTokens, $completionTokens, $totalTokens, $job['app_id']]
         );
         
         // 8. Update job status

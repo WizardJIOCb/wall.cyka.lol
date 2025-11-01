@@ -140,6 +140,32 @@
             </div>
           </div>
           
+          <div class="ai-modal-section ai-stats" v-if="selectedAIPost.ai_content">
+            <h3>📊 Generation Stats</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Model:</span>
+                <span class="stat-value">{{ selectedAIPost.ai_content.generation_model || 'Unknown' }}</span>
+              </div>
+              <div class="stat-item" v-if="selectedAIPost.ai_content.generation_time">
+                <span class="stat-label">Time:</span>
+                <span class="stat-value">{{ (selectedAIPost.ai_content.generation_time / 1000).toFixed(2) }}s</span>
+              </div>
+              <div class="stat-item" v-if="selectedAIPost.ai_content.input_tokens">
+                <span class="stat-label">Input Tokens:</span>
+                <span class="stat-value">{{ selectedAIPost.ai_content.input_tokens.toLocaleString() }}</span>
+              </div>
+              <div class="stat-item" v-if="selectedAIPost.ai_content.output_tokens">
+                <span class="stat-label">Output Tokens:</span>
+                <span class="stat-value">{{ selectedAIPost.ai_content.output_tokens.toLocaleString() }}</span>
+              </div>
+              <div class="stat-item" v-if="selectedAIPost.ai_content.total_tokens">
+                <span class="stat-label">Total Tokens:</span>
+                <span class="stat-value">{{ selectedAIPost.ai_content.total_tokens.toLocaleString() }}</span>
+              </div>
+            </div>
+          </div>
+          
           <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content">
             <div class="section-header">
               <h3>🌐 HTML</h3>
@@ -1005,6 +1031,40 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
+}
+
+/* AI Stats Section */
+.ai-stats .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.125rem;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .ai-stats .stats-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {

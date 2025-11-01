@@ -20,6 +20,10 @@ class AIController
             self::jsonResponse(false, ['code' => 'INVALID_INPUT'], 'Prompt is required', 400);
         }
 
+        // Log received data for debugging
+        error_log('[AIController::generateApp] Received model: ' . ($data['model'] ?? 'NOT SET'));
+        error_log('[AIController::generateApp] Full request data: ' . json_encode($data));
+
         try {
             // Get user's default wall
             $userWall = Wall::getUserDefaultWall($user['user_id']);
@@ -44,6 +48,7 @@ class AIController
                 'post_id' => $post['post_id'],
                 'job_id' => $jobId,
                 'user_prompt' => $data['prompt'],
+                'generation_model' => $data['model'] ?? 'deepseek-coder',
                 'status' => 'queued',
                 'queue_position' => 0
             ];
