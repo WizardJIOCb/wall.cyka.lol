@@ -67,7 +67,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { client } from '@/services/api/client'
+import { apiClient } from '@/services/api/client'
 
 const form = ref({
   username: '',
@@ -93,7 +93,7 @@ async function handleAddBricks() {
 
   try {
     // First get user by username
-    const usersResponse = await client.get(`/api/v1/users/search?q=${form.value.username}`)
+    const usersResponse = await apiClient.get(`/api/v1/users/search?q=${form.value.username}`)
     
     if (!usersResponse.data.success || !usersResponse.data.data.users?.length) {
       throw new Error('User not found')
@@ -103,7 +103,7 @@ async function handleAddBricks() {
     const userId = user.user_id
 
     // Now add bricks
-    const response = await client.post('/api/v1/bricks/admin/add', {
+    const response = await apiClient.post('/api/v1/bricks/admin/add', {
       user_id: userId,
       amount: form.value.amount,
       reason: form.value.reason
