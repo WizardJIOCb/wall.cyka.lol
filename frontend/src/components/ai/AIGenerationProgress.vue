@@ -231,8 +231,8 @@ function startTracking() {
     contentLength.value = data.content_length || 0
     charsPerSecond.value = data.chars_per_second || 0
 
-    // Always sync elapsed time with server to show real-time updates
-    if (data.elapsed_time) {
+    // ONLY sync start time when first starting, don't override running timer
+    if (data.elapsed_time && status.value === 'processing' && elapsedTime.value === 0) {
       const serverElapsed = data.elapsed_time
       clientStartTime = Date.now() - serverElapsed
       elapsedTime.value = serverElapsed
