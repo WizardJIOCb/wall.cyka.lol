@@ -80,17 +80,17 @@
             <div v-if="post.post_type === 'ai_app' && post.ai_status === 'completed' && post.ai_content" class="ai-content-preview">
               <div class="ai-preview-header">
                 <span class="preview-icon">✨</span>
-                <h4>Generated Application</h4>
+                <h4>AI Response</h4>
               </div>
               <div class="ai-preview-prompt">
                 <strong>Prompt:</strong> {{ truncateText(post.ai_content.user_prompt, 150) }}
               </div>
-              <div v-if="post.ai_content.html_content" class="ai-preview-code">
-                <pre>{{ truncateText(post.ai_content.html_content, 200) }}</pre>
+              <div v-if="post.ai_content.html_content" class="ai-preview-text">
+                {{ truncateText(post.ai_content.html_content.replace(/<[^>]*>/g, ''), 200) }}
               </div>
               <button @click="openAIModal(post)" class="btn-open-ai">
                 <span class="icon">👁️</span>
-                <span>Open Full Content</span>
+                <span>View Full Response</span>
               </button>
             </div>
             <div v-if="post.media_attachments && post.media_attachments.length > 0" class="post-media">
@@ -126,7 +126,7 @@
     <div v-if="showAIModal" class="modal-overlay" @click.self="closeAIModal">
       <div class="modal-content ai-modal">
         <div class="modal-header">
-          <h2>✨ AI Generated Application</h2>
+          <h2>🤖 AI Response</h2>
           <button @click="closeAIModal" class="btn-close">×</button>
         </div>
         
@@ -166,34 +166,14 @@
           
           <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content">
             <div class="section-header">
-              <h3>🌐 HTML</h3>
-              <button @click="copyToClipboard(selectedAIPost.ai_content.html_content, 'HTML')" class="btn-copy-small">📋 Copy</button>
+              <h3>💬 Response</h3>
+              <button @click="copyToClipboard(selectedAIPost.ai_content.html_content, 'Response')" class="btn-copy-small">📋 Copy</button>
             </div>
-            <pre class="code-block">{{ selectedAIPost.ai_content.html_content }}</pre>
-          </div>
-          
-          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.css_content">
-            <div class="section-header">
-              <h3>🎨 CSS</h3>
-              <button @click="copyToClipboard(selectedAIPost.ai_content.css_content, 'CSS')" class="btn-copy-small">📋 Copy</button>
-            </div>
-            <pre class="code-block">{{ selectedAIPost.ai_content.css_content }}</pre>
-          </div>
-          
-          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.js_content">
-            <div class="section-header">
-              <h3>⚡ JavaScript</h3>
-              <button @click="copyToClipboard(selectedAIPost.ai_content.js_content, 'JavaScript')" class="btn-copy-small">📋 Copy</button>
-            </div>
-            <pre class="code-block">{{ selectedAIPost.ai_content.js_content }}</pre>
+            <div class="ai-response-content" v-html="selectedAIPost.ai_content.html_content"></div>
           </div>
         </div>
         
         <div class="modal-footer">
-          <button @click="downloadAIApp" class="btn-primary">
-            <span>📥</span>
-            <span>Download Full App</span>
-          </button>
           <button @click="closeAIModal" class="btn-secondary">Close</button>
         </div>
       </div>
@@ -854,23 +834,17 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
-.ai-preview-code {
+.ai-preview-code,
+.ai-preview-text {
   margin-bottom: var(--spacing-3);
-  background: #1e1e1e;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.ai-preview-code pre {
-  margin: 0;
   padding: var(--spacing-3);
-  color: #d4d4d4;
-  font-family: 'Courier New', monospace;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-open-ai {
@@ -1030,6 +1004,63 @@ onUnmounted(() => {
   margin: 0;
   max-height: 400px;
   overflow-y: auto;
+}
+
+.ai-response-content {
+  padding: var(--spacing-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.ai-response-content pre {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: var(--spacing-3) 0;
+}
+
+.ai-response-content code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-size: 0.875em;
+}
+
+.ai-response-content p {
+  margin: var(--spacing-3) 0;
+}
+
+.ai-response-content h1,
+.ai-response-content h2,
+.ai-response-content h3 {
+  margin-top: var(--spacing-4);
+  margin-bottom: var(--spacing-2);
+  font-weight: 600;
+}
+
+.ai-response-content ul,
+.ai-response-content ol {
+  margin: var(--spacing-3) 0;
+  padding-left: var(--spacing-5);
+}
+
+.ai-response-content blockquote {
+  border-left: 4px solid var(--color-primary);
+  padding-left: var(--spacing-3);
+  margin: var(--spacing-3) 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
 }
 
 .modal-footer {
