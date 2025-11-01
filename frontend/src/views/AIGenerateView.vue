@@ -182,6 +182,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api/client'
 
 const props = defineProps<{ jobId?: string }>()
@@ -189,11 +190,12 @@ const props = defineProps<{ jobId?: string }>()
 const route = useRoute()
 const router = useRouter()
 
+const authStore = useAuthStore()
 const promptText = ref('')
 const selectedModel = ref('deepseek-coder')
 const priority = ref('normal')
 const estimatedCost = ref(100)
-const bricksBalance = ref(0)
+const bricksBalance = ref(authStore.user?.bricks_balance || 0)
 const generating = ref(false)
 const currentJob = ref<any>(null)
 const history = ref<any[]>([])
@@ -261,9 +263,11 @@ const getStatusIcon = (status: string) => {
 
 const loadBricksBalance = async () => {
   try {
-    const response = await apiClient.get('/bricks/balance')
-    if (response.data.success) {
-      bricksBalance.value = response.data.data.balance || 0
+    // Refresh user data to get latest balance
+    const userResponse = await apiClient.get('/auth/me')
+    if (userResponse.success && userResponse.data.user) {
+      authStore.updateUser(userResponse.data.user)
+      bricksBalance.value = userResponse.data.user.bricks_balance || 0
     }
   } catch (err) {
     console.error('Error loading bricks balance:', err)
@@ -294,12 +298,18 @@ const submitGeneration = async () => {
       priority: priority.value
     })
 
-    if (response.data.success && response.data.data.job) {
-      currentJob.value = response.data.data.job
-      router.push(`/ai/${currentJob.value.job_id}`)
-      startPolling()
+    console.log('AI Generate Response:', response)
+
+    if (response.success && response.data?.job) {
+      currentJob.value = response.data.job
+      // Refresh balance after deduction
+      await loadBricksBalance()
+      
+      // Redirect to user's wall to see the post with generation progress
+      router.push('/wall/me')
     }
   } catch (err: any) {
+    console.error('Generation error:', err)
     alert(err.response?.data?.message || 'Failed to start generation')
   } finally {
     generating.value = false

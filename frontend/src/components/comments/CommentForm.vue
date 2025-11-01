@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import api from '@/services/api'
+import apiClient from '@/services/api/client'
 
 interface Props {
   postId?: number
@@ -117,20 +117,20 @@ const submitComment = async () => {
     
     if (props.commentId) {
       // Edit existing comment
-      response = await api.patch(`/comments/${props.commentId}`, {
+      response = await apiClient.patch(`/comments/${props.commentId}`, {
         content: content.value.trim()
       })
       emit('comment-updated', response.data.data)
     } else if (props.parentCommentId) {
       // Create reply
-      response = await api.post(
+      response = await apiClient.post(
         `/comments/${props.parentCommentId}/replies`,
         { content: content.value.trim() }
       )
       emit('comment-created', response.data.data)
     } else if (props.postId) {
       // Create top-level comment
-      response = await api.post(`/posts/${props.postId}/comments`, {
+      response = await apiClient.post(`/posts/${props.postId}/comments`, {
         content: content.value.trim()
       })
       emit('comment-created', response.data.data)

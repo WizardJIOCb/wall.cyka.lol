@@ -209,6 +209,7 @@ const showNewMessageModal = ref(false)
 const newMessageUsername = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 let typingTimeout: any = null
+let pollInterval: any = null
 
 const filteredConversations = computed(() => {
   if (!conversationSearch.value) return conversations.value
@@ -251,11 +252,19 @@ const loadConversations = async () => {
     loadingConversations.value = true
     const response = await apiClient.get('/conversations')
     
-    if (response.data.success && response.data.data.conversations) {
+    // Handle different response structures
+    if (response?.data?.success && response?.data?.data?.conversations) {
       conversations.value = response.data.data.conversations
+    } else if (response?.data?.conversations) {
+      conversations.value = response.data.conversations
+    } else if (Array.isArray(response?.data)) {
+      conversations.value = response.data
+    } else {
+      conversations.value = []
     }
   } catch (err) {
     console.error('Error loading conversations:', err)
+    conversations.value = []
   } finally {
     loadingConversations.value = false
   }
@@ -487,11 +496,11 @@ onMounted(() => {
     loadMessages()
   }
   
-  messagePoller.start()
+  startPolling()
 })
 
 onUnmounted(() => {
-  messagePoller.stop()
+  stopPolling()
   if (typingTimeout) {
     clearTimeout(typingTimeout)
   }

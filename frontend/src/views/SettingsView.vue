@@ -273,7 +273,7 @@ const passwordData = ref({
 const selectedTheme = ref(themeStore.currentTheme || 'light')
 const avatarPreview = computed(() => authStore.user?.avatar_url || '/assets/images/default-avatar.svg')
 
-const bricksBalance = ref(0)
+const bricksBalance = ref(authStore.user?.bricks_balance || 0)
 const canClaimDaily = ref(true)
 const timeUntilClaim = ref('')
 const transactions = ref<any[]>([])
@@ -360,12 +360,14 @@ const loadBricksData = async () => {
       apiClient.get('/bricks/transactions?limit=10')
     ])
     
-    if (balanceRes.data.success) {
-      bricksBalance.value = balanceRes.data.data.balance
+    if (balanceRes.success) {
+      bricksBalance.value = balanceRes.data.balance
+      // Update auth store with fresh balance
+      authStore.updateUser({ bricks_balance: balanceRes.data.balance })
     }
     
-    if (transactionsRes.data.success) {
-      transactions.value = transactionsRes.data.data.transactions || []
+    if (transactionsRes.success) {
+      transactions.value = transactionsRes.data.transactions || []
     }
   } catch (error) {
     console.error('Failed to load bricks data:', error)
@@ -403,7 +405,17 @@ const saveSettings = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Refresh user data from backend to get latest bricks balance
+  try {
+    const response = await apiClient.get('/auth/me')
+    if (response.success && response.data.user) {
+      authStore.updateUser(response.data.user)
+    }
+  } catch (error) {
+    console.error('Failed to refresh user data:', error)
+  }
+  
   loadBricksData()
 })
 </script>

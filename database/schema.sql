@@ -458,6 +458,12 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT IGNORE INTO users (user_id, username, email, password_hash, display_name, bricks_balance, theme_preference, is_active, email_verified) VALUES (1, 'admin', 'admin@wall.cyka.lol', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'System Administrator', 10000, 'dark', TRUE, TRUE);
 
 -- Admin wall
-INSERT IGNORE INTO walls (wall_id, user_id, wall_slug, display_name, description, privacy_level) VALUES (1, 1, 'admin', 'Admin Wall', 'Official system administrator wall', 'public');
+INSERT IGNORE INTO walls (
+    wall_id, user_id, wall_slug, display_name, description, 
+    privacy_level, allow_comments, allow_reactions, allow_reposts
+) VALUES (
+    1, 1, 'admin', 'Admin Wall', 'Official system administrator wall', 
+    'public', TRUE, TRUE, TRUE
+);
 
 -- Schema complete: 28 tables created

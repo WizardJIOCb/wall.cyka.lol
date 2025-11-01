@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AxiosInstance } from 'axios'
+import apiClient from '@/services/api/client'
 import type { 
   Comment, 
   CommentListResponse, 
@@ -40,7 +40,7 @@ export const useCommentsStore = defineStore('comments', () => {
     error.value = null
     
     try {
-      const response = await api.get(`/posts/${postId}/comments`, {
+      const response = await apiClient.get(`/posts/${postId}/comments`, {
         params: {
           sort: options.sort || 'created_asc',
           limit: options.limit || 50,
@@ -69,7 +69,7 @@ export const useCommentsStore = defineStore('comments', () => {
         ? `/comments/${data.parent_comment_id}/replies`
         : `/posts/${postId}/comments`
       
-      const response = await api.post(endpoint, { content: data.content })
+      const response = await apiClient.post(endpoint, { content: data.content })
       const comment: Comment = response.data.data
       
       // Add to local state
@@ -88,7 +88,7 @@ export const useCommentsStore = defineStore('comments', () => {
     data: UpdateCommentData
   ): Promise<Comment> => {
     try {
-      const response = await api.patch(`/comments/${commentId}`, data)
+      const response = await apiClient.patch(`/comments/${commentId}`, data)
       const updatedComment: Comment = response.data.data
       
       // Update in local state
@@ -110,7 +110,7 @@ export const useCommentsStore = defineStore('comments', () => {
   
   const deleteComment = async (commentId: number, postId: number): Promise<void> => {
     try {
-      await api.delete(`/comments/${commentId}`)
+      await apiClient.delete(`/comments/${commentId}`)
       
       // Remove from local state
       const comments = commentsByPost.value.get(postId) || []
@@ -127,7 +127,7 @@ export const useCommentsStore = defineStore('comments', () => {
     reactionType: string
   ): Promise<CommentReactionResponse> => {
     try {
-      const response = await api.post(`/comments/${commentId}/reactions`, {
+      const response = await apiClient.post(`/comments/${commentId}/reactions`, {
         reaction_type: reactionType
       })
       
@@ -160,7 +160,7 @@ export const useCommentsStore = defineStore('comments', () => {
   
   const removeReaction = async (commentId: number): Promise<CommentReactionResponse> => {
     try {
-      const response = await api.delete(`/comments/${commentId}/reactions`)
+      const response = await apiClient.delete(`/comments/${commentId}/reactions`)
       const data: CommentReactionResponse = response.data.data
       
       // Update comment reaction in local state
@@ -189,7 +189,7 @@ export const useCommentsStore = defineStore('comments', () => {
   
   const getCommentReactions = async (commentId: number) => {
     try {
-      const response = await api.get(`/comments/${commentId}/reactions`)
+      const response = await apiClient.get(`/comments/${commentId}/reactions`)
       return response.data.data
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to fetch reactions'
@@ -206,7 +206,7 @@ export const useCommentsStore = defineStore('comments', () => {
     } = {}
   ) => {
     try {
-      const response = await api.get(`/comments/${commentId}/reactions/users`, {
+      const response = await apiClient.get(`/comments/${commentId}/reactions/users`, {
         params: options
       })
       return response.data.data

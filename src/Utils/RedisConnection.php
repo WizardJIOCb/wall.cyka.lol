@@ -60,6 +60,29 @@ class RedisConnection
      */
     public static function getQueueConnection()
     {
-        return self::getConnection(0);
+        // Don't use the same connection with prefix - queue needs its own without prefix
+        $database = 0;
+        $key = 'queue_' . $database;
+        
+        if (!isset(self::$connections[$key])) {
+            if (self::$config === null) {
+                self::$config = require __DIR__ . '/../../config/config.php';
+            }
+            
+            $redisConfig = self::$config['redis'];
+            
+            try {
+                $redis = new Redis();
+                $redis->connect($redisConfig['host'], $redisConfig['port']);
+                $redis->select($database);
+                // NO PREFIX for queue connection
+                
+                self::$connections[$key] = $redis;
+            } catch (Exception $e) {
+                throw new Exception('Redis queue connection failed: ' . $e->getMessage());
+            }
+        }
+        
+        return self::$connections[$key];
     }
 }

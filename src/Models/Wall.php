@@ -44,26 +44,37 @@ class Wall
     }
 
     /**
+     * Get user's default wall (first wall created)
+     */
+    public static function getUserDefaultWall($userId)
+    {
+        $sql = "SELECT * FROM walls WHERE user_id = ? ORDER BY created_at ASC LIMIT 1";
+        return Database::fetchOne($sql, [$userId]);
+    }
+
+    /**
      * Create new wall
      */
     public static function create($data)
     {
         $sql = "INSERT INTO walls (
             user_id, wall_slug, display_name, description, 
-            privacy_level, theme, enable_comments, enable_reactions, 
-            enable_reposts, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+            cover_image_url, theme_settings, privacy_level, 
+            allow_comments, allow_reactions, allow_reposts, 
+            created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $params = [
             $data['user_id'],
             $data['wall_slug'],
             $data['display_name'],
             $data['description'] ?? '',
+            $data['cover_image_url'] ?? null,
+            $data['theme_settings'] ?? null,
             $data['privacy_level'] ?? 'public',
-            $data['theme'] ?? 'default',
-            $data['enable_comments'] ?? true,
-            $data['enable_reactions'] ?? true,
-            $data['enable_reposts'] ?? true
+            $data['allow_comments'] ?? true,
+            $data['allow_reactions'] ?? true,
+            $data['allow_reposts'] ?? true
         ];
 
         try {
@@ -84,9 +95,9 @@ class Wall
         $params = [];
 
         $allowedFields = [
-            'wall_slug', 'display_name', 'description', 'avatar_url', 
-            'cover_image_url', 'privacy_level', 'theme', 'enable_comments', 
-            'enable_reactions', 'enable_reposts', 'custom_css'
+            'wall_slug', 'display_name', 'description', 'cover_image_url', 
+            'theme_settings', 'privacy_level', 'allow_comments', 
+            'allow_reactions', 'allow_reposts'
         ];
         
         foreach ($allowedFields as $field) {
@@ -139,7 +150,9 @@ class Wall
     public static function getWallWithOwner($wallId)
     {
         $sql = "SELECT w.*, 
-                u.username, u.display_name as owner_name, u.avatar_url as owner_avatar
+                u.username, u.display_name as owner_name, u.avatar_url as owner_avatar,
+                (SELECT COUNT(*) FROM posts p WHERE p.wall_id = w.wall_id AND p.is_deleted = FALSE) as posts_count,
+                (SELECT COUNT(*) FROM subscriptions s WHERE s.wall_id = w.wall_id) as subscribers_count
                 FROM walls w
                 JOIN users u ON w.user_id = u.user_id
                 WHERE w.wall_id = ?";
@@ -160,17 +173,21 @@ class Wall
             'wall_slug' => $wall['wall_slug'],
             'display_name' => $wall['display_name'],
             'description' => $wall['description'],
-            'avatar_url' => $wall['avatar_url'] ?? null,
+            'avatar_url' => $wall['cover_image_url'] ?? null,
             'cover_image_url' => $wall['cover_image_url'] ?? null,
             'privacy_level' => $wall['privacy_level'],
-            'theme' => $wall['theme'] ?? null,
-            'enable_comments' => (bool)($wall['enable_comments'] ?? true),
-            'enable_reactions' => (bool)($wall['enable_reactions'] ?? true),
-            'enable_reposts' => (bool)($wall['enable_reposts'] ?? true),
+            'theme' => $wall['theme_settings'] ?? null,
+            'enable_comments' => (bool)($wall['allow_comments'] ?? true),
+            'enable_reactions' => (bool)($wall['allow_reactions'] ?? true),
+            'enable_reposts' => (bool)($wall['allow_reposts'] ?? true),
             'posts_count' => (int)($wall['posts_count'] ?? 0),
             'subscribers_count' => (int)($wall['subscribers_count'] ?? 0),
             'created_at' => $wall['created_at'],
             'updated_at' => $wall['updated_at'],
+            // Include owner information if available
+            'owner_username' => $wall['username'] ?? null,
+            'owner_name' => $wall['owner_name'] ?? null,
+            'owner_avatar' => $wall['owner_avatar'] ?? null,
         ];
     }
 

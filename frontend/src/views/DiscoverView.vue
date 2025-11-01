@@ -189,8 +189,10 @@ const loadTrendingWalls = async () => {
   try {
     loadingTrending.value = true
     const response = await apiClient.get(`/discover/trending-walls?timeframe=${trendingTimeframe.value}&limit=6`)
-    if (response.data.success && response.data.data.walls) {
-      trendingWalls.value = response.data.data.walls
+    if (response && response.data) {
+      trendingWalls.value = response.data.walls || response.data.data?.walls || []
+    } else {
+      trendingWalls.value = []
     }
   } catch (err) {
     console.error('Error loading trending walls:', err)
@@ -204,8 +206,10 @@ const loadPopularPosts = async () => {
   try {
     loadingPosts.value = true
     const response = await apiClient.get('/discover/popular-posts?timeframe=7d&limit=10')
-    if (response.data.success && response.data.data.posts) {
-      popularPosts.value = response.data.data.posts
+    if (response && response.data) {
+      popularPosts.value = response.data.posts || response.data.data?.posts || []
+    } else {
+      popularPosts.value = []
     }
   } catch (err) {
     console.error('Error loading popular posts:', err)
@@ -219,8 +223,10 @@ const loadSuggestedUsers = async () => {
   try {
     loadingUsers.value = true
     const response = await apiClient.get('/discover/suggested-users?limit=8')
-    if (response.data.success && response.data.data.users) {
-      suggestedUsers.value = response.data.data.users
+    if (response && response.data) {
+      suggestedUsers.value = response.data.users || response.data.data?.users || []
+    } else {
+      suggestedUsers.value = []
     }
   } catch (err) {
     console.error('Error loading suggested users:', err)

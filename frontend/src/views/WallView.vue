@@ -17,20 +17,20 @@
         <div class="wall-banner" :style="bannerStyle"></div>
         <div class="wall-info">
           <div class="wall-avatar">
-            <img :src="wall.owner_avatar || '/assets/images/default-avatar.svg'" :alt="wall.owner_username" />
+            <img :src="wall.owner_avatar || wall.avatar_url || '/assets/images/default-avatar.svg'" :alt="wall.owner_username || wall.display_name" />
           </div>
           <div class="wall-details">
             <h1 class="wall-title">{{ wall.display_name }}</h1>
-            <p class="wall-owner">by @{{ wall.owner_username }}</p>
+            <p v-if="wall.owner_username" class="wall-owner">by @{{ wall.owner_username }}</p>
             <p v-if="wall.description" class="wall-description">{{ wall.description }}</p>
           </div>
           <div class="wall-stats">
             <div class="stat">
-              <span class="stat-value">{{ wall.post_count || 0 }}</span>
+              <span class="stat-value">{{ wall.posts_count || 0 }}</span>
               <span class="stat-label">Posts</span>
             </div>
             <div class="stat">
-              <span class="stat-value">{{ wall.follower_count || 0 }}</span>
+              <span class="stat-value">{{ wall.subscribers_count || 0 }}</span>
               <span class="stat-label">Followers</span>
             </div>
           </div>
@@ -52,7 +52,20 @@
         </div>
 
         <div v-else class="posts-grid">
-          <div v-for="post in posts" :key="post.post_id" class="post-card">
+          <div v-for="post in posts" :key="post.post_id" class="post-card" :class="{ 'ai-post': post.post_type === 'ai_app' }">
+            <!-- AI Generation Status (if AI post) -->
+            <div v-if="post.post_type === 'ai_app' && post.ai_status !== 'completed'" class="ai-generation-status">
+              <div class="status-header">
+                <span class="status-icon">🤖</span>
+                <h3>AI Application Generating...</h3>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: getAIProgress(post.ai_status) + '%' }"></div>
+              </div>
+              <p class="status-text">{{ getAIStatusText(post.ai_status) }}</p>
+            </div>
+            
+            <!-- Regular Post Content -->
             <div class="post-header">
               <img :src="post.author_avatar || '/assets/images/default-avatar.svg'" :alt="post.author_username" class="post-avatar" />
               <div class="post-meta">
@@ -94,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api/client'
@@ -113,9 +126,10 @@ const posts = ref<any[]>([])
 const page = ref(1)
 const limit = 20
 const hasMorePosts = ref(true)
+let pollInterval: any = null
 
 const isOwnWall = computed(() => {
-  return wall.value && authStore.user && wall.value.user_id === authStore.user.user_id
+  return wall.value && authStore.user && wall.value.user_id === authStore.user.id
 })
 
 const bannerStyle = computed(() => {
@@ -145,57 +159,129 @@ const loadWall = async () => {
     loading.value = true
     error.value = null
 
-    let wallIdToFetch = props.wallId
+    let wallIdToFetch = props.wallId || route.params.wallId
 
-    // Handle special case: /wall/me
-    if (wallIdToFetch === 'me') {
-      // Fetch current user's wall
-      const response = await apiClient.get('/walls/me')
-      if (response.data.success && response.data.data.wall) {
-        // Redirect to the actual wall ID
-        const actualWallId = response.data.data.wall.wall_id
-        router.replace(`/wall/${actualWallId}`)
-        return
-      } else {
-        throw new Error('Could not find your wall')
-      }
+    // Check if we have a valid wallIdToFetch
+    if (!wallIdToFetch) {
+      throw new Error('No wall identifier provided')
     }
 
-    // Fetch wall data
-    const response = await apiClient.get(`/walls/${wallIdToFetch}`)
-    if (response.data.success && response.data.data.wall) {
-      wall.value = response.data.data.wall
+    let response;
+    
+    // Handle special case: /wall/me
+    if (wallIdToFetch === 'me') {
+      // Use the dedicated endpoint for current user's wall
+      response = await apiClient.get('/walls/me')
+    } else {
+      // Fetch wall data by ID or slug
+      response = await apiClient.get(`/walls/${wallIdToFetch}`)
+    }
+
+    if (response?.success && response?.data?.wall) {
+      wall.value = response.data.wall
       await loadPosts()
     } else {
-      throw new Error(response.data.message || 'Wall not found')
+      throw new Error(response?.message || 'Wall not found')
     }
   } catch (err: any) {
     console.error('Error loading wall:', err)
-    error.value = err.response?.data?.message || err.message || 'Failed to load wall'
+    if (err.response?.status === 404) {
+      error.value = 'The requested wall could not be found. It may not exist or you may not have permission to view it.'
+    } else {
+      error.value = err.response?.data?.message || err.message || 'Failed to load wall'
+    }
   } finally {
     loading.value = false
   }
 }
 
-const loadPosts = async () => {
+const loadPosts = async (isPolling = false) => {
+  if (!wall.value) return
+  
   try {
-    loadingPosts.value = true
-    const offset = (page.value - 1) * limit
-    const response = await apiClient.get(`/walls/${props.wallId}/posts?limit=${limit}&offset=${offset}`)
+    // Don't show loading spinner when polling
+    if (!isPolling) {
+      loadingPosts.value = true
+    }
     
-    if (response.data.success && response.data.data.posts) {
+    const offset = (page.value - 1) * limit
+    const response = await apiClient.get(`/walls/${wall.value.wall_id}/posts?limit=${limit}&offset=${offset}`)
+    
+    if (response?.success && response?.data?.posts) {
+      const newPosts = response.data.posts
+      
       if (page.value === 1) {
-        posts.value = response.data.data.posts
+        if (isPolling) {
+          // Update existing posts instead of replacing the entire array
+          updatePostsData(newPosts)
+        } else {
+          posts.value = newPosts
+        }
       } else {
-        posts.value = [...posts.value, ...response.data.data.posts]
+        posts.value = [...posts.value, ...newPosts]
       }
       
-      hasMorePosts.value = response.data.data.posts.length === limit
+      hasMorePosts.value = newPosts.length === limit
+      
+      // Start polling if there are pending AI posts
+      checkForPendingAIPosts()
     }
   } catch (err: any) {
     console.error('Error loading posts:', err)
   } finally {
-    loadingPosts.value = false
+    if (!isPolling) {
+      loadingPosts.value = false
+    }
+  }
+}
+
+const updatePostsData = (newPosts: any[]) => {
+  // Create a map of new posts by post_id for quick lookup
+  const newPostsMap = new Map(newPosts.map(post => [post.post_id, post]))
+  
+  // Update existing posts with new data
+  posts.value.forEach((post, index) => {
+    const updatedPost = newPostsMap.get(post.post_id)
+    if (updatedPost) {
+      // Only update if AI status changed to avoid unnecessary re-renders
+      if (post.ai_status !== updatedPost.ai_status) {
+        posts.value[index] = { ...post, ...updatedPost }
+      }
+      newPostsMap.delete(post.post_id)
+    }
+  })
+  
+  // Add any new posts that weren't in the existing list
+  if (newPostsMap.size > 0) {
+    posts.value = [...Array.from(newPostsMap.values()), ...posts.value]
+  }
+}
+
+const checkForPendingAIPosts = () => {
+  const hasPendingAI = posts.value.some(
+    post => post.post_type === 'ai_app' && 
+           (post.ai_status === 'queued' || post.ai_status === 'processing')
+  )
+  
+  if (hasPendingAI) {
+    startPolling()
+  } else {
+    stopPolling()
+  }
+}
+
+const startPolling = () => {
+  if (pollInterval) return
+  
+  pollInterval = setInterval(async () => {
+    await loadPosts(true) // Pass true to indicate polling
+  }, 3000) // Poll every 3 seconds
+}
+
+const stopPolling = () => {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
   }
 }
 
@@ -209,8 +295,32 @@ const createPost = () => {
   console.log('Create post functionality coming soon')
 }
 
+const getAIProgress = (status: string) => {
+  const progressMap: Record<string, number> = {
+    'queued': 10,
+    'processing': 60,
+    'completed': 100,
+    'failed': 0
+  }
+  return progressMap[status] || 0
+}
+
+const getAIStatusText = (status: string) => {
+  const statusTextMap: Record<string, string> = {
+    'queued': 'Waiting in queue...',
+    'processing': 'Generating your application...',
+    'completed': 'Generation complete!',
+    'failed': 'Generation failed'
+  }
+  return statusTextMap[status] || 'Processing...'
+}
+
 onMounted(() => {
   loadWall()
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
 
@@ -460,6 +570,58 @@ onMounted(() => {
 .btn-secondary:hover {
   background: var(--color-primary);
   color: white;
+}
+
+/* AI Generation Status Styles */
+.post-card.ai-post {
+  border: 2px solid var(--color-primary);
+  background: linear-gradient(to bottom, var(--color-bg-elevated), var(--color-bg-primary));
+}
+
+.ai-generation-status {
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--radius-md);
+  color: white;
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.status-icon {
+  font-size: 1.5rem;
+}
+
+.status-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--spacing-2);
+}
+
+.progress-fill {
+  height: 100%;
+  background: white;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.status-text {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
 }
 
 @media (max-width: 768px) {

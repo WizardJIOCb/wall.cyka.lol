@@ -67,7 +67,18 @@ class SessionManager
         $sessionData = self::$redis->get($sessionKey);
 
         if (!$sessionData) {
-            return null;
+            // Try to load session from database
+            $sessionData = self::loadSessionFromDb($sessionId);
+            if (!$sessionData) {
+                return null;
+            }
+            
+            // Store in Redis for future requests
+            self::$redis->setex(
+                $sessionKey,
+                self::$config['security']['session_lifetime'],
+                $sessionData
+            );
         }
 
         $data = json_decode($sessionData, true);
@@ -95,7 +106,7 @@ class SessionManager
 
         // Mark as inactive in database
         $sql = "UPDATE sessions SET is_active = FALSE, updated_at = NOW() 
-                WHERE session_token = ?";
+                WHERE session_token = ? AND is_active = TRUE";
         Database::query($sql, [$sessionId]);
     }
 
@@ -109,14 +120,28 @@ class SessionManager
     }
 
     /**
+     * Get all active sessions for user
+     */
+    public static function getUserSessions($userId)
+    {
+        $sql = "SELECT session_token, ip_address, user_agent, 
+                last_activity_at, created_at 
+                FROM sessions 
+                WHERE user_id = ? AND is_active = TRUE 
+                ORDER BY last_activity_at DESC";
+        
+        return Database::fetchAll($sql, [$userId]);
+    }
+
+    /**
      * Store session in database
      */
     private static function storeSessionInDb($sessionId, $userId, $sessionData)
     {
         $sql = "INSERT INTO sessions (
             session_id, user_id, session_token, ip_address, user_agent,
-            last_activity_at, created_at, expires_at
-        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY))";
+            last_activity_at, created_at, expires_at, is_active
+        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), TRUE)";
 
         $params = [
             $sessionId,
@@ -127,6 +152,33 @@ class SessionManager
         ];
 
         Database::query($sql, $params);
+    }
+
+    /**
+     * Load session from database
+     */
+    private static function loadSessionFromDb($sessionId)
+    {
+        $sql = "SELECT user_id, ip_address, user_agent, created_at, expires_at
+                FROM sessions 
+                WHERE session_token = ? AND is_active = TRUE AND expires_at > NOW()";
+        
+        $session = Database::fetchOne($sql, [$sessionId]);
+        
+        if (!$session) {
+            return null;
+        }
+        
+        // Convert to Redis format
+        $sessionData = [
+            'user_id' => (int)$session['user_id'],
+            'ip_address' => $session['ip_address'],
+            'user_agent' => $session['user_agent'],
+            'created_at' => strtotime($session['created_at']),
+            'last_activity' => time()
+        ];
+        
+        return json_encode($sessionData);
     }
 
     /**
@@ -163,31 +215,15 @@ class SessionManager
     }
 
     /**
-     * Get all active sessions for user
-     */
-    public static function getUserSessions($userId)
-    {
-        $sql = "SELECT session_token, ip_address, user_agent, 
-                last_activity_at, created_at 
-                FROM sessions 
-                WHERE user_id = ? AND is_active = TRUE 
-                ORDER BY last_activity_at DESC";
-        
-        return Database::fetchAll($sql, [$userId]);
-    }
-
-    /**
      * Clean expired sessions from database
      */
     public static function cleanExpiredSessions()
     {
         self::init();
         
-        $expiryTime = time() - self::$config['security']['session_lifetime'];
-        
         $sql = "UPDATE sessions SET is_active = FALSE, updated_at = NOW() 
-                WHERE last_activity_at < FROM_UNIXTIME(?) AND is_active = TRUE";
+                WHERE expires_at < NOW() AND is_active = TRUE";
         
-        Database::query($sql, [$expiryTime]);
+        Database::query($sql);
     }
 }

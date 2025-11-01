@@ -29,8 +29,8 @@
             "Wall\\Services\\": "src/Services/",
             "Wall\\Utils\\": "src/Utils/"
         },
-        "files": [
-            "config/database.php"
+        "classmap": [
+            "src/Utils/"
         ]
     },
     "autoload-dev": {

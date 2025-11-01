@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import api from '@/services/api'
+import apiClient from '@/services/api/client'
 import CommentForm from './CommentForm.vue'
 import CommentItem from './CommentItem.vue'
 
@@ -120,7 +120,7 @@ const fetchComments = async () => {
   loading.value = true
   
   try {
-    const response = await api.get(`/posts/${props.postId}/comments`, {
+    const response = await apiClient.get(`/posts/${props.postId}/comments`, {
       params: {
         sort: sortBy.value,
         limit: 50

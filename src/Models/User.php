@@ -84,15 +84,20 @@ class User
     private static function createDefaultWall($userId, $username)
     {
         $sql = "INSERT INTO walls (
-            user_id, wall_slug, display_name, description, privacy_level, created_at
-        ) VALUES (?, ?, ?, ?, ?, NOW())";
+            user_id, wall_slug, display_name, description, 
+            privacy_level, allow_comments, allow_reactions, allow_reposts, 
+            created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $params = [
             $userId,
             $username,
             $username . "'s Wall",
             'Welcome to my wall!',
-            'public'
+            'public',
+            true,
+            true,
+            true
         ];
 
         Database::query($sql, $params);

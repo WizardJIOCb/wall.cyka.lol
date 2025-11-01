@@ -28,7 +28,7 @@
         <span>{{ hasReacted ? '❤️' : '🤍' }}</span>
         <span v-if="post.reactions_count">{{ post.reactions_count }}</span>
       </button>
-      <button class="action-btn" @click="$emit('comment')">
+      <button class="action-btn" @click="toggleComments">
         <span>💬</span>
         <span v-if="post.comments_count">{{ post.comments_count }}</span>
       </button>
@@ -37,14 +37,22 @@
         <span v-if="post.shares_count">{{ post.shares_count }}</span>
       </button>
     </div>
+
+    <!-- Comments Section -->
+    <CommentSection 
+      v-if="showComments"
+      :post-id="post.post_id"
+      :allow-comments="true"
+    />
   </article>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { Post } from '@/types/models'
 import AppAvatar from '@/components/common/AppAvatar.vue'
 import AppDropdown from '@/components/common/AppDropdown.vue'
+import CommentSection from '@/components/comments/CommentSection.vue'
 import { formatRelativeTime } from '@/utils/formatting'
 import { useAuthStore } from '@/stores/auth'
 
@@ -58,11 +66,15 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const showComments = ref(false)
 const hasReacted = computed(() => false) // TODO: Track user reactions
 const canEdit = computed(() => authStore.user?.id === props.post.user_id)
 
 const formatTime = (date: string) => formatRelativeTime(date)
 const toggleReaction = () => emit('react', 'like')
+const toggleComments = () => {
+  showComments.value = !showComments.value
+}
 </script>
 
 <style scoped>

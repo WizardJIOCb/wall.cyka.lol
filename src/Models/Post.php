@@ -24,9 +24,11 @@ class Post
      */
     public static function getWallPosts($wallId, $limit = 20, $offset = 0)
     {
-        $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar
+        $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
+                ai.status as ai_status, ai.app_id, ai.queue_position
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
+                LEFT JOIN ai_applications ai ON p.post_id = ai.post_id
                 WHERE p.wall_id = ? AND p.is_deleted = FALSE
                 ORDER BY p.created_at DESC
                 LIMIT ? OFFSET ?";
@@ -83,9 +85,9 @@ class Post
     {
         $sql = "INSERT INTO posts (
             wall_id, author_id, post_type, content_text, content_html,
-            visibility, enable_comments, enable_reactions, enable_reposts,
+            is_repost, original_post_id, repost_commentary,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $params = [
             $data['wall_id'],
@@ -93,10 +95,9 @@ class Post
             $data['post_type'] ?? 'text',
             $data['content_text'] ?? '',
             $data['content_html'] ?? '',
-            $data['visibility'] ?? 'public',
-            $data['enable_comments'] ?? true,
-            $data['enable_reactions'] ?? true,
-            $data['enable_reposts'] ?? true
+            isset($data['is_repost']) ? (int)$data['is_repost'] : 0,
+            $data['original_post_id'] ?? null,
+            $data['repost_commentary'] ?? null
         ];
 
         try {
@@ -108,10 +109,6 @@ class Post
             // Increment user posts_count
             $updateSql = "UPDATE users SET posts_count = posts_count + 1 WHERE user_id = ?";
             Database::query($updateSql, [$data['author_id']]);
-            
-            // Increment wall posts_count
-            $updateWallSql = "UPDATE walls SET posts_count = posts_count + 1 WHERE wall_id = ?";
-            Database::query($updateWallSql, [$data['wall_id']]);
             
             Database::commit();
             
@@ -130,7 +127,7 @@ class Post
         $fields = [];
         $params = [];
 
-        $allowedFields = ['content_text', 'content_html', 'visibility', 'enable_comments', 'enable_reactions', 'enable_reposts'];
+        $allowedFields = ['content_text', 'content_html'];
         
         foreach ($allowedFields as $field) {
             if (isset($data[$field])) {
@@ -142,9 +139,6 @@ class Post
         if (empty($fields)) {
             return true;
         }
-
-        // Set is_edited flag
-        $fields[] = "is_edited = TRUE";
 
         $params[] = $postId;
         $sql = "UPDATE posts SET " . implode(', ', $fields) . ", updated_at = NOW() WHERE post_id = ?";
@@ -171,10 +165,6 @@ class Post
             // Decrement user posts_count
             $updateSql = "UPDATE users SET posts_count = posts_count - 1 WHERE user_id = ? AND posts_count > 0";
             Database::query($updateSql, [$post['author_id']]);
-            
-            // Decrement wall posts_count
-            $updateWallSql = "UPDATE walls SET posts_count = posts_count - 1 WHERE wall_id = ? AND posts_count > 0";
-            Database::query($updateWallSql, [$post['wall_id']]);
             
             Database::commit();
             return true;
@@ -225,18 +215,12 @@ class Post
             'post_type' => $post['post_type'],
             'content_text' => $post['content_text'],
             'content_html' => $post['content_html'],
-            'visibility' => $post['visibility'],
-            'enable_comments' => (bool)$post['enable_comments'],
-            'enable_reactions' => (bool)$post['enable_reactions'],
-            'enable_reposts' => (bool)$post['enable_reposts'],
-            'reaction_count' => (int)($post['reaction_count'] ?? 0),
-            'like_count' => (int)($post['like_count'] ?? 0),
-            'dislike_count' => (int)($post['dislike_count'] ?? 0),
-            'comment_count' => (int)($post['comment_count'] ?? 0),
-            'repost_count' => (int)($post['repost_count'] ?? 0),
-            'view_count' => (int)($post['view_count'] ?? 0),
-            'is_edited' => (bool)$post['is_edited'],
-            'is_pinned' => (bool)$post['is_pinned'],
+            'is_repost' => (bool)($post['is_repost'] ?? false),
+            'original_post_id' => $post['original_post_id'] ?? null,
+            'repost_commentary' => $post['repost_commentary'] ?? null,
+            'ai_status' => $post['ai_status'] ?? null,
+            'ai_app_id' => $post['app_id'] ?? null,
+            'ai_queue_position' => $post['queue_position'] ?? null,
             'media_attachments' => $post['media_attachments'] ?? [],
             'location' => $post['location'] ?? null,
             'created_at' => $post['created_at'],
@@ -244,21 +228,4 @@ class Post
         ];
     }
 
-    /**
-     * Increment view count
-     */
-    public static function incrementViewCount($postId)
-    {
-        $sql = "UPDATE posts SET view_count = view_count + 1 WHERE post_id = ?";
-        Database::query($sql, [$postId]);
-    }
-
-    /**
-     * Pin/unpin post
-     */
-    public static function togglePin($postId, $isPinned)
-    {
-        $sql = "UPDATE posts SET is_pinned = ?, updated_at = NOW() WHERE post_id = ?";
-        Database::query($sql, [$isPinned, $postId]);
-    }
 }

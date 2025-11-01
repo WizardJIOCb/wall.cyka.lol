@@ -24,8 +24,6 @@ export const usePostsStore = defineStore('posts', () => {
 
   // Actions
   const fetchFeed = async (page = 1, reset = false) => {
-    if (loading.value) return
-    
     loading.value = true
     try {
       const response: PaginatedResponse<Post> = await postsAPI.getFeed({
@@ -36,18 +34,21 @@ export const usePostsStore = defineStore('posts', () => {
         sort_by: filters.value.sort_by
       })
 
+      // Handle different response structures and ensure we have an array
+      const postsData = Array.isArray(response.data) ? response.data : []
+      
       if (reset) {
-        feedPosts.value = response.data
+        feedPosts.value = postsData
       } else {
-        feedPosts.value.push(...response.data)
+        feedPosts.value.push(...postsData)
       }
 
-      currentPage.value = response.pagination.current_page
-      totalPages.value = response.pagination.total_pages
-      hasMore.value = response.pagination.has_more
+      currentPage.value = response.pagination?.current_page || page
+      totalPages.value = response.pagination?.total_pages || 1
+      hasMore.value = response.pagination?.has_more || false
 
       // Also add to posts cache
-      response.data.forEach(post => {
+      postsData.forEach(post => {
         const existingIndex = posts.value.findIndex(p => p.id === post.id)
         if (existingIndex >= 0) {
           posts.value[existingIndex] = post
@@ -57,6 +58,10 @@ export const usePostsStore = defineStore('posts', () => {
       })
     } catch (error) {
       console.error('Failed to fetch feed:', error)
+      // Set empty array on error to prevent issues
+      if (reset) {
+        feedPosts.value = []
+      }
       throw error
     } finally {
       loading.value = false

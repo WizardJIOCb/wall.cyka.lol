@@ -126,15 +126,28 @@ Frontend will be available at: **http://localhost:3000**
 
 Backend API will be available at: **http://localhost:8080/api/v1**
 
-### AI Generation Worker (Optional)
+### AI Generation Worker
 
-To enable AI generation processing, start the worker:
+To enable AI generation processing, you have two options:
+
+**Option 1: Run worker in foreground (for debugging):**
 ```bash
 cd C:\Projects\wall.cyka.lol
 docker-compose exec php php workers/ai_generation_worker.php
 ```
+Keep this terminal open while processing AI generation jobs. Press Ctrl+C to stop.
 
-Keep this terminal open while processing AI generation jobs.
+**Option 2: Run worker in background (recommended for development):**
+```bash
+cd C:\Projects\wall.cyka.lol
+docker-compose exec -d php php workers/ai_generation_worker.php
+```
+Worker will run in background. Check logs with `docker-compose logs -f php`
+
+**Check worker status:**
+```bash
+docker-compose exec php ps aux | grep ai_generation
+```
 
 ---
 
@@ -368,6 +381,26 @@ npm install
 ```bash
 Remove-Item -Recurse -Force .vite
 npm run dev
+```
+
+**Clear browser cache (full refresh):**
+- Press **Ctrl+Shift+Delete** in browser
+- Or press **Ctrl+F5** for hard refresh
+- Or open DevTools (F12) → Network tab → Check "Disable cache"
+
+### PHP Code Changes Not Taking Effect
+
+**Problem:** Code changes in PHP files don't appear after modification.
+
+**Solution:** Restart PHP container to clear opcache:
+```powershell
+cd C:\Projects\wall.cyka.lol
+docker-compose restart php
+```
+
+**Alternative:** Disable opcache in development (edit `docker/php/php.ini`):
+```ini
+opcache.enable=0
 ```
 
 ---

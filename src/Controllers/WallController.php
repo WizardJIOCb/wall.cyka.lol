@@ -19,8 +19,22 @@ class WallController
             self::jsonResponse(false, ['code' => 'INVALID_IDENTIFIER'], 'Wall ID or slug is required', 400);
         }
 
-        // Try to find by ID first, then by slug
-        $wall = is_numeric($identifier) ? Wall::findById($identifier) : Wall::findBySlug($identifier);
+        // Try to find by ID first, then by slug, then by username
+        if (is_numeric($identifier)) {
+            $wall = Wall::findById($identifier);
+        } else {
+            // Try slug first
+            $wall = Wall::findBySlug($identifier);
+            
+            // If not found, try username
+            if (!$wall) {
+                $userSql = "SELECT user_id FROM users WHERE username = ?";
+                $user = Database::fetchOne($userSql, [$identifier]);
+                if ($user) {
+                    $wall = Wall::findByUserId($user['user_id']);
+                }
+            }
+        }
 
         if (!$wall) {
             self::jsonResponse(false, ['code' => 'WALL_NOT_FOUND'], 'Wall not found', 404);

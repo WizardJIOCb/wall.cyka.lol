@@ -32,7 +32,7 @@ class MessagingController
                 FROM conversations c
                 JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
                 WHERE cp.user_id = ?
-                ORDER BY last_message_at DESC NULLS LAST";
+                ORDER BY COALESCE(last_message_at, c.created_at) DESC";
         
         $conversations = Database::fetchAll($sql, [$user['user_id'], $user['user_id']]);
         

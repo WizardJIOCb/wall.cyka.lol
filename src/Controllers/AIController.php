@@ -21,32 +21,80 @@ class AIController
         }
 
         try {
-            // Add job to queue
-            $jobData = [
-                'user_id' => $user['user_id'],
-                'prompt' => Validator::sanitize($data['prompt']),
-                'model' => $data['model'] ?? null,
-                'priority' => $data['priority'] ?? 'normal',
-                'options' => $data['options'] ?? []
-            ];
+            // Get user's default wall
+            $userWall = Wall::getUserDefaultWall($user['user_id']);
+            if (!$userWall) {
+                throw new Exception('User default wall not found');
+            }
 
-            $jobId = QueueManager::addJob($jobData);
+            // Create a post first (required for ai_applications.post_id foreign key)
+            $postData = [
+                'wall_id' => $userWall['wall_id'],
+                'author_id' => $user['user_id'],
+                'content_text' => 'AI Generation: ' . substr($data['prompt'], 0, 100) . '...',
+                'post_type' => 'ai_app'
+            ];
+            $post = Post::create($postData);
+
+            // Generate job ID
+            $jobId = 'job_' . bin2hex(random_bytes(16));
 
             // Create AI application record
             $appData = [
+                'post_id' => $post['post_id'],
                 'job_id' => $jobId,
                 'user_prompt' => $data['prompt'],
                 'status' => 'queued',
-                'queue_position' => 0 // Will be updated by queue worker
+                'queue_position' => 0
             ];
-
             $app = AIApplication::create($appData);
+
+            // Convert priority string to integer (0=normal, 1=high, -1=low)
+            $priorityMap = ['low' => -1, 'normal' => 0, 'high' => 1];
+            $priority = $priorityMap[$data['priority'] ?? 'normal'] ?? 0;
+
+            // Create job record in database
+            Database::query(
+                "INSERT INTO ai_generation_jobs (job_id, app_id, user_id, status, priority, created_at) 
+                 VALUES (?, ?, ?, 'queued', ?, NOW())",
+                [$jobId, $app['app_id'], $user['user_id'], $priority]
+            );
+
+            // Add job ID to Redis queue
+            try {
+                $redis = RedisConnection::getQueueConnection();
+                if (!$redis) {
+                    throw new Exception('Failed to get Redis queue connection');
+                }
+                
+                $queueLenBefore = $redis->llen('ai_generation_queue');
+                error_log("[DEBUG] Queue length BEFORE push: {$queueLenBefore}");
+                
+                $result = $redis->lpush('ai_generation_queue', $jobId);
+                error_log("[DEBUG] LPUSH returned: {$result}");
+                
+                if ($result === false) {
+                    throw new Exception('Redis LPUSH failed');
+                }
+                
+                // Verify it was added
+                $queueLenAfter = $redis->llen('ai_generation_queue');
+                error_log("[DEBUG] Queue length AFTER push: {$queueLenAfter}");
+                error_log("[DEBUG] Job {$jobId} added to queue successfully");
+                
+            } catch (Exception $redisEx) {
+                // Log error but don't fail the request - job is in DB
+                error_log("[ERROR] Failed to add job to Redis queue: " . $redisEx->getMessage());
+                error_log("[ERROR] Stack trace: " . $redisEx->getTraceAsString());
+                // Still return success since job is queued in database
+            }
 
             self::jsonResponse(true, [
                 'job' => [
                     'job_id' => $jobId,
                     'status' => 'queued',
-                    'app_id' => $app['app_id']
+                    'app_id' => $app['app_id'],
+                    'post_id' => $post['post_id']
                 ],
                 'message' => 'AI generation queued successfully'
             ], 202);
@@ -227,6 +275,21 @@ class AIController
         }
 
         try {
+            // Get user's default wall
+            $userWall = Wall::getUserDefaultWall($user['user_id']);
+            if (!$userWall) {
+                throw new Exception('User default wall not found');
+            }
+
+            // Create a post first
+            $postData = [
+                'wall_id' => $userWall['wall_id'],
+                'author_id' => $user['user_id'],
+                'content_text' => 'AI Remix: ' . substr($data['prompt'] ?? $originalApp['user_prompt'], 0, 100) . '...',
+                'post_type' => 'ai_app'
+            ];
+            $post = Post::create($postData);
+
             // Add remix job to queue
             $jobData = [
                 'user_id' => $user['user_id'],
@@ -242,6 +305,7 @@ class AIController
 
             // Create new AI application record for remix
             $appData = [
+                'post_id' => $post['post_id'],
                 'job_id' => $jobId,
                 'user_prompt' => $data['prompt'] ?? $originalApp['user_prompt'],
                 'status' => 'queued',
@@ -259,7 +323,8 @@ class AIController
                 'job' => [
                     'job_id' => $jobId,
                     'status' => 'queued',
-                    'app_id' => $newApp['app_id']
+                    'app_id' => $newApp['app_id'],
+                    'post_id' => $post['post_id']
                 ],
                 'message' => 'AI remix queued successfully'
             ], 202);
@@ -296,6 +361,21 @@ class AIController
         }
 
         try {
+            // Get user's default wall
+            $userWall = Wall::getUserDefaultWall($user['user_id']);
+            if (!$userWall) {
+                throw new Exception('User default wall not found');
+            }
+
+            // Create a post first
+            $postData = [
+                'wall_id' => $userWall['wall_id'],
+                'author_id' => $user['user_id'],
+                'content_text' => 'AI Fork: ' . substr($originalApp['user_prompt'], 0, 100) . '...',
+                'post_type' => 'ai_app'
+            ];
+            $post = Post::create($postData);
+
             // Add fork job to queue
             $jobData = [
                 'user_id' => $user['user_id'],
@@ -316,6 +396,7 @@ class AIController
 
             // Create new AI application record for fork
             $appData = [
+                'post_id' => $post['post_id'],
                 'job_id' => $jobId,
                 'user_prompt' => $originalApp['user_prompt'],
                 'status' => 'queued',
@@ -333,7 +414,8 @@ class AIController
                 'job' => [
                     'job_id' => $jobId,
                     'status' => 'queued',
-                    'app_id' => $newApp['app_id']
+                    'app_id' => $newApp['app_id'],
+                    'post_id' => $post['post_id']
                 ],
                 'message' => 'AI fork queued successfully'
             ], 202);

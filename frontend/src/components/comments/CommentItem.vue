@@ -144,7 +144,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
-import api from '@/services/api'
+import apiClient from '@/services/api/client'
 import CommentForm from './CommentForm.vue'
 
 interface Comment {
@@ -266,7 +266,7 @@ const deleteComment = async () => {
   if (!confirm(t('comments.deleteConfirm'))) return
   
   try {
-    await api.delete(`/comments/${props.comment.comment_id}`)
+    await apiClient.delete(`/comments/${props.comment.comment_id}`)
     emit('comment-deleted', props.comment.comment_id)
   } catch (error) {
     console.error('Failed to delete comment:', error)
@@ -293,7 +293,7 @@ const toggleReactionPicker = () => {
 
 const reactToComment = async (reactionType: string) => {
   try {
-    const response = await api.post(
+    const response = await apiClient.post(
       `/comments/${props.comment.comment_id}/reactions`,
       { reaction_type: reactionType }
     )

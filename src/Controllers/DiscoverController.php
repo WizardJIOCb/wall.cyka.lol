@@ -24,19 +24,15 @@ class DiscoverController
         ];
         $interval = $dateMap[$timeframe] ?? '7 DAY';
         
-        // Calculate trending score: post_count * 2 + reactions + views * 0.1
+        // Calculate trending score: post_count * 2
         $sql = "SELECT w.*, u.username, u.display_name, u.avatar_url,
                 COUNT(DISTINCT p.post_id) as post_count,
-                COUNT(DISTINCT r.reaction_id) as reaction_count,
-                (COUNT(DISTINCT p.post_id) * 2 + COUNT(DISTINCT r.reaction_id)) as trending_score
+                (COUNT(DISTINCT p.post_id) * 2) as trending_score
                 FROM walls w
                 JOIN users u ON w.user_id = u.user_id
                 LEFT JOIN posts p ON w.wall_id = p.wall_id 
                     AND p.created_at >= DATE_SUB(NOW(), INTERVAL $interval)
                     AND p.is_deleted = FALSE
-                LEFT JOIN reactions r ON p.post_id = r.reactable_id 
-                    AND r.reactable_type = 'post'
-                    AND r.created_at >= DATE_SUB(NOW(), INTERVAL $interval)
                 WHERE w.privacy_level = 'public'
                 GROUP BY w.wall_id
                 HAVING post_count > 0
@@ -68,16 +64,14 @@ class DiscoverController
         ];
         $interval = $dateMap[$timeframe] ?? '7 DAY';
         
-        // Popularity score: reactions * 5 + comments * 3 + views * 0.5
+        // Popularity score: comments * 3
         $sql = "SELECT p.*, u.username, u.display_name, u.avatar_url,
                 w.wall_slug, w.display_name as wall_display_name,
-                COUNT(DISTINCT r.reaction_id) as reaction_count,
                 COUNT(DISTINCT c.comment_id) as comment_count,
-                (COUNT(DISTINCT r.reaction_id) * 5 + COUNT(DISTINCT c.comment_id) * 3) as popularity_score
+                (COUNT(DISTINCT c.comment_id) * 3) as popularity_score
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 JOIN walls w ON p.wall_id = w.wall_id
-                LEFT JOIN reactions r ON p.post_id = r.reactable_id AND r.reactable_type = 'post'
                 LEFT JOIN comments c ON p.post_id = c.post_id
                 WHERE p.created_at >= DATE_SUB(NOW(), INTERVAL $interval)
                     AND p.is_deleted = FALSE

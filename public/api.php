@@ -402,6 +402,11 @@ route('GET', 'api/v1/posts/feed', function() {
     PostController::getFeed();
 });
 
+// Feed alias (for frontend compatibility)
+route('GET', 'api/v1/feed', function() {
+    PostController::getFeed();
+});
+
 // Create post
 route('POST', 'api/v1/posts', function() {
     PostController::createPost();
