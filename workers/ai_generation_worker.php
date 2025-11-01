@@ -369,10 +369,10 @@ function processJob($jobId, $config, $connections) {
         );
         
         // 11. Update post content with link to generated app
-        $postContent = "AI Generated Application\n\nPrompt: {$job['user_prompt']}\n\nStatus: Completed";
+        $postContent = "<strong>Status:</strong> <span style='color: #10b981; font-weight: 600;'>✓ Completed</span>";
         Database::query(
-            "UPDATE posts SET content_text = ?, updated_at = NOW() WHERE post_id = ?",
-            [$postContent, $job['post_id']]
+            "UPDATE posts SET content_text = ?, content_html = ?, updated_at = NOW() WHERE post_id = ?",
+            [$postContent, $postContent, $job['post_id']]
         );
         
         echo "  Successfully saved generated content\n";

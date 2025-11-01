@@ -35,7 +35,7 @@ class AIController
             $postData = [
                 'wall_id' => $userWall['wall_id'],
                 'author_id' => $user['user_id'],
-                'content_text' => 'AI Generation: ' . substr($data['prompt'], 0, 100) . '...',
+                'content_text' => 'Prompt: ' . substr($data['prompt'], 0, 100) . '...',
                 'post_type' => 'ai_app'
             ];
             $post = Post::create($postData);

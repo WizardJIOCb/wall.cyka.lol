@@ -79,15 +79,13 @@
             <!-- AI Generated Content Preview (if completed) -->
             <div v-if="post.post_type === 'ai_app' && post.ai_status === 'completed' && post.ai_content" class="ai-content-preview">
               <div class="ai-preview-header">
-                <span class="preview-icon">✨</span>
+                <span class="preview-icon">🤖</span>
                 <h4>AI Response</h4>
               </div>
               <div class="ai-preview-prompt">
                 <strong>Prompt:</strong> {{ truncateText(post.ai_content.user_prompt, 150) }}
               </div>
-              <div v-if="post.ai_content.html_content" class="ai-preview-text">
-                {{ truncateText(post.ai_content.html_content.replace(/<[^>]*>/g, ''), 200) }}
-              </div>
+              <div v-if="post.ai_content.html_content" class="ai-preview-text" v-html="getPreviewHtml(post.ai_content.html_content)"></div>
               <button @click="openAIModal(post)" class="btn-open-ai">
                 <span class="icon">👁️</span>
                 <span>View Full Response</span>
@@ -161,15 +159,19 @@
                 <span class="stat-label">Total Tokens:</span>
                 <span class="stat-value">{{ selectedAIPost.ai_content.total_tokens.toLocaleString() }}</span>
               </div>
+              <div class="stat-item" v-if="averageTokensPerSecond > 0">
+                <span class="stat-label">Avg Speed:</span>
+                <span class="stat-value">{{ averageTokensPerSecond.toFixed(2) }} tok/s</span>
+              </div>
             </div>
           </div>
           
           <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content">
             <div class="section-header">
-              <h3>💬 Response</h3>
+              <h3>🧠 Response</h3>
               <button @click="copyToClipboard(selectedAIPost.ai_content.html_content, 'Response')" class="btn-copy-small">📋 Copy</button>
             </div>
-            <div class="ai-response-content" v-html="selectedAIPost.ai_content.html_content"></div>
+            <div class="ai-response-content" v-html="renderedAIContent"></div>
           </div>
         </div>
         
@@ -187,6 +189,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api/client'
 import AIGenerationProgress from '@/components/ai/AIGenerationProgress.vue'
+import { marked } from 'marked'
+
+// Configure marked options
+marked.setOptions({
+  breaks: true, // Convert line breaks to <br>
+  gfm: true, // GitHub Flavored Markdown
+})
 
 const props = defineProps<{ wallId?: string }>()
 
@@ -412,8 +421,45 @@ const truncateText = (text: string, maxLength: number) => {
   return text.substring(0, maxLength) + '...'
 }
 
+// Function to render preview with markdown formatting
+const getPreviewHtml = (content: string) => {
+  if (!content) return ''
+  
+  // Strip HTML tags first, then truncate, then parse markdown
+  const plainText = content.replace(/<[^>]*>/g, '')
+  const truncated = truncateText(plainText, 200)
+  
+  // Parse markdown to HTML for preview
+  const html = marked.parse(truncated, { async: false })
+  return html
+}
+
 const selectedAIPost = ref<any>(null)
 const showAIModal = ref(false)
+
+// Computed property for rendered markdown content
+const renderedAIContent = computed(() => {
+  if (!selectedAIPost.value?.ai_content?.html_content) return ''
+  
+  // Parse markdown to HTML
+  const rawHtml = marked.parse(selectedAIPost.value.ai_content.html_content)
+  return rawHtml
+})
+
+// Computed property for average tokens per second
+const averageTokensPerSecond = computed(() => {
+  if (!selectedAIPost.value?.ai_content) return 0
+  
+  const outputTokens = selectedAIPost.value.ai_content.output_tokens || 0
+  const generationTime = selectedAIPost.value.ai_content.generation_time || 0
+  
+  if (outputTokens > 0 && generationTime > 0) {
+    // generation_time is in milliseconds, convert to seconds
+    return outputTokens / (generationTime / 1000)
+  }
+  
+  return 0
+})
 
 const openAIModal = async (post: any) => {
   try {
@@ -503,6 +549,7 @@ onUnmounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing-4);
+  overflow-x: hidden;
 }
 
 .loading-container,
@@ -624,6 +671,8 @@ onUnmounted(() => {
 .posts-grid {
   display: grid;
   gap: var(--spacing-4);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .post-card {
@@ -632,6 +681,8 @@ onUnmounted(() => {
   padding: var(--spacing-4);
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .post-card:hover {
@@ -804,6 +855,7 @@ onUnmounted(() => {
   background: var(--color-bg-secondary);
   border-radius: var(--radius-md);
   border: 2px solid var(--color-primary);
+  overflow: hidden;
 }
 
 .ai-preview-header {
@@ -825,8 +877,8 @@ onUnmounted(() => {
 }
 
 .ai-preview-prompt {
-  padding: var(--spacing-3);
-  background: var(--color-bg-primary);
+  padding: 0;
+  background: transparent;
   border-radius: var(--radius-sm);
   margin-bottom: var(--spacing-3);
   font-size: 0.875rem;
@@ -837,14 +889,58 @@ onUnmounted(() => {
 .ai-preview-code,
 .ai-preview-text {
   margin-bottom: var(--spacing-3);
-  padding: var(--spacing-3);
-  background: var(--color-bg-primary);
+  padding: 0;
+  background: transparent;
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   font-size: 0.875rem;
   line-height: 1.6;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Formatting for preview markdown */
+.ai-preview-text :deep(p) {
+  margin: 0.5rem 0;
+}
+
+.ai-preview-text :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.ai-preview-text :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.ai-preview-text :deep(strong) {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.ai-preview-text :deep(code) {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+  word-break: break-all;
+}
+
+.ai-preview-text :deep(pre) {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 0.75rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  margin: 0.5rem 0 0 0;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.5;
 }
 
 .btn-open-ai {
@@ -1015,8 +1111,112 @@ onUnmounted(() => {
   font-size: 0.9375rem;
   max-height: 600px;
   overflow-y: auto;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
+/* Markdown basic elements */
+.ai-response-content p {
+  margin: var(--spacing-2) 0;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.ai-response-content p:first-child {
+  margin-top: 0;
+}
+
+.ai-response-content p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-response-content h1,
+.ai-response-content h2,
+.ai-response-content h3,
+.ai-response-content h4 {
+  margin-top: var(--spacing-4);
+  margin-bottom: var(--spacing-2);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+.ai-response-content h1:first-child,
+.ai-response-content h2:first-child,
+.ai-response-content h3:first-child,
+.ai-response-content h4:first-child {
+  margin-top: 0;
+}
+
+.ai-response-content h1 {
+  font-size: 1.75rem;
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: var(--spacing-2);
+}
+
+.ai-response-content h2 {
+  font-size: 1.5rem;
+}
+
+.ai-response-content h3 {
+  font-size: 1.25rem;
+}
+
+.ai-response-content h4 {
+  font-size: 1.125rem;
+}
+
+/* Lists */
+.ai-response-content ul,
+.ai-response-content ol {
+  margin: var(--spacing-2) 0;
+  padding-left: var(--spacing-5);
+}
+
+.ai-response-content ul:first-child,
+.ai-response-content ol:first-child {
+  margin-top: 0;
+}
+
+.ai-response-content ul:last-child,
+.ai-response-content ol:last-child {
+  margin-bottom: 0;
+}
+
+.ai-response-content li {
+  margin: var(--spacing-1) 0;
+}
+
+/* Blockquotes */
+.ai-response-content blockquote {
+  border-left: 4px solid var(--color-primary);
+  padding: var(--spacing-2) var(--spacing-3);
+  margin: var(--spacing-3) 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+.ai-response-content blockquote:first-child {
+  margin-top: 0;
+}
+
+.ai-response-content blockquote:last-child {
+  margin-bottom: 0;
+}
+
+/* Inline code */
+.ai-response-content code {
+  background: rgba(0, 0, 0, 0.08);
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-size: 0.875em;
+  color: #e83e8c;
+}
+
+/* Code blocks */
 .ai-response-content pre {
   background: #1e1e1e;
   color: #d4d4d4;
@@ -1025,41 +1225,84 @@ onUnmounted(() => {
   overflow-x: auto;
   font-family: 'Courier New', Consolas, Monaco, monospace;
   font-size: 0.875rem;
-  line-height: 1.5;
+  line-height: 1.6;
   margin: var(--spacing-3) 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
-.ai-response-content code {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 0.125rem 0.375rem;
-  border-radius: 3px;
-  font-family: 'Courier New', Consolas, Monaco, monospace;
-  font-size: 0.875em;
+.ai-response-content pre:first-child {
+  margin-top: 0;
 }
 
-.ai-response-content p {
-  margin: var(--spacing-3) 0;
+.ai-response-content pre:last-child {
+  margin-bottom: 0;
 }
 
-.ai-response-content h1,
-.ai-response-content h2,
-.ai-response-content h3 {
-  margin-top: var(--spacing-4);
-  margin-bottom: var(--spacing-2);
+.ai-response-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  white-space: pre-wrap;
+}
+
+/* Tables */
+.ai-response-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--spacing-4) 0;
+  font-size: 0.9rem;
+}
+
+.ai-response-content table thead {
+  background: var(--color-bg-primary);
+}
+
+.ai-response-content table th,
+.ai-response-content table td {
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.ai-response-content table th {
   font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-.ai-response-content ul,
-.ai-response-content ol {
-  margin: var(--spacing-3) 0;
-  padding-left: var(--spacing-5);
+.ai-response-content table tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.02);
 }
 
-.ai-response-content blockquote {
-  border-left: 4px solid var(--color-primary);
-  padding-left: var(--spacing-3);
-  margin: var(--spacing-3) 0;
-  color: var(--color-text-secondary);
+/* Links */
+.ai-response-content a {
+  color: var(--color-primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.ai-response-content a:hover {
+  border-bottom-color: var(--color-primary);
+}
+
+/* Horizontal rule */
+.ai-response-content hr {
+  border: none;
+  border-top: 2px solid var(--color-border);
+  margin: var(--spacing-5) 0;
+}
+
+/* Strong/Bold */
+.ai-response-content strong {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* Emphasis/Italic */
+.ai-response-content em {
   font-style: italic;
 }
 
