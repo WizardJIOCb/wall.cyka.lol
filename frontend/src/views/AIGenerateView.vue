@@ -234,11 +234,33 @@ const jobStatusText = computed(() => {
 })
 
 const calculateCost = () => {
-  let baseCost = 100
-  const charMultiplier = Math.ceil(promptText.value.length / 200)
+  // Estimate tokens from prompt length
+  // Average: ~4 characters per token
+  const promptTokens = Math.ceil(promptText.value.length / 4)
+  
+  // Estimate completion tokens (usually 1.5-3x prompt tokens for answers)
+  // For simple prompts (< 50 chars): ~50-100 tokens response
+  // For medium prompts (50-200 chars): ~100-300 tokens response  
+  // For complex prompts (200+ chars): ~300-1000 tokens response
+  let estimatedCompletionTokens = 100
+  
+  if (promptText.value.length < 50) {
+    estimatedCompletionTokens = 50
+  } else if (promptText.value.length < 200) {
+    estimatedCompletionTokens = Math.ceil(promptTokens * 2)
+  } else {
+    estimatedCompletionTokens = Math.ceil(promptTokens * 3)
+  }
+  
+  const totalTokens = promptTokens + estimatedCompletionTokens
+  
+  // Bricks calculation: 100 tokens = 1 brick (configurable in worker)
+  let bricksCost = Math.ceil(totalTokens / 100)
+  
+  // Priority costs
   const priorityCosts = { normal: 0, high: 50, urgent: 150 }
   
-  estimatedCost.value = baseCost + (charMultiplier * 10) + priorityCosts[priority.value as keyof typeof priorityCosts]
+  estimatedCost.value = Math.max(1, bricksCost + priorityCosts[priority.value as keyof typeof priorityCosts])
 }
 
 const formatDate = (dateString: string) => {
@@ -403,6 +425,7 @@ const copyCode = () => {
 }
 
 onMounted(() => {
+  calculateCost() // Calculate initial cost
   loadBricksBalance()
   loadHistory()
   

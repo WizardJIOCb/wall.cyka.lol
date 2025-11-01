@@ -24,6 +24,9 @@ class AIController
         error_log('[AIController::generateApp] Received model: ' . ($data['model'] ?? 'NOT SET'));
         error_log('[AIController::generateApp] Full request data: ' . json_encode($data));
 
+        // Ensure UTF-8mb4 encoding for the connection
+        Database::query("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
+
         try {
             // Get user's default wall
             $userWall = Wall::getUserDefaultWall($user['user_id']);
@@ -35,7 +38,7 @@ class AIController
             $postData = [
                 'wall_id' => $userWall['wall_id'],
                 'author_id' => $user['user_id'],
-                'content_text' => 'Prompt: ' . substr($data['prompt'], 0, 100) . '...',
+                'content_text' => '', // Empty, will show prompt and response instead
                 'post_type' => 'ai_app'
             ];
             $post = Post::create($postData);

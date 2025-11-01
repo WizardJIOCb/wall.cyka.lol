@@ -369,7 +369,7 @@ function processJob($jobId, $config, $connections) {
         );
         
         // 11. Update post content with link to generated app
-        $postContent = "<strong>Status:</strong> <span style='color: #10b981; font-weight: 600;'>✓ Completed</span>";
+        $postContent = "<strong>Status:</strong> <span style='color: #10b981; font-weight: 600;'>✓ Completed</span><br><strong>Bricks spent:</strong> <span style='color: #f59e0b; font-weight: 600;'>{$bricksCost} 🧱</span>";
         Database::query(
             "UPDATE posts SET content_text = ?, content_html = ?, updated_at = NOW() WHERE post_id = ?",
             [$postContent, $postContent, $job['post_id']]

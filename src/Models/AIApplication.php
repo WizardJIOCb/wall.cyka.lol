@@ -12,7 +12,14 @@ class AIApplication
      */
     public static function findById($appId)
     {
-        $sql = "SELECT * FROM ai_applications WHERE app_id = ?";
+        $sql = "SELECT a.*, 
+                job.actual_bricks_cost,
+                job.prompt_tokens as input_tokens,
+                job.completion_tokens as output_tokens,
+                job.total_tokens
+                FROM ai_applications a
+                LEFT JOIN ai_generation_jobs job ON a.job_id = job.job_id
+                WHERE a.app_id = ?";
         return Database::fetchOne($sql, [$appId]);
     }
 
@@ -194,6 +201,7 @@ class AIApplication
         $publicData['html_content'] = $app['html_content'];
         $publicData['css_content'] = $app['css_content'];
         $publicData['js_content'] = $app['js_content'];
+        $publicData['bricks_cost'] = isset($app['actual_bricks_cost']) ? (int)$app['actual_bricks_cost'] : 0;
         
         return $publicData;
     }

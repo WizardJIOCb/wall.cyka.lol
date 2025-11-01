@@ -27,10 +27,12 @@ class Post
         $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
                 ai.status as ai_status, ai.app_id, ai.job_id, ai.queue_position, ai.user_prompt,
                 ai.html_content, ai.css_content, ai.js_content, ai.generation_model,
-                ai.generation_time, ai.input_tokens, ai.output_tokens, ai.total_tokens
+                ai.generation_time, ai.input_tokens, ai.output_tokens, ai.total_tokens,
+                job.actual_bricks_cost
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 LEFT JOIN ai_applications ai ON p.post_id = ai.post_id
+                LEFT JOIN ai_generation_jobs job ON ai.job_id = job.job_id
                 WHERE p.wall_id = ? AND p.is_deleted = FALSE
                 ORDER BY p.created_at DESC
                 LIMIT ? OFFSET ?";
@@ -231,8 +233,8 @@ class Post
             'updated_at' => $post['updated_at'],
         ];
 
-        // Include AI content if it's a completed AI application
-        if ($post['post_type'] === 'ai_app' && $post['ai_status'] === 'completed') {
+        // Include AI content if it's an AI application
+        if ($post['post_type'] === 'ai_app') {
             if (isset($post['user_prompt']) || isset($post['html_content'])) {
                 $publicData['ai_content'] = [
                     'user_prompt' => $post['user_prompt'] ?? null,
@@ -244,6 +246,7 @@ class Post
                     'input_tokens' => isset($post['input_tokens']) ? (int)$post['input_tokens'] : 0,
                     'output_tokens' => isset($post['output_tokens']) ? (int)$post['output_tokens'] : 0,
                     'total_tokens' => isset($post['total_tokens']) ? (int)$post['total_tokens'] : 0,
+                    'bricks_cost' => isset($post['actual_bricks_cost']) ? (int)$post['actual_bricks_cost'] : 0,
                 ];
             }
         }

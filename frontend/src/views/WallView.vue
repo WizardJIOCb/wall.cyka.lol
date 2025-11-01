@@ -63,33 +63,84 @@
               @error="handleGenerationError(post, $event)"
             />
             
-            <!-- Regular Post Content -->
-            <div class="post-header">
+            <!-- Regular Post Header (only for non-AI posts) -->
+            <div v-if="post.post_type !== 'ai_app'" class="post-header">
               <img :src="post.author_avatar || '/assets/images/default-avatar.svg'" :alt="post.author_username" class="post-avatar" />
               <div class="post-meta">
                 <span class="post-author">@{{ post.author_username }}</span>
                 <span class="post-time">{{ formatDate(post.created_at) }}</span>
               </div>
             </div>
-            <div class="post-content">
+            
+            <!-- Regular Post Content (only for non-AI posts) -->
+            <div v-if="post.post_type !== 'ai_app'" class="post-content">
               <div v-if="post.content_html" v-html="post.content_html"></div>
               <p v-else>{{ post.content_text }}</p>
             </div>
             
             <!-- AI Generated Content Preview (if completed) -->
-            <div v-if="post.post_type === 'ai_app' && post.ai_status === 'completed' && post.ai_content" class="ai-content-preview">
+            <div v-if="post.post_type === 'ai_app' && post.ai_status === 'completed'" class="ai-content-preview">
               <div class="ai-preview-header">
-                <span class="preview-icon">🤖</span>
-                <h4>AI Response</h4>
+                <img :src="post.author_avatar || '/assets/images/default-avatar.svg'" :alt="post.author_username" class="preview-avatar" />
+                <h4>@{{ post.author_username }}</h4>
               </div>
-              <div class="ai-preview-prompt">
+              
+              <!-- Status and Bricks Info -->
+              <div class="ai-generation-info">
+                <div class="info-item status-completed">
+                  <strong>Status:</strong> 
+                  <span class="status-badge">✓ Completed</span>
+                </div>
+                <div v-if="post.ai_content?.bricks_cost" class="info-item bricks-spent">
+                  <strong>Bricks spent:</strong> 
+                  <span class="bricks-amount">{{ post.ai_content.bricks_cost }} 🧱</span>
+                </div>
+                <div v-if="post.ai_content?.generation_model" class="info-item model-used">
+                  <strong>Model:</strong> 
+                  <span class="model-name">{{ post.ai_content.generation_model }}</span>
+                </div>
+              </div>
+              
+              <div v-if="post.ai_content?.user_prompt" class="ai-preview-prompt">
                 <strong>Prompt:</strong> {{ truncateText(post.ai_content.user_prompt, 150) }}
               </div>
-              <div v-if="post.ai_content.html_content" class="ai-preview-text" v-html="getPreviewHtml(post.ai_content.html_content)"></div>
+              <div v-if="post.ai_content?.html_content" class="ai-preview-response">
+                <strong>Response:</strong>
+              </div>
+              <div v-if="post.ai_content?.html_content" class="ai-preview-text" v-html="getPreviewHtml(post.ai_content.html_content)"></div>
               <button @click="openAIModal(post)" class="btn-open-ai">
                 <span class="icon">👁️</span>
                 <span>View Full Response</span>
               </button>
+            </div>
+            
+            <!-- AI Content In Progress -->
+            <div v-if="post.post_type === 'ai_app' && (post.ai_status === 'queued' || post.ai_status === 'processing')" class="ai-content-preview">
+              <div class="ai-preview-header">
+                <img :src="post.author_avatar || '/assets/images/default-avatar.svg'" :alt="post.author_username" class="preview-avatar" />
+                <h4>@{{ post.author_username }}</h4>
+              </div>
+              
+              <!-- Status and Model Info -->
+              <div class="ai-generation-info">
+                <div class="info-item status-processing">
+                  <strong>Status:</strong> 
+                  <span class="status-badge processing">{{ post.ai_status === 'queued' ? '⏳ Queued' : '⏳ Processing' }}</span>
+                </div>
+                <div v-if="post.ai_content?.generation_model" class="info-item model-used">
+                  <strong>Model:</strong> 
+                  <span class="model-name">{{ post.ai_content.generation_model }}</span>
+                </div>
+              </div>
+              
+              <div v-if="post.ai_content?.user_prompt" class="ai-preview-prompt">
+                <strong>Prompt:</strong> {{ truncateText(post.ai_content.user_prompt, 150) }}
+              </div>
+              <!-- Show partial response if available during generation -->
+              <div v-if="post.ai_content?.html_content" class="ai-preview-response">
+                <strong>Response:</strong>
+              </div>
+              <div v-if="post.ai_content?.html_content" class="ai-preview-text ai-generating" v-html="getPreviewHtml(post.ai_content.html_content)"></div>
             </div>
             <div v-if="post.media_attachments && post.media_attachments.length > 0" class="post-media">
               <img v-for="media in post.media_attachments" :key="media.attachment_id" :src="media.file_url" :alt="media.file_name" />
@@ -107,6 +158,7 @@
                 <span class="icon">👁</span>
                 <span>{{ post.view_count || 0 }}</span>
               </button>
+              <span class="post-time-footer">{{ formatDate(post.post_type === 'ai_app' ? post.updated_at : post.created_at) }}</span>
             </div>
           </div>
         </div>
@@ -136,6 +188,11 @@
             </div>
           </div>
           
+          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content">
+            <h3>🧠 Response</h3>
+            <div class="ai-response-content" v-html="renderedAIContent"></div>
+          </div>
+          
           <div class="ai-modal-section ai-stats" v-if="selectedAIPost.ai_content">
             <h3>📊 Generation Stats</h3>
             <div class="stats-grid">
@@ -146,6 +203,10 @@
               <div class="stat-item" v-if="selectedAIPost.ai_content.generation_time">
                 <span class="stat-label">Time:</span>
                 <span class="stat-value">{{ (selectedAIPost.ai_content.generation_time / 1000).toFixed(2) }}s</span>
+              </div>
+              <div class="stat-item" v-if="selectedAIPost.ai_content.bricks_cost">
+                <span class="stat-label">Bricks Cost:</span>
+                <span class="stat-value bricks-value">{{ selectedAIPost.ai_content.bricks_cost }} 🧱</span>
               </div>
               <div class="stat-item" v-if="selectedAIPost.ai_content.input_tokens">
                 <span class="stat-label">Input Tokens:</span>
@@ -165,20 +226,29 @@
               </div>
             </div>
           </div>
-          
-          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content">
-            <div class="section-header">
-              <h3>🧠 Response</h3>
-              <button @click="copyToClipboard(selectedAIPost.ai_content.html_content, 'Response')" class="btn-copy-small">📋 Copy</button>
-            </div>
-            <div class="ai-response-content" v-html="renderedAIContent"></div>
-          </div>
         </div>
         
         <div class="modal-footer">
+          <div class="action-buttons-group">
+            <button @click="shareAIResponse" class="btn-share">
+              <span class="icon">🔗</span>
+              <span>Share Link</span>
+            </button>
+            <button @click="copyToClipboard(selectedAIPost.ai_content.html_content, 'Response')" class="btn-copy">
+              <span class="icon">📋</span>
+              <span>Copy</span>
+            </button>
+          </div>
           <button @click="closeAIModal" class="btn-secondary">Close</button>
         </div>
       </div>
+    </div>
+  </Teleport>
+
+  <!-- Toast Notification -->
+  <Teleport to="body">
+    <div v-if="showToast" class="toast-notification">
+      {{ toastMessage }}
     </div>
   </Teleport>
 </template>
@@ -436,13 +506,28 @@ const getPreviewHtml = (content: string) => {
 
 const selectedAIPost = ref<any>(null)
 const showAIModal = ref(false)
+const toastMessage = ref('')
+const showToast = ref(false)
+
+const displayToast = (message: string) => {
+  toastMessage.value = message
+  showToast.value = true
+  setTimeout(() => {
+    showToast.value = false
+  }, 2000) // Hide after 2 seconds
+}
 
 // Computed property for rendered markdown content
 const renderedAIContent = computed(() => {
   if (!selectedAIPost.value?.ai_content?.html_content) return ''
   
   // Parse markdown to HTML
-  const rawHtml = marked.parse(selectedAIPost.value.ai_content.html_content)
+  let rawHtml = String(marked.parse(selectedAIPost.value.ai_content.html_content))
+  
+  // Replace ALL <hr> tags (with or without attributes) with clean version with class
+  rawHtml = rawHtml.replace(/<hr\s*\/?>/gi, '<hr class="content-divider">')
+  rawHtml = rawHtml.replace(/<hr\s+[^>]*>/gi, '<hr class="content-divider">')
+  
   return rawHtml
 })
 
@@ -468,9 +553,18 @@ const openAIModal = async (post: any) => {
     
     // Check if response has the expected structure
     if (response?.success && response?.data?.app) {
+      console.log('AI App Data:', response.data.app) // Debug log
       selectedAIPost.value = {
         ...post,
-        ai_content: response.data.app
+        ai_content: {
+          ...response.data.app,
+          // Preserve bricks_cost from post if not in API response
+          bricks_cost: response.data.app.bricks_cost || post.ai_content?.bricks_cost || 0,
+          // Preserve token data
+          input_tokens: response.data.app.input_tokens || post.ai_content?.input_tokens || 0,
+          output_tokens: response.data.app.output_tokens || post.ai_content?.output_tokens || 0,
+          total_tokens: response.data.app.total_tokens || post.ai_content?.total_tokens || 0
+        }
       }
       showAIModal.value = true
       // Lock body scroll
@@ -488,12 +582,32 @@ const closeAIModal = () => {
   document.body.style.overflow = ''
 }
 
+const shareAIResponse = () => {
+  if (!selectedAIPost.value) return
+  
+  const wallId = wall.value?.wall_id || route.params.wallId
+  const appId = selectedAIPost.value.ai_app_id
+  
+  // Use port 8080 (production) instead of 3000 (dev)
+  const baseUrl = window.location.origin.replace(':3000', ':8080')
+  const shareUrl = `${baseUrl}/wall/${wallId}?ai=${appId}`
+  
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    console.log('Share link copied to clipboard:', shareUrl)
+    displayToast('✓ Share link copied to clipboard!')
+  }).catch(err => {
+    console.error('Failed to copy share link:', err)
+    displayToast('✗ Failed to copy link')
+  })
+}
+
 const copyToClipboard = (text: string, label: string) => {
   navigator.clipboard.writeText(text).then(() => {
-    // Successfully copied
     console.log(`${label} copied to clipboard`)
+    displayToast(`✓ ${label} copied!`)
   }).catch(err => {
     console.error('Failed to copy:', err)
+    displayToast('✗ Failed to copy')
   })
 }
 
@@ -533,8 +647,18 @@ ${htmlClose}`
   URL.revokeObjectURL(url)
 }
 
-onMounted(() => {
-  loadWall()
+onMounted(async () => {
+  await loadWall()
+  
+  // Check if there's an AI app ID in the URL query params
+  const aiAppId = route.query.ai
+  if (aiAppId) {
+    // Find the post with this AI app ID and open the modal
+    const post = posts.value.find(p => p.ai_app_id === parseInt(String(aiAppId)))
+    if (post) {
+      await openAIModal(post)
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -742,6 +866,14 @@ onUnmounted(() => {
   gap: var(--spacing-4);
   padding-top: var(--spacing-3);
   border-top: 1px solid var(--color-border);
+  align-items: center;
+}
+
+.post-time-footer {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  opacity: 0.7;
 }
 
 .action-btn {
@@ -865,6 +997,14 @@ onUnmounted(() => {
   margin-bottom: var(--spacing-3);
 }
 
+.preview-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-primary);
+}
+
 .preview-icon {
   font-size: 1.25rem;
 }
@@ -876,11 +1016,71 @@ onUnmounted(() => {
   color: var(--color-text-primary);
 }
 
+.ai-generation-info {
+  display: flex;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+  padding: var(--spacing-2) 0;
+  flex-wrap: wrap;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+}
+
+.info-item strong {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.status-badge {
+  color: #10b981;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.bricks-amount {
+  color: #f59e0b;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.model-name {
+  color: #6366f1;
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+.status-badge.processing {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
 .ai-preview-prompt {
   padding: 0;
   background: transparent;
   border-radius: var(--radius-sm);
   margin-bottom: var(--spacing-3);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.ai-preview-response {
+  padding: 0;
+  background: transparent;
+  margin-bottom: var(--spacing-2);
   font-size: 0.875rem;
   color: var(--color-text-secondary);
   line-height: 1.5;
@@ -900,6 +1100,24 @@ onUnmounted(() => {
   max-width: 100%;
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+/* Animating text while generating */
+.ai-preview-text.ai-generating {
+  position: relative;
+}
+
+.ai-preview-text.ai-generating::after {
+  content: '▊';
+  display: inline-block;
+  animation: blink 1s infinite;
+  margin-left: 2px;
+  color: var(--color-primary);
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
 
 /* Formatting for preview markdown */
@@ -1109,8 +1327,6 @@ onUnmounted(() => {
   line-height: 1.7;
   color: var(--color-text-primary);
   font-size: 0.9375rem;
-  max-height: 600px;
-  overflow-y: auto;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
@@ -1289,29 +1505,69 @@ onUnmounted(() => {
 }
 
 /* Horizontal rule */
-.ai-response-content hr {
-  border: none;
-  border-top: 2px solid var(--color-border);
-  margin: var(--spacing-5) 0;
+.ai-response-content :deep(hr),
+.ai-response-content :deep(.content-divider) {
+  border: none !important;
+  border-top: 2px solid var(--color-border) !important;
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+  padding: 0 !important;
+  display: block !important;
+  clear: both !important;
+  width: 100% !important;
+  height: 0 !important;
+}
+
+/* Headings (h3) */
+.ai-response-content :deep(h3) {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+/* Paragraphs */
+.ai-response-content :deep(p) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+
+.ai-response-content :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.ai-response-content :deep(p:last-child) {
+  margin-bottom: 0;
 }
 
 /* Strong/Bold */
-.ai-response-content strong {
+.ai-response-content :deep(strong) {
   font-weight: 700;
   color: var(--color-text-primary);
+  display: inline;
 }
 
 /* Emphasis/Italic */
-.ai-response-content em {
+.ai-response-content :deep(em) {
   font-style: italic;
 }
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: var(--spacing-3);
   padding: var(--spacing-5);
   border-top: 1px solid var(--color-border);
+}
+
+.action-buttons-group {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: center;
 }
 
 .modal-footer .btn-primary,
@@ -1349,6 +1605,47 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
+.stat-value.bricks-value {
+  color: #f59e0b;
+}
+
+/* Share and Copy Buttons */
+.btn-share,
+.btn-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9375rem;
+}
+
+.btn-share {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #667eea 100%);
+  color: white;
+}
+
+.btn-share:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-copy {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.btn-copy:hover {
+  background: var(--color-bg-primary);
+  border-color: var(--color-primary);
+}
+
 @media (max-width: 768px) {
   .ai-stats .stats-grid {
     grid-template-columns: 1fr;
@@ -1368,6 +1665,45 @@ onUnmounted(() => {
   
   .wall-title {
     font-size: 1.5rem;
+  }
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  z-index: 10001;
+  animation: slideInUp 0.3s ease-out, fadeOut 0.3s ease-in 1.7s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 </style>
