@@ -106,7 +106,7 @@
           <label class="form-label">Model</label>
           <select v-model="selectedModel" class="form-select" @change="calculateCost">
             <option value="gpt-oss:20b">gpt-oss:20b</option>
-            <option value="deepseek-coder">DeepSeek Coder (Recommended)</option>
+            <option value="deepseek-coder:6.7b">DeepSeek Coder (Recommended)</option>
             <option value="llama-coder">Llama Coder</option>
             <option value="codellama">CodeLlama</option>
           </select>
@@ -193,7 +193,7 @@ const router = useRouter()
 
 const authStore = useAuthStore()
 const promptText = ref('')
-const selectedModel = ref('deepseek-coder')
+const selectedModel = ref('deepseek-coder:6.7b')
 const priority = ref('normal')
 const estimatedCost = ref(100)
 const bricksBalance = ref(authStore.user?.bricks_balance || 0)

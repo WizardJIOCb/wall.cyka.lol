@@ -173,7 +173,7 @@ function processJob($jobId, $config, $connections) {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestData));
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 300); // 5 minutes timeout
+        curl_setopt($ch, CURLOPT_TIMEOUT, 600); // 10 minutes timeout for large models
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
