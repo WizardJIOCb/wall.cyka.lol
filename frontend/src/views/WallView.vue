@@ -55,13 +55,35 @@
           <div v-for="post in posts" :key="post.post_id" class="post-card" :class="{ 'ai-post': post.post_type === 'ai_app' }">
             <!-- AI Generation Real-time Progress (if AI post is generating) -->
             <AIGenerationProgress 
-              v-if="post.post_type === 'ai_app' && (post.ai_status === 'queued' || post.ai_status === 'processing') && post.job_id"
-              :jobId="post.job_id"
+              v-if="post.post_type === 'ai_app' && (post.ai_status === 'queued' || post.ai_status === 'processing') && post.ai_job_id"
+              :jobId="post.ai_job_id"
               :modelName="post.ai_model"
               :auto-start="true"
               @complete="handleGenerationComplete(post)"
               @error="handleGenerationError(post, $event)"
             />
+            
+            <!-- Show Prompt and Partial Content for Generating Posts -->
+            <div v-if="post.post_type === 'ai_app' && (post.ai_status === 'queued' || post.ai_status === 'processing') && post.ai_job_id" class="ai-content-info">
+              <!-- Show the prompt -->
+              <div v-if="post.ai_content?.user_prompt" class="ai-preview-prompt">
+                <strong>Prompt:</strong> {{ truncateText(post.ai_content.user_prompt, 150) }}
+              </div>
+              
+              <!-- Show partial response if available -->
+              <div v-if="post.ai_content?.html_content">
+                <div class="ai-preview-response">
+                  <strong>Generated Response:</strong>
+                </div>
+                <div class="ai-preview-text ai-generating" v-html="getPreviewHtml(post.ai_content.html_content)"></div>
+              </div>
+              
+              <!-- Button to open modal - always show for processing posts -->
+              <button v-if="post.ai_status === 'processing'" @click="openAIModal(post)" class="btn-open-ai">
+                <span class="icon">👁️</span>
+                <span>{{ post.ai_content?.html_content ? 'View Full Response' : 'Watch Generation' }}</span>
+              </button>
+            </div>
             
             <!-- Regular Post Header (only for non-AI posts) -->
             <div v-if="post.post_type !== 'ai_app'" class="post-header">
@@ -114,8 +136,8 @@
               </button>
             </div>
             
-            <!-- AI Content In Progress -->
-            <div v-if="post.post_type === 'ai_app' && (post.ai_status === 'queued' || post.ai_status === 'processing')" class="ai-content-preview">
+            <!-- AI Content In Progress (only show if no job_id for progress component) -->
+            <div v-if="post.post_type === 'ai_app' && (post.ai_status === 'queued' || post.ai_status === 'processing') && !post.ai_job_id" class="ai-content-preview">
               <div class="ai-preview-header">
                 <img :src="post.author_avatar || '/assets/images/default-avatar.svg'" :alt="post.author_username" class="preview-avatar" />
                 <h4>@{{ post.author_username }}</h4>
@@ -141,6 +163,12 @@
                 <strong>Response:</strong>
               </div>
               <div v-if="post.ai_content?.html_content" class="ai-preview-text ai-generating" v-html="getPreviewHtml(post.ai_content.html_content)"></div>
+              
+              <!-- Button to open modal even during generation -->
+              <button v-if="post.ai_content?.html_content" @click="openAIModal(post)" class="btn-open-ai">
+                <span class="icon">👁️</span>
+                <span>View Full Response</span>
+              </button>
             </div>
             <div v-if="post.media_attachments && post.media_attachments.length > 0" class="post-media">
               <img v-for="media in post.media_attachments" :key="media.attachment_id" :src="media.file_url" :alt="media.file_name" />
@@ -190,40 +218,81 @@
           
           <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content">
             <h3>🧠 Response</h3>
-            <div class="ai-response-content" v-html="renderedAIContent"></div>
+            <div class="ai-response-content" :class="{ 'ai-generating': selectedAIPost.ai_status === 'processing' }" v-html="renderedAIContent"></div>
           </div>
           
           <div class="ai-modal-section ai-stats" v-if="selectedAIPost.ai_content">
             <h3>📊 Generation Stats</h3>
+            
+            <!-- Progress bar for generating posts -->
+            <div v-if="selectedAIPost.ai_status === 'processing'" class="generation-progress-bar">
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" :style="{ width: (selectedAIPost.ai_content.progress_percentage || 0) + '%' }"></div>
+              </div>
+              <div class="progress-text">{{ (selectedAIPost.ai_content.progress_percentage || 0) }}%</div>
+            </div>
+            
             <div class="stats-grid">
               <div class="stat-item">
                 <span class="stat-label">Model:</span>
-                <span class="stat-value">{{ selectedAIPost.ai_content.generation_model || 'Unknown' }}</span>
+                <span class="stat-value">{{ selectedAIPost.ai_content.generation_model || selectedAIPost.ai_model || 'Unknown' }}</span>
               </div>
-              <div class="stat-item" v-if="selectedAIPost.ai_content.generation_time">
-                <span class="stat-label">Time:</span>
-                <span class="stat-value">{{ (selectedAIPost.ai_content.generation_time / 1000).toFixed(2) }}s</span>
-              </div>
-              <div class="stat-item" v-if="selectedAIPost.ai_content.bricks_cost">
-                <span class="stat-label">Bricks Cost:</span>
-                <span class="stat-value bricks-value">{{ selectedAIPost.ai_content.bricks_cost }} 🧱</span>
-              </div>
-              <div class="stat-item" v-if="selectedAIPost.ai_content.input_tokens">
-                <span class="stat-label">Input Tokens:</span>
-                <span class="stat-value">{{ selectedAIPost.ai_content.input_tokens.toLocaleString() }}</span>
-              </div>
-              <div class="stat-item" v-if="selectedAIPost.ai_content.output_tokens">
-                <span class="stat-label">Output Tokens:</span>
-                <span class="stat-value">{{ selectedAIPost.ai_content.output_tokens.toLocaleString() }}</span>
-              </div>
-              <div class="stat-item" v-if="selectedAIPost.ai_content.total_tokens">
-                <span class="stat-label">Total Tokens:</span>
-                <span class="stat-value">{{ selectedAIPost.ai_content.total_tokens.toLocaleString() }}</span>
-              </div>
-              <div class="stat-item" v-if="averageTokensPerSecond > 0">
-                <span class="stat-label">Avg Speed:</span>
-                <span class="stat-value">{{ averageTokensPerSecond.toFixed(2) }} tok/s</span>
-              </div>
+              
+              <!-- Real-time stats during generation -->
+              <template v-if="selectedAIPost.ai_status === 'processing'">
+                <div class="stat-item" v-if="selectedAIPost.ai_content.elapsed_time">
+                  <span class="stat-label">Elapsed:</span>
+                  <span class="stat-value">{{ (selectedAIPost.ai_content.elapsed_time / 1000).toFixed(1) }}s</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.estimated_remaining">
+                  <span class="stat-label">Remaining:</span>
+                  <span class="stat-value">{{ (selectedAIPost.ai_content.estimated_remaining / 1000).toFixed(1) }}s</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.current_tokens">
+                  <span class="stat-label">Current Tokens:</span>
+                  <span class="stat-value">{{ selectedAIPost.ai_content.current_tokens.toLocaleString() }}</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.tokens_per_second">
+                  <span class="stat-label">Speed:</span>
+                  <span class="stat-value">{{ selectedAIPost.ai_content.tokens_per_second.toFixed(2) }} tok/s</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.content_length">
+                  <span class="stat-label">Generated:</span>
+                  <span class="stat-value">{{ selectedAIPost.ai_content.content_length.toLocaleString() }} chars</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.chars_per_second">
+                  <span class="stat-label">Char Speed:</span>
+                  <span class="stat-value">{{ selectedAIPost.ai_content.chars_per_second.toFixed(2) }} char/s</span>
+                </div>
+              </template>
+              
+              <!-- Final stats after completion -->
+              <template v-else>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.generation_time">
+                  <span class="stat-label">Time:</span>
+                  <span class="stat-value">{{ (selectedAIPost.ai_content.generation_time / 1000).toFixed(2) }}s</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.bricks_cost">
+                  <span class="stat-label">Bricks Cost:</span>
+                  <span class="stat-value bricks-value">{{ selectedAIPost.ai_content.bricks_cost }} 🧱</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.input_tokens">
+                  <span class="stat-label">Input Tokens:</span>
+                  <span class="stat-value">{{ selectedAIPost.ai_content.input_tokens.toLocaleString() }}</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.output_tokens">
+                  <span class="stat-label">Output Tokens:</span>
+                  <span class="stat-value">{{ selectedAIPost.ai_content.output_tokens.toLocaleString() }}</span>
+                </div>
+                <div class="stat-item" v-if="selectedAIPost.ai_content.total_tokens">
+                  <span class="stat-label">Total Tokens:</span>
+                  <span class="stat-value">{{ selectedAIPost.ai_content.total_tokens.toLocaleString() }}</span>
+                </div>
+                <div class="stat-item" v-if="averageTokensPerSecond > 0">
+                  <span class="stat-label">Avg Speed:</span>
+                  <span class="stat-value">{{ averageTokensPerSecond.toFixed(2) }} tok/s</span>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -282,6 +351,8 @@ const page = ref(1)
 const limit = 20
 const hasMorePosts = ref(true)
 let pollInterval: any = null
+let contentEventSources: Map<number, EventSource> = new Map() // Track SSE connections per job
+let progressEventSources: Map<number, EventSource> = new Map() // Track progress SSE connections
 
 const isOwnWall = computed(() => {
   return wall.value && authStore.user && wall.value.user_id === authStore.user.id
@@ -413,15 +484,33 @@ const updatePostsData = (newPosts: any[]) => {
 }
 
 const checkForPendingAIPosts = () => {
-  const hasPendingAI = posts.value.some(
+  const pendingPosts = posts.value.filter(
     post => post.post_type === 'ai_app' && 
            (post.ai_status === 'queued' || post.ai_status === 'processing')
   )
   
-  if (hasPendingAI) {
+  console.log('[WallView] Checking pending AI posts:', pendingPosts.length)
+  pendingPosts.forEach(post => {
+    console.log('[WallView] Pending post:', {
+      post_id: post.post_id,
+      ai_status: post.ai_status,
+      ai_job_id: post.ai_job_id,
+      has_content: !!post.ai_content,
+      html_content_length: post.ai_content?.html_content?.length || 0
+    })
+  })
+  
+  if (pendingPosts.length > 0) {
     startPolling()
+    // Start content streaming for each processing post
+    pendingPosts.forEach(post => {
+      if (post.ai_status === 'processing' && post.ai_job_id) {
+        startContentStream(post)
+      }
+    })
   } else {
     stopPolling()
+    stopAllContentStreams()
   }
 }
 
@@ -453,6 +542,8 @@ const createPost = () => {
 // Handle AI generation completion
 const handleGenerationComplete = async (post: any) => {
   console.log('Generation completed for post:', post.post_id)
+  // Stop streaming for this job
+  stopContentStream(post.ai_job_id)
   // Reload posts to get the updated content
   await loadPosts()
   stopPolling()
@@ -461,8 +552,194 @@ const handleGenerationComplete = async (post: any) => {
 // Handle AI generation error
 const handleGenerationError = (post: any, errorMsg: string) => {
   console.error('Generation failed for post:', post.post_id, errorMsg)
+  // Stop streaming for this job
+  stopContentStream(post.ai_job_id)
   // Reload posts to reflect failed status
   loadPosts()
+}
+
+// Start streaming content for a generating post
+const startContentStream = (post: any) => {
+  if (!post.ai_job_id) return
+  if (contentEventSources.has(post.ai_job_id)) return // Already streaming
+  
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  const streamUrl = `${apiUrl}/api/v1/ai/generation/${post.ai_job_id}/content`
+  
+  console.log('[ContentStream] Starting SSE for job:', post.ai_job_id)
+  
+  const eventSource = new EventSource(streamUrl)
+  contentEventSources.set(post.ai_job_id, eventSource)
+  
+  eventSource.addEventListener('content', (event) => {
+    const data = JSON.parse(event.data)
+    console.log('[ContentStream] Received content chunk:', data)
+    
+    // Update post in list
+    const postIndex = posts.value.findIndex(p => p.post_id === post.post_id)
+    if (postIndex !== -1) {
+      // Initialize ai_content if it doesn't exist
+      if (!posts.value[postIndex].ai_content) {
+        posts.value[postIndex].ai_content = {}
+      }
+      
+      posts.value[postIndex] = {
+        ...posts.value[postIndex],
+        ai_content: {
+          ...posts.value[postIndex].ai_content,
+          html_content: data.content || '',
+          generation_model: data.model || posts.value[postIndex].ai_content?.generation_model
+        }
+      }
+      console.log('[ContentStream] Updated post content, length:', data.content?.length || 0)
+    }
+    
+    // Update modal if open for this post
+    if (selectedAIPost.value?.post_id === post.post_id) {
+      selectedAIPost.value = {
+        ...selectedAIPost.value,
+        ai_content: {
+          ...selectedAIPost.value.ai_content,
+          html_content: data.content || ''
+        }
+      }
+    }
+  })
+  
+  eventSource.addEventListener('complete', (event) => {
+    console.log('[ContentStream] Generation complete')
+    stopContentStream(post.ai_job_id)
+    // Reload to get final stats
+    loadPosts()
+  })
+  
+  eventSource.addEventListener('error', (event) => {
+    console.error('[ContentStream] SSE error for job:', post.ai_job_id)
+    stopContentStream(post.ai_job_id)
+  })
+  
+  eventSource.onerror = (error) => {
+    console.error('[ContentStream] Connection error:', error)
+    // Don't immediately close - might be temporary
+  }
+}
+
+// Stop streaming content for a job
+const stopContentStream = (jobId: number) => {
+  if (!jobId) return
+  
+  const eventSource = contentEventSources.get(jobId)
+  if (eventSource) {
+    eventSource.close()
+    contentEventSources.delete(jobId)
+    console.log('[ContentStream] Stopped SSE for job:', jobId)
+  }
+}
+
+// Stop all content streams
+const stopAllContentStreams = () => {
+  contentEventSources.forEach((eventSource, jobId) => {
+    eventSource.close()
+    console.log('[ContentStream] Closed SSE for job:', jobId)
+  })
+  contentEventSources.clear()
+}
+
+// Start streaming progress for a generating post
+const startProgressStream = (post: any) => {
+  if (!post.ai_job_id) return
+  if (progressEventSources.has(post.ai_job_id)) return // Already streaming
+  
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  const streamUrl = `${apiUrl}/api/v1/ai/generation/${post.ai_job_id}/progress`
+  
+  console.log('[ProgressStream] Starting SSE for job:', post.ai_job_id)
+  
+  const eventSource = new EventSource(streamUrl)
+  progressEventSources.set(post.ai_job_id, eventSource)
+  
+  eventSource.addEventListener('progress', (event) => {
+    const data = JSON.parse(event.data)
+    console.log('[ProgressStream] Received progress update:', data)
+    
+    // Update selectedAIPost if this is the post in the modal
+    if (selectedAIPost.value?.post_id === post.post_id) {
+      selectedAIPost.value = {
+        ...selectedAIPost.value,
+        ai_content: {
+          ...selectedAIPost.value.ai_content,
+          // Real-time stats
+          current_tokens: data.current_tokens || 0,
+          tokens_per_second: data.tokens_per_second || 0,
+          elapsed_time: data.elapsed_time || 0,
+          estimated_remaining: data.estimated_remaining || 0,
+          progress_percentage: data.progress || 0,
+          content_length: data.content_length || 0,
+          chars_per_second: data.chars_per_second || 0,
+          // Token stats
+          input_tokens: data.prompt_tokens || 0,
+          output_tokens: data.completion_tokens || 0,
+          total_tokens: data.total_tokens || 0
+        }
+      }
+    }
+  })
+  
+  eventSource.addEventListener('complete', (event) => {
+    console.log('[ProgressStream] Generation complete, reloading data')
+    stopProgressStream(post.ai_job_id)
+    
+    // Reload post data to get final stats
+    if (selectedAIPost.value?.post_id === post.post_id) {
+      apiClient.get(`/ai/apps/${post.ai_app_id}`).then((response: any) => {
+        if (response?.success && response?.data?.app) {
+          selectedAIPost.value = {
+            ...selectedAIPost.value,
+            ai_status: 'completed',
+            ai_content: {
+              ...response.data.app,
+              bricks_cost: response.data.app.bricks_cost || 0
+            }
+          }
+        }
+      }).catch(err => {
+        console.error('Failed to reload final data:', err)
+      })
+    }
+    
+    // Reload posts list
+    loadPosts()
+  })
+  
+  eventSource.addEventListener('error', (event) => {
+    console.error('[ProgressStream] SSE error for job:', post.ai_job_id)
+    stopProgressStream(post.ai_job_id)
+  })
+  
+  eventSource.onerror = (error) => {
+    console.error('[ProgressStream] Connection error:', error)
+  }
+}
+
+// Stop streaming progress for a job
+const stopProgressStream = (jobId: number) => {
+  if (!jobId) return
+  
+  const eventSource = progressEventSources.get(jobId)
+  if (eventSource) {
+    eventSource.close()
+    progressEventSources.delete(jobId)
+    console.log('[ProgressStream] Stopped SSE for job:', jobId)
+  }
+}
+
+// Stop all progress streams
+const stopAllProgressStreams = () => {
+  progressEventSources.forEach((eventSource, jobId) => {
+    eventSource.close()
+    console.log('[ProgressStream] Closed SSE for job:', jobId)
+  })
+  progressEventSources.clear()
 }
 
 const getAIProgress = (status: string) => {
@@ -548,34 +825,72 @@ const averageTokensPerSecond = computed(() => {
 
 const openAIModal = async (post: any) => {
   try {
-    // Fetch full AI application data
+    // For generating posts, use data from the post itself
+    if (post.ai_status === 'queued' || post.ai_status === 'processing') {
+      console.log('Opening modal for generating post, using post data')
+      selectedAIPost.value = {
+        ...post,
+        ai_content: {
+          user_prompt: post.ai_content?.user_prompt || null,
+          html_content: post.ai_content?.html_content || null,
+          css_content: post.ai_content?.css_content || null,
+          js_content: post.ai_content?.js_content || null,
+          generation_model: post.ai_content?.generation_model || post.ai_model || null,
+          generation_time: null,
+          input_tokens: 0,
+          output_tokens: 0,
+          total_tokens: 0,
+          bricks_cost: post.ai_content?.bricks_cost || 0
+        }
+      }
+      showAIModal.value = true
+      document.body.style.overflow = 'hidden'
+      
+      // Start streaming content and progress updates
+      if (post.ai_status === 'processing' && post.ai_job_id) {
+        startContentStream(post)
+        startProgressStream(post)
+      }
+      return
+    }
+    
+    // For completed posts, fetch full data from API
     const response: any = await apiClient.get(`/ai/apps/${post.ai_app_id}`)
     
     // Check if response has the expected structure
     if (response?.success && response?.data?.app) {
-      console.log('AI App Data:', response.data.app) // Debug log
+      console.log('AI App Data:', response.data.app)
       selectedAIPost.value = {
         ...post,
         ai_content: {
           ...response.data.app,
-          // Preserve bricks_cost from post if not in API response
           bricks_cost: response.data.app.bricks_cost || post.ai_content?.bricks_cost || 0,
-          // Preserve token data
           input_tokens: response.data.app.input_tokens || post.ai_content?.input_tokens || 0,
           output_tokens: response.data.app.output_tokens || post.ai_content?.output_tokens || 0,
           total_tokens: response.data.app.total_tokens || post.ai_content?.total_tokens || 0
         }
       }
       showAIModal.value = true
-      // Lock body scroll
       document.body.style.overflow = 'hidden'
     }
   } catch (err: any) {
     console.error('Error loading AI content:', err)
+    // Even if API call fails, try to open modal with post data
+    if (post.ai_content) {
+      selectedAIPost.value = post
+      showAIModal.value = true
+      document.body.style.overflow = 'hidden'
+    }
   }
 }
 
 const closeAIModal = () => {
+  // Stop streaming if modal was showing a generating post
+  if (selectedAIPost.value?.ai_job_id) {
+    stopContentStream(selectedAIPost.value.ai_job_id)
+    stopProgressStream(selectedAIPost.value.ai_job_id)
+  }
+  
   showAIModal.value = false
   selectedAIPost.value = null
   // Restore body scroll
@@ -663,6 +978,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopPolling()
+  stopAllContentStreams()
+  stopAllProgressStreams()
   // Restore body scroll in case modal was open
   document.body.style.overflow = ''
 })
@@ -982,6 +1299,16 @@ onUnmounted(() => {
 }
 
 .ai-content-preview {
+  margin-top: var(--spacing-4);
+  padding: var(--spacing-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-primary);
+  overflow: hidden;
+}
+
+/* Same styles for ai-content-info */
+.ai-content-info {
   margin-top: var(--spacing-4);
   padding: var(--spacing-4);
   background: var(--color-bg-secondary);
@@ -1331,6 +1658,16 @@ onUnmounted(() => {
   overflow-wrap: break-word;
 }
 
+/* Animating cursor while generating in modal */
+.ai-response-content.ai-generating::after {
+  content: '▊';
+  display: inline-block;
+  animation: blink 1s infinite;
+  margin-left: 2px;
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
 /* Markdown basic elements */
 .ai-response-content p {
   margin: var(--spacing-2) 0;
@@ -1585,6 +1922,49 @@ onUnmounted(() => {
   padding: var(--spacing-4);
   background: var(--color-bg-secondary);
   border-radius: var(--radius-md);
+}
+
+/* Progress bar in modal */
+.generation-progress-bar {
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-3);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-primary);
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--spacing-2);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, #667eea 100%);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+  }
+}
+
+.progress-text {
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-size: 0.875rem;
 }
 
 .stat-item {

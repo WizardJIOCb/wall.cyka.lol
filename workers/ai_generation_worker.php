@@ -180,7 +180,7 @@ function processJob($jobId, $config, $connections) {
         curl_setopt($ch, CURLOPT_TIMEOUT, 600); // 10 minutes timeout
         curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use (
             &$generatedCode, &$promptTokens, &$completionTokens, &$totalTokens, 
-            $startTime, &$lastUpdateTime, $updateInterval, $jobId, &$responseChunkCount
+            $startTime, &$lastUpdateTime, $updateInterval, $jobId, &$responseChunkCount, $job
         ) {
             $currentTime = microtime(true);
             $elapsedMs = round(($currentTime - $startTime) * 1000);
@@ -262,6 +262,15 @@ function processJob($jobId, $config, $connections) {
                                 updated_at = NOW()
                             WHERE job_id = ?",
                             [$completionTokens, $tokensPerSec, $elapsedMs, $estimatedRemainingMs, $progressPercent, $contentLength, $contentGenerationRate, $jobId]
+                        );
+                        
+                        // CRITICAL: Also update ai_applications with partial content for real-time streaming
+                        Database::query(
+                            "UPDATE ai_applications SET 
+                                html_content = ?,
+                                updated_at = NOW()
+                            WHERE app_id = ?",
+                            [$generatedCode, $job['app_id']]
                         );
                     } catch (Exception $e) {
                         // Ignore update errors, continue processing

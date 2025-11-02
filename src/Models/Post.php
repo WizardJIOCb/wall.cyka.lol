@@ -224,7 +224,7 @@ class Post
             'repost_commentary' => $post['repost_commentary'] ?? null,
             'ai_status' => $post['ai_status'] ?? null,
             'ai_app_id' => $post['app_id'] ?? null,
-            'job_id' => $post['job_id'] ?? null,
+            'ai_job_id' => $post['job_id'] ?? null,
             'ai_model' => $post['generation_model'] ?? null,
             'ai_queue_position' => $post['queue_position'] ?? null,
             'media_attachments' => $post['media_attachments'] ?? [],
