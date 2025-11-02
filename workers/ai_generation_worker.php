@@ -327,6 +327,7 @@ function processJob($jobId, $config, $connections) {
         echo "  Bricks cost: {$bricksCost}\n";
         
         // 7. Update AI application with generated content
+        // Note: Token counts are stored in ai_generation_jobs table, not here
         Database::query(
             "UPDATE ai_applications SET 
                 html_content = ?, 
@@ -334,13 +335,10 @@ function processJob($jobId, $config, $connections) {
                 js_content = ?, 
                 generation_model = ?,
                 generation_time = ?,
-                input_tokens = ?,
-                output_tokens = ?,
-                total_tokens = ?,
                 status = 'completed', 
                 updated_at = NOW() 
              WHERE app_id = ?",
-            [$htmlContent, $cssContent, $jsContent, $selectedModel, $generationTime, $promptTokens, $completionTokens, $totalTokens, $job['app_id']]
+            [$htmlContent, $cssContent, $jsContent, $selectedModel, $generationTime, $job['app_id']]
         );
         
         // 8. Update job status

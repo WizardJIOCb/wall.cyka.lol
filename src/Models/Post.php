@@ -24,11 +24,15 @@ class Post
      */
     public static function getWallPosts($wallId, $limit = 20, $offset = 0)
     {
+        // Get token counts from ai_generation_jobs table (source of truth) not ai_applications
         $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
                 ai.status as ai_status, ai.app_id, ai.job_id, ai.queue_position, ai.user_prompt,
                 ai.html_content, ai.css_content, ai.js_content, ai.generation_model,
-                ai.generation_time, ai.input_tokens, ai.output_tokens, ai.total_tokens,
-                job.actual_bricks_cost
+                ai.generation_time,
+                job.actual_bricks_cost,
+                job.prompt_tokens as input_tokens,
+                job.completion_tokens as output_tokens,
+                job.total_tokens
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 LEFT JOIN ai_applications ai ON p.post_id = ai.post_id
