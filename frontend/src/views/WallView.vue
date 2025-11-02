@@ -216,9 +216,12 @@
             </div>
           </div>
           
-          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content">
+          <div class="ai-modal-section" v-if="selectedAIPost.ai_content?.html_content || selectedAIPost.ai_status === 'processing'">
             <h3>🧠 Response</h3>
-            <div class="ai-response-content" :class="{ 'ai-generating': selectedAIPost.ai_status === 'processing' }" v-html="renderedAIContent"></div>
+            <div v-if="selectedAIPost.ai_content?.html_content" class="ai-response-content" :class="{ 'ai-generating': selectedAIPost.ai_status === 'processing' }" v-html="renderedAIContent"></div>
+            <div v-else-if="selectedAIPost.ai_status === 'processing'" class="ai-response-content ai-generating">
+              <p style="color: var(--color-text-secondary); font-style: italic;">Waiting for generation to begin...</p>
+            </div>
           </div>
           
           <div class="ai-modal-section ai-stats" v-if="selectedAIPost.ai_content">
@@ -573,7 +576,13 @@ const startContentStream = (post: any) => {
   
   eventSource.addEventListener('content', (event) => {
     const data = JSON.parse(event.data)
-    console.log('[ContentStream] Received content chunk:', data)
+    console.log('[ContentStream] Received content chunk:', {
+      jobId: post.ai_job_id,
+      contentLength: data.content?.length || 0,
+      model: data.model,
+      modalOpen: showAIModal.value,
+      isSelectedPost: selectedAIPost.value?.post_id === post.post_id
+    })
     
     // Update post in list
     const postIndex = posts.value.findIndex(p => p.post_id === post.post_id)
@@ -591,11 +600,13 @@ const startContentStream = (post: any) => {
           generation_model: data.model || posts.value[postIndex].ai_content?.generation_model
         }
       }
-      console.log('[ContentStream] Updated post content, length:', data.content?.length || 0)
+      console.log('[ContentStream] Updated post in list, content length:', data.content?.length || 0)
     }
     
     // Update modal if open for this post
     if (selectedAIPost.value?.post_id === post.post_id) {
+      console.log('[ContentStream] Updating modal content')
+      // Force reactivity by creating new object
       selectedAIPost.value = {
         ...selectedAIPost.value,
         ai_content: {
@@ -603,6 +614,7 @@ const startContentStream = (post: any) => {
           html_content: data.content || ''
         }
       }
+      console.log('[ContentStream] Modal updated, new content length:', selectedAIPost.value.ai_content.html_content?.length || 0)
     }
   })
   
@@ -827,12 +839,18 @@ const openAIModal = async (post: any) => {
   try {
     // For generating posts, use data from the post itself
     if (post.ai_status === 'queued' || post.ai_status === 'processing') {
-      console.log('Opening modal for generating post, using post data')
+      console.log('Opening modal for generating post, using post data:', {
+        post_id: post.post_id,
+        ai_job_id: post.ai_job_id,
+        has_content: !!post.ai_content?.html_content,
+        content_length: post.ai_content?.html_content?.length || 0
+      })
+      
       selectedAIPost.value = {
         ...post,
         ai_content: {
           user_prompt: post.ai_content?.user_prompt || null,
-          html_content: post.ai_content?.html_content || null,
+          html_content: post.ai_content?.html_content || '', // Initialize as empty string, not null
           css_content: post.ai_content?.css_content || null,
           js_content: post.ai_content?.js_content || null,
           generation_model: post.ai_content?.generation_model || post.ai_model || null,
@@ -840,7 +858,15 @@ const openAIModal = async (post: any) => {
           input_tokens: 0,
           output_tokens: 0,
           total_tokens: 0,
-          bricks_cost: post.ai_content?.bricks_cost || 0
+          bricks_cost: post.ai_content?.bricks_cost || 0,
+          // Initialize progress tracking fields
+          current_tokens: 0,
+          tokens_per_second: 0,
+          elapsed_time: 0,
+          estimated_remaining: 0,
+          progress_percentage: 0,
+          content_length: 0,
+          chars_per_second: 0
         }
       }
       showAIModal.value = true
