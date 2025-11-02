@@ -12,7 +12,15 @@ class AIApplication
      */
     public static function findById($appId)
     {
-        $sql = "SELECT a.*, 
+        // Explicitly select columns to avoid conflicts with token columns
+        // Token data from ai_generation_jobs is the source of truth
+        $sql = "SELECT 
+                a.app_id, a.post_id, a.job_id, a.user_prompt,
+                a.html_content, a.css_content, a.js_content,
+                a.preview_image_url, a.generation_model, a.generation_time,
+                a.status, a.queue_position, a.error_message,
+                a.original_app_id, a.remix_type, a.allow_remixing, a.remix_count,
+                a.created_at, a.updated_at,
                 job.actual_bricks_cost,
                 job.prompt_tokens as input_tokens,
                 job.completion_tokens as output_tokens,
@@ -20,6 +28,7 @@ class AIApplication
                 FROM ai_applications a
                 LEFT JOIN ai_generation_jobs job ON a.job_id = job.job_id
                 WHERE a.app_id = ?";
+        
         return Database::fetchOne($sql, [$appId]);
     }
 
