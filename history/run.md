@@ -569,6 +569,63 @@ npm run test:e2e
 
 ---
 
-**Last Updated:** 2025-11-01  
+---
+
+## Production Deployment
+
+For deploying to a production server (e.g., wall.cyka.lol), see the comprehensive deployment guide:
+
+**Documentation**: `documentation/PRODUCTION_DEPLOYMENT.md`
+
+### Production Quick Reference
+
+**Server Requirements**:
+- Ubuntu Server 20.04+ or Debian 11+
+- Nginx, PHP 8.1+, MySQL 8.0+, Redis
+- Domain with DNS configured
+- SSL certificate (Let's Encrypt)
+
+**Key Configuration Files**:
+- `nginx/conf.d/production.conf` - Production Nginx config
+- `frontend/.env.production` - Production frontend environment
+- `config/database.php` - Production database config
+
+**Deployment Steps Summary**:
+1. Install required software (Nginx, PHP, MySQL, Redis, Certbot)
+2. Deploy application files to `/var/www/wall.cyka.lol`
+3. Set file permissions (www-data:www-data)
+4. Build frontend with production environment
+5. Configure database and run migrations
+6. Copy and enable Nginx configuration
+7. Obtain SSL certificate with Certbot
+8. Start background workers as systemd services
+9. Configure firewall (ports 22, 80, 443)
+10. Verify and test deployment
+
+**Production URLs**:
+- Main Application: `https://wall.cyka.lol`
+- API Endpoint: `https://wall.cyka.lol/api/v1`
+- Health Check: `https://wall.cyka.lol/health`
+
+**Maintenance Commands**:
+```bash
+# Reload Nginx
+sudo systemctl reload nginx
+
+# Restart PHP-FPM
+sudo systemctl restart php8.1-fpm
+
+# Check logs
+sudo tail -f /var/log/nginx/wall_error.log
+
+# Test SSL renewal
+sudo certbot renew --dry-run
+```
+
+For complete production deployment instructions, refer to `documentation/PRODUCTION_DEPLOYMENT.md`.
+
+---
+
+**Last Updated:** 2025-11-04  
 **Project:** Wall Social Platform  
 **Version:** 1.0.0
