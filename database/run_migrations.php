@@ -24,7 +24,8 @@ try {
         [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+            PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true
         ]
     );
     
@@ -69,6 +70,12 @@ foreach ($migrations as $migrationFile) {
         
         foreach ($statements as $statement) {
             if (!empty($statement)) {
+                // Handle result-set queries (SHOW, DESCRIBE, SELECT) to avoid unbuffered query errors
+                if (preg_match('/^\s*(SHOW|DESCRIBE|SELECT)/i', $statement)) {
+                    $stmt = $pdo->query($statement);
+                    $stmt->fetchAll(); // Drain result set
+                    continue;
+                }
                 $pdo->exec($statement);
             }
         }
