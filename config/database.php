@@ -158,7 +158,7 @@ class RedisConnection {
             self::connect();
         }
         
-        return self::$connection;
+        return self::$connection;        
     }
     
     /**
