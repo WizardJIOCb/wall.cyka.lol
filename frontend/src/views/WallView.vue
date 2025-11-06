@@ -326,7 +326,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api/client'
@@ -1036,6 +1036,24 @@ onMounted(async () => {
   if (aiAppId) {
     // Find the post with this AI app ID and open the modal
     const post = posts.value.find(p => p.ai_app_id === parseInt(String(aiAppId)))
+    if (post) {
+      await openAIModal(post)
+    }
+  }
+})
+
+// Watch for route changes to reload wall (e.g., after AI generation redirect)
+watch(() => route.params.wallId, async (newWallId, oldWallId) => {
+  if (newWallId !== oldWallId) {
+    console.log('[WallView] Route changed, reloading wall:', newWallId)
+    await loadWall()
+  }
+})
+
+// Watch for route query changes (e.g., ?ai=123)
+watch(() => route.query.ai, async (newAiAppId) => {
+  if (newAiAppId && posts.value.length > 0) {
+    const post = posts.value.find(p => p.ai_app_id === parseInt(String(newAiAppId)))
     if (post) {
       await openAIModal(post)
     }
