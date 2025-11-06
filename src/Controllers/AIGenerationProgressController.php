@@ -184,6 +184,7 @@ class AIGenerationProgressController {
                 [$jobId]
             );
             
+            
             if (!$current) {
                 echo "event: error\n";
                 echo "data: " . json_encode(['error' => 'Job not found']) . "\n\n";
