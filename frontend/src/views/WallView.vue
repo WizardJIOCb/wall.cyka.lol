@@ -566,7 +566,8 @@ const startContentStream = (post: any) => {
   if (!post.ai_job_id) return
   if (contentEventSources.has(post.ai_job_id)) return // Already streaming
   
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  // Use relative URL for production, absolute URL for development
+  const apiUrl = import.meta.env.VITE_API_URL || ''
   const streamUrl = `${apiUrl}/api/v1/ai/generation/${post.ai_job_id}/content`
   
   console.log('[ContentStream] Starting SSE for job:', post.ai_job_id)
@@ -662,7 +663,8 @@ const startProgressStream = (post: any) => {
   if (!post.ai_job_id) return
   if (progressEventSources.has(post.ai_job_id)) return // Already streaming
   
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  // Use relative URL for production, absolute URL for development
+  const apiUrl = import.meta.env.VITE_API_URL || ''
   const streamUrl = `${apiUrl}/api/v1/ai/generation/${post.ai_job_id}/progress`
   
   console.log('[ProgressStream] Starting SSE for job:', post.ai_job_id)
