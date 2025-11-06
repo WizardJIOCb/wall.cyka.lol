@@ -541,12 +541,11 @@ const checkForPendingAIPosts = () => {
 const startPolling = () => {
   if (pollInterval) return
   
-  // Poll every 10 seconds instead of 3 to reduce server load
-  // SSE will handle real-time updates during generation
+  // Poll every 30 seconds - SSE handles real-time updates
   pollInterval = setInterval(async () => {
     console.log('[WallView] Polling for post updates...')
     await loadPosts(true) // Pass true to indicate polling
-  }, 10000) // Poll every 10 seconds
+  }, 30000) // Poll every 30 seconds
 }
 
 const stopPolling = () => {
