@@ -723,30 +723,43 @@ server {
 **Error**:
 ```
 Fatal error: Uncaught Error: Class "Redis" not found
+OR
+"Redis PHP extension is not installed. Please rebuild the Docker image"
 ```
 
-**Cause**: Docker image was built before Redis extension was added to Dockerfile, or extension installation failed.
+**Root Cause**: Docker images built before Redis extension was added to Dockerfile, or build was cancelled before completion.
 
-**Fix**:
+**Complete Fix (Run on server - takes 5-10 minutes):**
 ```bash
 cd /var/www/wall.cyka.lol
 
-# Rebuild images with Redis extension
+# Stop all services
+docker-compose down
+
+# Rebuild PHP images with Redis (DO NOT CANCEL - wait 5-10 min)
 docker-compose build --no-cache php queue_worker
 
-# Restart services
+# Start services
 docker-compose up -d
 
-# Verify Redis extension is installed
+# Wait for initialization
+sleep 40
+
+# Verify Redis is installed
 docker-compose exec php php -m | grep redis
+# Expected output: redis
+
+# Check all services are running
+docker-compose ps
+# All should show "Up" status
 ```
 
-**Alternative Quick Fix** (if rebuild takes too long):
+**CRITICAL**: The build command downloads base images, compiles extensions, and configures PHP. If you press Ctrl+C during the build, Redis extension will NOT be installed. You must let it complete - you'll see "Successfully tagged wallcykalol-php:latest" when done.
+
+**Quick temporary fix** (lost on container restart):
 ```bash
-# Install Redis extension in running container (temporary - lost on restart)
-docker-compose exec php pecl install redis
-docker-compose exec php docker-php-ext-enable redis
-docker-compose restart php
+docker-compose exec php bash -c "pecl install redis && docker-php-ext-enable redis"
+docker-compose restart php queue_worker
 ```
 
 **Issue 2: Nginx Keeps Restarting**

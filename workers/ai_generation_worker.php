@@ -101,12 +101,25 @@ function initializeWorker($config) {
     }
     
     // Connect to Database
-    try {
-        $db = Database::getConnection();
-        echo "✓ Database connected\n";
-    } catch (Exception $e) {
-        echo "✗ Database connection failed: {$e->getMessage()}\n";
-        exit(1);
+    $maxRetries = 5;
+    $retryDelay = 2;
+    $dbConnected = false;
+    
+    for ($i = 1; $i <= $maxRetries; $i++) {
+        try {
+            $db = Database::getConnection();
+            echo "✓ Database connected\n";
+            $dbConnected = true;
+            break;
+        } catch (Exception $e) {
+            if ($i < $maxRetries) {
+                echo "⚠ Database connection attempt $i failed, retrying in {$retryDelay}s...\n";
+                sleep($retryDelay);
+            } else {
+                echo "✗ Database connection failed after $maxRetries attempts: {$e->getMessage()}\n";
+                exit(1);
+            }
+        }
     }
     
     // Check Ollama availability
