@@ -358,16 +358,15 @@ class AuthService
     private static function logActivity($userId, $activityType, $metadata = [])
     {
         $sql = "INSERT INTO user_activity_log (
-            user_id, activity_type, activity_metadata, ip_address, 
-            user_agent, created_at
+            user_id, activity_type, target_type, target_id, metadata, created_at
         ) VALUES (?, ?, ?, ?, ?, NOW())";
 
         $params = [
             $userId,
             $activityType,
-            json_encode($metadata),
-            SessionManager::getClientIp(),
-            $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'
+            $metadata['target_type'] ?? null,
+            $metadata['target_id'] ?? null,
+            json_encode($metadata)
         ];
 
         try {
