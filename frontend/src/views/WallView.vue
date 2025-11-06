@@ -52,7 +52,7 @@
         </div>
 
         <div v-else class="posts-grid">
-          <div v-for="post in posts" :key="post.post_id" class="post-card" :class="{ 'ai-post': post.post_type === 'ai_app' }">
+          <div v-for="post in visiblePosts" :key="post.post_id" class="post-card" :class="{ 'ai-post': post.post_type === 'ai_app' }">
             <!-- AI Generation Real-time Progress (if AI post is generating) -->
             <AIGenerationProgress 
               v-if="post.post_type === 'ai_app' && (post.ai_status === 'queued' || post.ai_status === 'processing') && post.ai_job_id"
@@ -367,6 +367,17 @@ const bannerStyle = computed(() => {
     return { backgroundColor: wall.value.theme }
   }
   return { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }
+})
+
+// Filter out failed AI posts
+const visiblePosts = computed(() => {
+  return posts.value.filter(post => {
+    // Hide failed AI posts
+    if (post.post_type === 'ai_app' && post.ai_status === 'failed') {
+      return false
+    }
+    return true
+  })
 })
 
 const formatDate = (dateString: string) => {
