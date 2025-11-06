@@ -718,7 +718,38 @@ server {
 
 #### Common Production Issues & Fixes
 
-**Issue 1: Nginx Keeps Restarting**
+**Issue 1: Redis Extension Not Found**
+
+**Error**:
+```
+Fatal error: Uncaught Error: Class "Redis" not found
+```
+
+**Cause**: Docker image was built before Redis extension was added to Dockerfile, or extension installation failed.
+
+**Fix**:
+```bash
+cd /var/www/wall.cyka.lol
+
+# Rebuild images with Redis extension
+docker-compose build --no-cache php queue_worker
+
+# Restart services
+docker-compose up -d
+
+# Verify Redis extension is installed
+docker-compose exec php php -m | grep redis
+```
+
+**Alternative Quick Fix** (if rebuild takes too long):
+```bash
+# Install Redis extension in running container (temporary - lost on restart)
+docker-compose exec php pecl install redis
+docker-compose exec php docker-php-ext-enable redis
+docker-compose restart php
+```
+
+**Issue 2: Nginx Keeps Restarting**
 
 **Cause**: Conflicting Nginx configurations (production.conf uses Unix socket instead of Docker network)
 

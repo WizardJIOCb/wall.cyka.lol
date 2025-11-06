@@ -26,6 +26,11 @@ class RedisConnection
      */
     private static function connect($database)
     {
+        // Check if Redis extension is available
+        if (!class_exists('Redis')) {
+            throw new Exception('Redis PHP extension is not installed. Please rebuild the Docker image with: docker-compose build --no-cache php');
+        }
+
         if (self::$config === null) {
             self::$config = require __DIR__ . '/../../config/config.php';
         }
@@ -60,6 +65,11 @@ class RedisConnection
      */
     public static function getQueueConnection()
     {
+        // Check if Redis extension is available
+        if (!class_exists('Redis')) {
+            throw new Exception('Redis PHP extension is not installed. Please rebuild the Docker image with: docker-compose build --no-cache php');
+        }
+
         // Don't use the same connection with prefix - queue needs its own without prefix
         $database = 0;
         $key = 'queue_' . $database;
