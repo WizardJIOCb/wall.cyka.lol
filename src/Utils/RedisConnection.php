@@ -39,13 +39,18 @@ class RedisConnection
 
         try {
             $redis = new Redis();
-            $redis->connect($redisConfig['host'], $redisConfig['port']);
+            $connected = $redis->connect($redisConfig['host'], $redisConfig['port'], 2.5);
+            
+            if (!$connected) {
+                throw new Exception("Failed to connect to Redis at {$redisConfig['host']}:{$redisConfig['port']}");
+            }
+            
             $redis->select($database);
             $redis->setOption(Redis::OPT_PREFIX, $redisConfig['prefix']);
             
             self::$connections[$database] = $redis;
         } catch (Exception $e) {
-            throw new Exception('Redis connection failed: ' . $e->getMessage());
+            throw new Exception('Redis connection error: ' . $e->getMessage() . " (host: {$redisConfig['host']}, port: {$redisConfig['port']})");
         }
     }
 
