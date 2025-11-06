@@ -186,7 +186,27 @@ class AIGenerationProgressController {
             
             if (!$current) {
                 echo "event: error\n";
-                echo "data: " . json_encode(['error' => 'Job disappeared']) . "\n\n";
+                echo "data: " . json_encode(['error' => 'Job not found']) . "\n\n";
+                flush();
+                break;
+            }
+            
+            // If job already completed or failed before streaming started, send final event immediately
+            if ($previousStatus === null && ($current['status'] === 'completed' || $current['status'] === 'failed')) {
+                if ($current['status'] === 'completed') {
+                    echo "event: complete\n";
+                    echo "data: " . json_encode([
+                        'status' => 'completed',
+                        'total_tokens' => (int)$current['total_tokens'],
+                        'elapsed_time' => (int)$current['elapsed_time'],
+                    ]) . "\n\n";
+                } else {
+                    echo "event: error\n";
+                    echo "data: " . json_encode([
+                        'status' => 'failed',
+                        'error' => $current['error_message'] ?? 'Unknown error',
+                    ]) . "\n\n";
+                }
                 flush();
                 break;
             }

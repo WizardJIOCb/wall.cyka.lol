@@ -347,6 +347,7 @@ const authStore = useAuthStore()
 
 const loading = ref(true)
 const loadingPosts = ref(false)
+const isLoadingPostsRequest = ref(false) // Prevents multiple simultaneous requests
 const error = ref<string | null>(null)
 const wall = ref<any>(null)
 const posts = ref<any[]>([])
@@ -427,7 +428,15 @@ const loadWall = async () => {
 const loadPosts = async (isPolling = false) => {
   if (!wall.value) return
   
+  // Prevent multiple simultaneous loadPosts requests
+  if (isLoadingPostsRequest.value) {
+    console.log('[WallView] Skipping loadPosts - request already in progress')
+    return
+  }
+  
   try {
+    isLoadingPostsRequest.value = true
+    
     // Don't show loading spinner when polling
     if (!isPolling) {
       loadingPosts.value = true
@@ -458,6 +467,7 @@ const loadPosts = async (isPolling = false) => {
   } catch (err: any) {
     console.error('Error loading posts:', err)
   } finally {
+    isLoadingPostsRequest.value = false
     if (!isPolling) {
       loadingPosts.value = false
     }
@@ -520,9 +530,12 @@ const checkForPendingAIPosts = () => {
 const startPolling = () => {
   if (pollInterval) return
   
+  // Poll every 10 seconds instead of 3 to reduce server load
+  // SSE will handle real-time updates during generation
   pollInterval = setInterval(async () => {
+    console.log('[WallView] Polling for post updates...')
     await loadPosts(true) // Pass true to indicate polling
-  }, 3000) // Poll every 3 seconds
+  }, 10000) // Poll every 10 seconds
 }
 
 const stopPolling = () => {
@@ -564,13 +577,18 @@ const handleGenerationError = (post: any, errorMsg: string) => {
 // Start streaming content for a generating post
 const startContentStream = (post: any) => {
   if (!post.ai_job_id) return
-  if (contentEventSources.has(post.ai_job_id)) return // Already streaming
+  
+  // Check if already streaming for this job
+  if (contentEventSources.has(post.ai_job_id)) {
+    console.log('[ContentStream] Already streaming for job:', post.ai_job_id)
+    return
+  }
   
   // Use relative URL for production, absolute URL for development
   const apiUrl = import.meta.env.VITE_API_URL || ''
   const streamUrl = `${apiUrl}/api/v1/ai/generation/${post.ai_job_id}/content`
   
-  console.log('[ContentStream] Starting SSE for job:', post.ai_job_id)
+  console.log('[ContentStream] Starting NEW SSE for job:', post.ai_job_id, 'URL:', streamUrl)
   
   const eventSource = new EventSource(streamUrl)
   contentEventSources.set(post.ai_job_id, eventSource)
@@ -633,7 +651,8 @@ const startContentStream = (post: any) => {
   
   eventSource.onerror = (error) => {
     console.error('[ContentStream] Connection error:', error)
-    // Don't immediately close - might be temporary
+    // Close the connection on error to prevent hanging
+    stopContentStream(post.ai_job_id)
   }
 }
 
@@ -661,13 +680,18 @@ const stopAllContentStreams = () => {
 // Start streaming progress for a generating post
 const startProgressStream = (post: any) => {
   if (!post.ai_job_id) return
-  if (progressEventSources.has(post.ai_job_id)) return // Already streaming
+  
+  // Check if already streaming for this job
+  if (progressEventSources.has(post.ai_job_id)) {
+    console.log('[ProgressStream] Already streaming for job:', post.ai_job_id)
+    return
+  }
   
   // Use relative URL for production, absolute URL for development
   const apiUrl = import.meta.env.VITE_API_URL || ''
   const streamUrl = `${apiUrl}/api/v1/ai/generation/${post.ai_job_id}/progress`
   
-  console.log('[ProgressStream] Starting SSE for job:', post.ai_job_id)
+  console.log('[ProgressStream] Starting NEW SSE for job:', post.ai_job_id, 'URL:', streamUrl)
   
   const eventSource = new EventSource(streamUrl)
   progressEventSources.set(post.ai_job_id, eventSource)
@@ -732,6 +756,8 @@ const startProgressStream = (post: any) => {
   
   eventSource.onerror = (error) => {
     console.error('[ProgressStream] Connection error:', error)
+    // Close the connection on error to prevent hanging
+    stopProgressStream(post.ai_job_id)
   }
 }
 
