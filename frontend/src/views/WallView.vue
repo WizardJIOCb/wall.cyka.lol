@@ -523,16 +523,15 @@ const checkForPendingAIPosts = () => {
     })
   })
   
+  // DISABLE POLLING - SSE handles all real-time updates
+  // Only start content streaming for processing posts
   if (pendingPosts.length > 0) {
-    startPolling()
-    // Start content streaming for each processing post
     pendingPosts.forEach(post => {
       if (post.ai_status === 'processing' && post.ai_job_id) {
         startContentStream(post)
       }
     })
   } else {
-    stopPolling()
     stopAllContentStreams()
   }
 }
@@ -569,9 +568,7 @@ const handleGenerationComplete = async (post: any) => {
   console.log('Generation completed for post:', post.post_id)
   // Stop streaming for this job
   stopContentStream(post.ai_job_id)
-  // Reload posts to get the updated content
-  await loadPosts()
-  stopPolling()
+  // SSE 'complete' event already updated the post data - no need to reload
 }
 
 // Handle AI generation error
@@ -579,8 +576,11 @@ const handleGenerationError = (post: any, errorMsg: string) => {
   console.error('Generation failed for post:', post.post_id, errorMsg)
   // Stop streaming for this job
   stopContentStream(post.ai_job_id)
-  // Reload posts to reflect failed status
-  loadPosts()
+  // Mark post as failed in UI
+  const postIndex = posts.value.findIndex(p => p.post_id === post.post_id)
+  if (postIndex !== -1) {
+    posts.value[postIndex].ai_status = 'failed'
+  }
 }
 
 // Start streaming content for a generating post
@@ -649,8 +649,11 @@ const startContentStream = (post: any) => {
   eventSource.addEventListener('complete', (event) => {
     console.log('[ContentStream] Generation complete')
     stopContentStream(post.ai_job_id)
-    // Reload to get final stats
-    loadPosts()
+    // Update post status to completed
+    const postIndex = posts.value.findIndex(p => p.post_id === post.post_id)
+    if (postIndex !== -1) {
+      posts.value[postIndex].ai_status = 'completed'
+    }
   })
   
   eventSource.addEventListener('error', (event) => {
