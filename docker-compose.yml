@@ -6,7 +6,7 @@ services:
     image: nginx:alpine
     container_name: wall_nginx
     ports:
-      - "8080:80"     # Internal Nginx, use host Nginx as reverse proxy
+      - "8081:80"     # Internal Nginx on 8081 (8080 is occupied)
       - "8443:443"    # Internal HTTPS
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
