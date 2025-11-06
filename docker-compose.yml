@@ -6,8 +6,8 @@ services:
     image: nginx:alpine
     container_name: wall_nginx
     ports:
-      - "80:80"       # Production HTTP
-      - "443:443"     # Production HTTPS
+      - "8080:80"     # Internal Nginx, use host Nginx as reverse proxy
+      - "8443:443"    # Internal HTTPS
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./public:/var/www/html/public
