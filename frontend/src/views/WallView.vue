@@ -489,14 +489,13 @@ const updatePostsData = (newPosts: any[]) => {
   // Create a map of new posts by post_id for quick lookup
   const newPostsMap = new Map(newPosts.map(post => [post.post_id, post]))
   
-  // Update existing posts with new data
+  // Update existing posts with new data WITHOUT causing re-render
   posts.value.forEach((post, index) => {
     const updatedPost = newPostsMap.get(post.post_id)
     if (updatedPost) {
-      // Only update if AI status changed to avoid unnecessary re-renders
-      if (post.ai_status !== updatedPost.ai_status) {
-        posts.value[index] = { ...post, ...updatedPost }
-      }
+      // Update ALL fields, not just status
+      // Use Object.assign to update in-place and avoid re-render
+      Object.assign(posts.value[index], updatedPost)
       newPostsMap.delete(post.post_id)
     }
   })
