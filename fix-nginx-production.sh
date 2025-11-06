@@ -1,29 +1,62 @@
 #!/bin/bash
-# Fix Nginx crashing on production server
+# Fix Nginx and Queue Worker issues on production server
 # Run this on the Ubuntu server: bash fix-nginx-production.sh
 
 cd /var/www/wall.cyka.lol
 
-# Disable production.conf (it uses Unix socket instead of Docker network)
+echo "=== Fixing Wall Social Platform Configuration ==="
+echo ""
+
+# Step 1: Disable production.conf (it uses Unix socket instead of Docker network)
+echo "[1/5] Disabling production.conf..."
 mv nginx/conf.d/production.conf nginx/conf.d/production.conf.disabled 2>/dev/null || true
+echo "✓ Only default.conf is now active"
 
-# Verify only default.conf is active
-echo "Active Nginx configs:"
-ls -la nginx/conf.d/*.conf
+# Step 2: Update environment file to ensure proper DB settings
+echo ""
+echo "[2/5] Checking environment configuration..."
+if [ -f .env ]; then
+    echo "✓ .env file exists"
+    grep "DB_HOST" .env || echo "⚠ DB_HOST not set in .env"
+else
+    echo "⚠ .env file not found - using defaults from docker-compose.yml"
+fi
 
-# Restart Nginx
-docker-compose restart nginx
+# Step 3: Restart all services
+echo ""
+echo "[3/5] Restarting Docker services..."
+docker-compose restart
 
-# Wait for services to stabilize
-sleep 5
+# Step 4: Wait for services to stabilize
+echo ""
+echo "[4/5] Waiting for services to start (15 seconds)..."
+sleep 15
 
-# Check status
-echo -e "\n=== Service Status ==="
+# Step 5: Check status
+echo ""
+echo "[5/5] Checking service status..."
 docker-compose ps
 
-# Check Nginx logs
-echo -e "\n=== Recent Nginx Logs ==="
-docker logs wall_nginx --tail 20
+echo ""
+echo "=== Checking Logs ==="
+echo ""
 
-echo -e "\n=== Testing Application ==="
-curl -s http://localhost/health || echo "Health check failed"
+echo "--- Nginx (last 10 lines) ---"
+docker logs wall_nginx --tail 10 2>&1
+
+echo ""
+echo "--- Queue Worker (last 10 lines) ---"
+docker logs wall_queue_worker --tail 10 2>&1
+
+echo ""
+echo "--- PHP-FPM (last 10 lines) ---"
+docker logs wall_php --tail 10 2>&1
+
+echo ""
+echo "=== Testing Application ==="
+curl -s http://localhost:80/health | head -20 || echo "⚠ Health check failed"
+
+echo ""
+echo "=== Deployment Complete ==="
+echo "Access your site at: http://wall.cyka.lol or https://wall.cyka.lol"
+echo ""

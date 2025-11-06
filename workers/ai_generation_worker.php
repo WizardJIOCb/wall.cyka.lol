@@ -17,8 +17,53 @@ echo "===========================================\n";
 echo "Wall Social Platform - AI Generation Worker\n";
 echo "===========================================\n\n";
 
-// Load autoloader
-require_once __DIR__ . '/../vendor/autoload.php';
+// Load .env variables for non-Docker deployments
+(function () {
+    $envPath = __DIR__ . '/../.env';
+    if (!file_exists($envPath)) {
+        return;
+    }
+    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        if ($trimmed === '' || $trimmed[0] === '#') {
+            continue;
+        }
+        $parts = explode('=', $trimmed, 2);
+        if (count($parts) !== 2) {
+            continue;
+        }
+        $key = trim($parts[0]);
+        $value = trim($parts[1]);
+        // Strip optional quotes
+        if ((str_starts_with($value, '"') && str_ends_with($value, '"')) ||
+            (str_starts_with($value, "'") && str_ends_with($value, "'"))) {
+            $value = substr($value, 1, -1);
+        }
+        putenv("$key=$value");
+        $_ENV[$key] = $value;
+    }
+})();
+
+// Manual class autoloader (same as api.php)
+spl_autoload_register(function ($class) {
+    $paths = [
+        __DIR__ . '/../src/Controllers/',
+        __DIR__ . '/../src/Models/',
+        __DIR__ . '/../src/Services/',
+        __DIR__ . '/../src/Middleware/',
+        __DIR__ . '/../src/Utils/',
+        __DIR__ . '/../config/',
+    ];
+
+    foreach ($paths as $path) {
+        $file = $path . $class . '.php';
+        if (file_exists($file)) {
+            require_once $file;
+            return;
+        }
+    }
+});
 
 // Worker configuration
 $workerConfig = [
@@ -466,16 +511,21 @@ function runWorker($config) {
     }
 }
 
-// Signal handling for graceful shutdown
-declare(ticks = 1);
-pcntl_signal(SIGTERM, function() {
-    echo "\nReceived SIGTERM. Shutting down gracefully...\n";
-    exit(0);
-});
-pcntl_signal(SIGINT, function() {
-    echo "\nReceived SIGINT. Shutting down gracefully...\n";
-    exit(0);
-});
+// Signal handling for graceful shutdown (if PCNTL extension available)
+if (function_exists('pcntl_signal')) {
+    declare(ticks = 1);
+    pcntl_signal(SIGTERM, function() {
+        echo "\nReceived SIGTERM. Shutting down gracefully...\n";
+        exit(0);
+    });
+    pcntl_signal(SIGINT, function() {
+        echo "\nReceived SIGINT. Shutting down gracefully...\n";
+        exit(0);
+    });
+    echo "Signal handlers registered (PCNTL available)\n";
+} else {
+    echo "PCNTL extension not available - signal handling disabled\n";
+}
 
 // Start the worker
 try {

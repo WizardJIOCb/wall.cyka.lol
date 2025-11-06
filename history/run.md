@@ -571,58 +571,300 @@ npm run test:e2e
 
 ---
 
-## Production Deployment
+## Production Deployment (Docker)
 
-For deploying to a production server (e.g., wall.cyka.lol), see the comprehensive deployment guide:
+### Deploy on Ubuntu Server with Docker Compose
 
-**Documentation**: `documentation/PRODUCTION_DEPLOYMENT.md`
+**Server**: wall.cyka.lol (62.109.9.134)
 
-### Production Quick Reference
-
-**Server Requirements**:
+#### Prerequisites
 - Ubuntu Server 20.04+ or Debian 11+
-- Nginx, PHP 8.1+, MySQL 8.0+, Redis
-- Domain with DNS configured
-- SSL certificate (Let's Encrypt)
+- Docker and Docker Compose installed
+- Domain DNS configured (wall.cyka.lol → 62.109.9.134)
+- Ports 80, 443 open in firewall
 
-**Key Configuration Files**:
-- `nginx/conf.d/production.conf` - Production Nginx config
-- `frontend/.env.production` - Production frontend environment
-- `config/database.php` - Production database config
+#### Deployment Steps
 
-**Deployment Steps Summary**:
-1. Install required software (Nginx, PHP, MySQL, Redis, Certbot)
-2. Deploy application files to `/var/www/wall.cyka.lol`
-3. Set file permissions (www-data:www-data)
-4. Build frontend with production environment
-5. Configure database and run migrations
-6. Copy and enable Nginx configuration
-7. Obtain SSL certificate with Certbot
-8. Start background workers as systemd services
-9. Configure firewall (ports 22, 80, 443)
-10. Verify and test deployment
-
-**Production URLs**:
-- Main Application: `https://wall.cyka.lol`
-- API Endpoint: `https://wall.cyka.lol/api/v1`
-- Health Check: `https://wall.cyka.lol/health`
-
-**Maintenance Commands**:
+**1. Install Docker and Docker Compose**
 ```bash
-# Reload Nginx
-sudo systemctl reload nginx
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
 
-# Restart PHP-FPM
-sudo systemctl restart php8.1-fpm
-
-# Check logs
-sudo tail -f /var/log/nginx/wall_error.log
-
-# Test SSL renewal
-sudo certbot renew --dry-run
+# Install Docker Compose
+sudo apt update
+sudo apt install docker-compose -y
 ```
 
-For complete production deployment instructions, refer to `documentation/PRODUCTION_DEPLOYMENT.md`.
+**2. Clone/Upload Project to Server**
+```bash
+cd /var/www
+git clone <repository-url> wall.cyka.lol
+# OR upload via SCP/SFTP
+
+cd /var/www/wall.cyka.lol
+```
+
+**3. Configure Environment**
+```bash
+# Copy and edit .env file
+cp .env.example .env
+nano .env
+```
+
+Key settings for production:
+```env
+DB_HOST=mysql
+DB_PORT=3306
+DB_NAME=wall_social_platform
+DB_USER=wall_user
+DB_PASSWORD=<strong-password-here>
+
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+OLLAMA_HOST=ollama
+OLLAMA_PORT=11434
+```
+
+**4. Build Frontend for Production**
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+**5. Configure Nginx for Docker**
+```bash
+# Ensure only default.conf is active (for Docker network)
+mv nginx/conf.d/production.conf nginx/conf.d/production.conf.disabled 2>/dev/null || true
+
+# Verify default.conf uses 'fastcgi_pass php:9000'
+grep "fastcgi_pass" nginx/conf.d/default.conf
+```
+
+**6. Update docker-compose.yml ports for production**
+
+Edit `docker-compose.yml` to expose standard HTTP/HTTPS ports:
+```yaml
+nginx:
+  ports:
+    - "80:80"      # HTTP
+    - "443:443"    # HTTPS
+```
+
+**7. Start All Services**
+```bash
+# Start in detached mode
+docker-compose up -d
+
+# Check services are running
+docker-compose ps
+
+# Check logs for any errors
+docker-compose logs -f
+```
+
+**8. Initialize Database**
+```bash
+# Wait for MySQL to be ready (30 seconds)
+sleep 30
+
+# Import schema
+docker-compose exec -T mysql mysql -u wall_user -p<password> wall_social_platform < database/schema.sql
+
+# Run migrations
+docker-compose exec php php database/run_migrations.php
+```
+
+**9. Set Up SSL with Let's Encrypt (Optional)**
+
+For HTTPS, you can either:
+
+**Option A: Use Nginx on host** (recommended for SSL)
+```bash
+# Install certbot on host
+sudo apt install certbot python3-certbot-nginx -y
+
+# Get certificate
+sudo certbot --nginx -d wall.cyka.lol
+
+# Configure host Nginx to proxy to Docker
+sudo nano /etc/nginx/sites-available/wall.cyka.lol
+```
+
+Host Nginx config:
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name wall.cyka.lol;
+    
+    ssl_certificate /etc/letsencrypt/live/wall.cyka.lol/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/wall.cyka.lol/privkey.pem;
+    
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+**Option B: Use Docker Nginx with certbot volumes** (mount certificates into container)
+
+#### Common Production Issues & Fixes
+
+**Issue 1: Nginx Keeps Restarting**
+
+**Cause**: Conflicting Nginx configurations (production.conf uses Unix socket instead of Docker network)
+
+**Fix**:
+```bash
+cd /var/www/wall.cyka.lol
+
+# Disable production.conf
+mv nginx/conf.d/production.conf nginx/conf.d/production.conf.disabled
+
+# Restart Nginx
+docker-compose restart nginx
+
+# Verify it's stable
+docker-compose ps
+```
+
+**Issue 2: Queue Worker Restarting**
+
+**Cause**: Missing Composer autoloader or PCNTL extension issues
+
+**Fix**: The worker has been updated to:
+- Use manual autoloader (same as api.php)
+- Make PCNTL signals optional
+- Load .env variables properly
+
+```bash
+# Check worker logs
+docker logs wall_queue_worker --tail 50
+
+# Restart worker
+docker-compose restart queue_worker
+```
+
+**Issue 3: Database Connection Failed**
+
+**Cause**: .env not loaded or wrong DB_HOST
+
+**Fix**:
+```bash
+# Verify DB_HOST=mysql in .env (for Docker network)
+grep DB_HOST /var/www/wall.cyka.lol/.env
+
+# Test MySQL connectivity from PHP container
+docker exec -it wall_php sh
+getent hosts mysql  # Should show IP like 172.19.0.3
+```
+
+**Issue 4: Frontend Shows 404 or Blank Page**
+
+**Cause**: Frontend not built or wrong Nginx config
+
+**Fix**:
+```bash
+# Rebuild frontend
+cd /var/www/wall.cyka.lol/frontend
+npm run build
+
+# Verify files in public/
+ls -la ../public/index.html
+ls -la ../public/assets/
+
+# Restart Nginx
+docker-compose restart nginx
+```
+
+#### Automated Fix Script
+
+Use the provided fix script:
+```bash
+cd /var/www/wall.cyka.lol
+bash fix-nginx-production.sh
+```
+
+This script:
+- Disables production.conf
+- Checks environment configuration
+- Restarts all services
+- Validates service status
+- Shows logs for debugging
+- Tests health endpoint
+
+#### Production Monitoring
+
+**Check Service Status**:
+```bash
+docker-compose ps
+```
+
+Expected:
+```
+NAME                STATUS
+wall_mysql          Up (healthy)
+wall_nginx          Up
+wall_ollama         Up
+wall_php            Up
+wall_queue_worker   Up
+wall_redis          Up (healthy)
+```
+
+**Check Application Health**:
+```bash
+curl http://localhost/health
+```
+
+**View Logs**:
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker logs wall_nginx -f
+docker logs wall_php -f
+docker logs wall_queue_worker -f
+```
+
+**Restart Services**:
+```bash
+# All services
+docker-compose restart
+
+# Single service
+docker-compose restart nginx
+docker-compose restart php
+```
+
+**Update Application**:
+```bash
+cd /var/www/wall.cyka.lol
+git pull
+cd frontend && npm run build && cd ..
+docker-compose restart php nginx
+```
+
+#### Production URLs
+- Main Application: `http://wall.cyka.lol` or `https://wall.cyka.lol` (with SSL)
+- API Endpoint: `http://wall.cyka.lol/api/v1`
+- Health Check: `http://wall.cyka.lol/health`
+
+---
+
+## Production Deployment (Non-Docker)
+
+For deploying without Docker to a production server, see:
+
+**Documentation**: `documentation/PRODUCTION_DEPLOYMENT.md`
 
 ---
 

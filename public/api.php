@@ -13,6 +13,34 @@ ini_set('display_errors', '1');
 // Set timezone
 date_default_timezone_set('UTC');
 
+// Load .env variables for non-Docker deployments
+(function () {
+    $envPath = __DIR__ . '/../.env';
+    if (!file_exists($envPath)) {
+        return;
+    }
+    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        if ($trimmed === '' || $trimmed[0] === '#') {
+            continue;
+        }
+        $parts = explode('=', $trimmed, 2);
+        if (count($parts) !== 2) {
+            continue;
+        }
+        $key = trim($parts[0]);
+        $value = trim($parts[1]);
+        // Strip optional quotes
+        if ((str_starts_with($value, '"') && str_ends_with($value, '"')) ||
+            (str_starts_with($value, "'") && str_ends_with($value, "'"))) {
+            $value = substr($value, 1, -1);
+        }
+        putenv("$key=$value");
+        $_ENV[$key] = $value;
+    }
+})();
+
 // Autoloader (will be replaced by Composer autoloader)
 spl_autoload_register(function ($class) {
     $paths = [
