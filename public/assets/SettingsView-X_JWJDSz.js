@@ -1,2 +1,0 @@
-import{_ as o}from"./index-CCsWTdYX.js";import{f as s,k as t,o as n}from"./vendor-DTOKxEoQ.js";import"./utils-i9HKr1_Q.js";const r={},a={class:"placeholder-view"};function c(i,e){return n(),s("div",a,[...e[0]||(e[0]=[t("h1",null,"Settings View",-1),t("p",null,"Coming in Phase 8",-1)])])}const p=o(r,[["render",c],["__scopeId","data-v-ca2dd0d1"]]);export{p as default};
-//# sourceMappingURL=SettingsView-X_JWJDSz.js.map

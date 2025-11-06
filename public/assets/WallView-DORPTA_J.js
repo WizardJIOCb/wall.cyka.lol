@@ -1,2 +1,0 @@
-import{e as a,f as s,k as o,o as l}from"./vendor-DTOKxEoQ.js";import{_ as t}from"./index-BTUNdkEp.js";import"./utils-i9HKr1_Q.js";const n={class:"placeholder-view"},r=a({__name:"WallView",props:{wallId:{}},setup(p){return(i,e)=>(l(),s("div",n,[...e[0]||(e[0]=[o("h1",null,"Wall View",-1),o("p",null,"Coming in Phase 4",-1)])]))}}),d=t(r,[["__scopeId","data-v-5cb0056a"]]);export{d as default};
-//# sourceMappingURL=WallView-DORPTA_J.js.map

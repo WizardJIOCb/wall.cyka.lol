@@ -1,2 +1,0 @@
-import{e as o,f as a,k as s,o as t}from"./vendor-DTOKxEoQ.js";import{_ as n}from"./index-CCsWTdYX.js";import"./utils-i9HKr1_Q.js";const r={class:"placeholder-view"},p=o({__name:"MessagesView",props:{conversationId:{}},setup(i){return(c,e)=>(t(),a("div",r,[...e[0]||(e[0]=[s("h1",null,"Messages View",-1),s("p",null,"Coming in Phase 7",-1)])]))}}),m=n(p,[["__scopeId","data-v-4cd1ee12"]]);export{m as default};
-//# sourceMappingURL=MessagesView-BnaQme58.js.map

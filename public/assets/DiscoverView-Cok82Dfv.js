@@ -1,2 +1,0 @@
-import{_ as s}from"./index-CCsWTdYX.js";import{f as r,k as o,o as t}from"./vendor-DTOKxEoQ.js";import"./utils-i9HKr1_Q.js";const a={},c={class:"placeholder-view"};function n(i,e){return t(),r("div",c,[...e[0]||(e[0]=[o("h1",null,"Discover View",-1),o("p",null,"Coming in Phase 5",-1)])])}const p=s(a,[["render",n],["__scopeId","data-v-961876a6"]]);export{p as default};
-//# sourceMappingURL=DiscoverView-Cok82Dfv.js.map

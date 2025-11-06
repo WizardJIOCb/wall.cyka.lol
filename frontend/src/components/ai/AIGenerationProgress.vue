@@ -199,7 +199,7 @@ function formatTime(ms: number): string {
 function startTracking() {
   if (eventSource) return
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+  const apiUrl = import.meta.env.VITE_API_URL || ''
   const streamUrl = `${apiUrl}/api/v1/ai/generation/${props.jobId}/progress`
 
   console.log('[AIGenerationProgress] Starting SSE connection to:', streamUrl)
