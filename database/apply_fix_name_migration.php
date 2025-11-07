@@ -13,7 +13,7 @@ try {
     $migrationSql = file_get_contents(__DIR__ . '/migrations/018_fix_name_column_default.sql');
     
     // Execute the migration
-    $pdo = Database::getPdo();
+    $pdo = Database::getConnection();
     $pdo->exec($migrationSql);
     
     echo "Migration 018_fix_name_column_default.sql applied successfully!\n";
