@@ -5,6 +5,11 @@
  * Handles AI-generated web applications
  */
 
+namespace App\Models;
+
+use App\Utils\Database;
+use Exception;
+
 class AIApplication
 {
     /**

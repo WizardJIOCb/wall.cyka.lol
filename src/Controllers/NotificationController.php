@@ -5,6 +5,12 @@
  * Handles notification operations
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Utils\Database;
+use App\Services\NotificationService;
+
 class NotificationController
 {
     /**
