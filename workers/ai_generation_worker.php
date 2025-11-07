@@ -45,23 +45,33 @@ echo "===========================================\n\n";
     }
 })();
 
-// Manual class autoloader (same as api.php)
-spl_autoload_register(function ($class) {
-    $paths = [
-        __DIR__ . '/../src/Controllers/',
-        __DIR__ . '/../src/Models/',
-        __DIR__ . '/../src/Services/',
-        __DIR__ . '/../src/Middleware/',
-        __DIR__ . '/../src/Utils/',
-        __DIR__ . '/../config/',
-    ];
+// Import namespaced classes
+use App\Utils\RedisConnection;
+use App\Utils\Database;
+use App\Models\AIApplication;
+use Exception;
 
-    foreach ($paths as $path) {
-        $file = $path . $class . '.php';
-        if (file_exists($file)) {
-            require_once $file;
-            return;
-        }
+// PSR-4 autoloader for namespaced classes
+spl_autoload_register(function ($class) {
+    // Convert namespace to file path
+    $prefix = 'App\\';
+    $baseDir = __DIR__ . '/../src/';
+    
+    // Does the class use the namespace prefix?
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+    
+    // Get the relative class name
+    $relativeClass = substr($class, $len);
+    
+    // Replace namespace separators with directory separators
+    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+    
+    // If the file exists, require it
+    if (file_exists($file)) {
+        require_once $file;
     }
 });
 
