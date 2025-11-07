@@ -66,12 +66,16 @@ UPDATE ai_applications SET description = LEFT(COALESCE(user_prompt, ''), 500) WH
 -- ============================================================================
 
 -- Posts table FULLTEXT index on title and content_text
+-- First drop the index if it exists to avoid conflicts
+ALTER TABLE posts DROP INDEX IF EXISTS idx_posts_search;
 ALTER TABLE posts ADD FULLTEXT INDEX idx_posts_search (title, content_text);
 
 -- Walls table FULLTEXT index on name and description
+ALTER TABLE walls DROP INDEX IF EXISTS idx_walls_search;
 ALTER TABLE walls ADD FULLTEXT INDEX idx_walls_search (name, description);
 
 -- AI Applications table FULLTEXT index on title, description, and tags
+ALTER TABLE ai_applications DROP INDEX IF EXISTS idx_ai_apps_search;
 ALTER TABLE ai_applications ADD FULLTEXT INDEX idx_ai_apps_search (title, description, tags);
 
 -- ============================================================================
