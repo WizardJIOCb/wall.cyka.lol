@@ -762,12 +762,12 @@ route('GET', 'api/v1/discover/suggested-users', function() {
 
 // Global search
 route('GET', 'api/v1/search', function() {
-    SearchController::unifiedSearch();
+    \App\Controllers\SearchController::unifiedSearch();
 });
 
 // Trending searches
 route('GET', 'api/v1/search/trending', function() {
-    SearchController::getTrendingSearches();
+    \App\Controllers\SearchController::getTrendingSearches();
 });
 
 // ==================== SETTINGS ROUTES ====================

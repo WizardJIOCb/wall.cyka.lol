@@ -448,26 +448,29 @@ onMounted(() => {
 .search-icon {
   position: absolute;
   left: var(--spacing-3);
-  font-size: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
   color: var(--color-text-secondary);
   pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  height: 1.1rem;
 }
 
 .search-input {
   flex: 1;
   padding: var(--spacing-3) var(--spacing-2);
-  padding-left: 44px;
+  padding-left: 38px;
   border: none;
   background: transparent;
   font-size: 1rem;
   color: var(--color-text-primary);
   outline: none;
   height: 100%;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .search-input::placeholder {

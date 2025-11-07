@@ -301,13 +301,16 @@ onMounted(() => {
 .search-icon {
   position: absolute;
   left: 18px;
-  font-size: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1rem;
   color: var(--color-text-secondary);
   pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  height: 1.1rem;
 }
 
 .search-input {
@@ -315,14 +318,14 @@ onMounted(() => {
   width: 100%;
   height: 48px;
   padding: 14px 18px;
-  padding-left: 50px;
+  padding-left: 46px;
   border: 2px solid var(--color-border);
   border-radius: 12px;
   font-size: 1rem;
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
   transition: border-color 0.2s;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .search-input:focus {

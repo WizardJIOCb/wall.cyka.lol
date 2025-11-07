@@ -17,11 +17,14 @@ class SearchController
      */
     public static function unifiedSearch()
     {
-        $query = isset($_GET['q']) ? trim($_GET['q']) : '';
-        $type = isset($_GET['type']) ? $_GET['type'] : 'all'; // all, post, wall, user, ai-app
-        $sort = isset($_GET['sort']) ? $_GET['sort'] : 'relevance'; // relevance, recent, popular
-        $limit = isset($_GET['limit']) ? min(50, max(1, (int)$_GET['limit'])) : 20;
-        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        // Support both direct params (?q=test) and nested params (?params[q]=test)
+        $params = isset($_GET['params']) && is_array($_GET['params']) ? $_GET['params'] : $_GET;
+        
+        $query = isset($params['q']) ? trim($params['q']) : '';
+        $type = isset($params['type']) ? $params['type'] : 'all'; // all, post, wall, user, ai-app
+        $sort = isset($params['sort']) ? $params['sort'] : 'relevance'; // relevance, recent, popular
+        $limit = isset($params['limit']) ? min(50, max(1, (int)$params['limit'])) : 20;
+        $page = isset($params['page']) ? max(1, (int)$params['page']) : 1;
         $offset = ($page - 1) * $limit;
 
         // Validate query
