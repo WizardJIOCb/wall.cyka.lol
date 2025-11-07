@@ -172,10 +172,13 @@ const handleHeaderSearch = () => {
 .search-container {
   position: relative;
   width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .search-input {
   width: 100%;
+  height: 40px;
   padding: var(--spacing-2) var(--spacing-3);
   padding-left: 40px;
   background: var(--background);
@@ -183,6 +186,7 @@ const handleHeaderSearch = () => {
   border-radius: var(--radius-full);
   font-size: 0.95rem;
   color: var(--text-primary);
+  line-height: 1.5;
 }
 
 .search-input:focus {
@@ -199,6 +203,10 @@ const handleHeaderSearch = () => {
   color: var(--text-primary);
   opacity: 0.5;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .btn-icon {

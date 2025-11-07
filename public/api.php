@@ -43,12 +43,21 @@ date_default_timezone_set('UTC');
 
 // Autoloader (will be replaced by Composer autoloader)
 spl_autoload_register(function ($class) {
+    // Remove namespace prefix if present
+    $class = str_replace('App\\Controllers\\', '', $class);
+    $class = str_replace('App\\Models\\', '', $class);
+    $class = str_replace('App\\Services\\', '', $class);
+    $class = str_replace('App\\Middleware\\', '', $class);
+    $class = str_replace('App\\Utils\\', '', $class);
+    $class = str_replace('App\\Core\\', '', $class);
+    
     $paths = [
         __DIR__ . '/../src/Controllers/',
         __DIR__ . '/../src/Models/',
         __DIR__ . '/../src/Services/',
         __DIR__ . '/../src/Middleware/',
         __DIR__ . '/../src/Utils/',
+        __DIR__ . '/../src/Core/',
         __DIR__ . '/../config/',
     ];
 
