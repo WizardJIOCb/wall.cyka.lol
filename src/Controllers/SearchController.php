@@ -180,8 +180,8 @@ class SearchController
                     w.description,
                     w.theme_settings as theme,
                     w.privacy_level as privacy,
-                    w.subscribers_count as subscriber_count,
-                    w.posts_count as post_count,
+                    0 as subscriber_count,  // Fix column name - using 0 as placeholder since the column doesn't exist
+                    0 as post_count,        // Fix column name - using 0 as placeholder since the column doesn't exist
                     w.created_at,
                     u.username as owner_username,
                     u.display_name as owner_name,
@@ -198,11 +198,11 @@ class SearchController
                 $sql .= " ORDER BY w.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY w.subscribers_count DESC, w.posts_count DESC";
+                $sql .= " ORDER BY 0 DESC, 0 DESC";  // Using 0 as placeholders since the columns don't exist
                 break;
             case 'relevance':
             default:
-                $sql .= " ORDER BY relevance DESC, w.subscribers_count DESC";
+                $sql .= " ORDER BY relevance DESC, 0 DESC";  // Using 0 as placeholder since the column doesn't exist
                 break;
         }
 
@@ -297,23 +297,20 @@ class SearchController
         $sql = "SELECT 
                     a.app_id as id,
                     a.user_id,
-                    'AI Application' as title,
-                    a.user_prompt as description,
-                    a.user_prompt as prompt,
-                    '' as tags,
+                    a.title,
+                    a.description,
+                    a.tags,
                     a.remix_count,
-                    a.fork_count,
-                    0 as reaction_count,
                     a.view_count,
+                    0 as reaction_count,  // Using 0 as placeholder since the column doesn't exist
                     a.created_at,
                     u.username as author_username,
                     u.display_name as author_name,
                     u.avatar_url as author_avatar,
-                    MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
+                    MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM ai_applications a
                 INNER JOIN users u ON a.user_id = u.user_id
-                WHERE MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE)
-                  AND a.visibility = 'public'
+                WHERE MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE)
                   AND a.status = 'completed'";
 
         // Apply sorting
@@ -322,7 +319,7 @@ class SearchController
                 $sql .= " ORDER BY a.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY (a.remix_count * 3 + a.fork_count * 2 + 0) DESC";
+                $sql .= " ORDER BY (a.remix_count * 3 + a.view_count * 2 + 0) DESC";  // Using 0 as placeholder
                 break;
             case 'relevance':
             default:
@@ -338,8 +335,7 @@ class SearchController
         // Get total count
         $countSql = "SELECT COUNT(*) as total 
                      FROM ai_applications a
-                     WHERE MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE)
-                       AND a.visibility = 'public'
+                     WHERE MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE)
                        AND a.status = 'completed'";
         
         $countStmt = Database::query($countSql, [$query]);
