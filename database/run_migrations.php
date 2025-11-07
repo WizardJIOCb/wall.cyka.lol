@@ -60,30 +60,65 @@ foreach ($migrations as $migrationFile) {
     try {
         $sql = file_get_contents($migrationFile);
         
-        // Split by semicolon and execute each statement
-        $statements = array_filter(
-            array_map('trim', explode(';', $sql)),
-            function($stmt) {
-                return !empty($stmt) && !preg_match('/^--/', $stmt);
-            }
-        );
-        
-        foreach ($statements as $statement) {
-            if (!empty($statement)) {
-                // Handle result-set queries (SHOW, DESCRIBE, SELECT) to avoid unbuffered query errors
-                if (preg_match('/^\s*(SHOW|DESCRIBE|SELECT)/i', $statement)) {
-                    $stmt = $pdo->query($statement);
-                    $stmt->fetchAll(); // Drain result set
-                    $stmt->closeCursor(); // Explicitly close cursor
-                    unset($stmt); // Free statement
+        // Check if migration uses DELIMITER (stored procedures/functions)
+        if (preg_match('/DELIMITER/i', $sql)) {
+            // For files with DELIMITER, we need special handling
+            // Remove DELIMITER commands and convert $$ to ;
+            $sql = preg_replace('/DELIMITER\s+\$\$/i', '', $sql);
+            $sql = preg_replace('/DELIMITER\s+;/i', '', $sql);
+            
+            // Split on $$ which separates procedure definitions
+            $blocks = preg_split('/\$\$/', $sql);
+            
+            foreach ($blocks as $block) {
+                $block = trim($block);
+                if (empty($block) || preg_match('/^\s*--/', $block)) {
                     continue;
                 }
-                $pdo->exec($statement);
+                
+                // Execute each block
+                if (preg_match('/^\s*(SHOW|DESCRIBE|SELECT)/i', $block)) {
+                    $stmt = $pdo->query($block);
+                    if ($stmt) {
+                        $stmt->fetchAll();
+                        $stmt->closeCursor();
+                        unset($stmt);
+                    }
+                } else {
+                    $pdo->exec($block);
+                }
+            }
+        } else {
+            // Original logic for simple migrations
+            // Split by semicolon and execute each statement
+            $statements = array_filter(
+                array_map('trim', explode(';', $sql)),
+                function($stmt) {
+                    return !empty($stmt) && !preg_match('/^--/', $stmt);
+                }
+            );
+            
+            foreach ($statements as $statement) {
+                if (!empty($statement)) {
+                    // Handle result-set queries (SHOW, DESCRIBE, SELECT) to avoid unbuffered query errors
+                    if (preg_match('/^\s*(SHOW|DESCRIBE|SELECT)/i', $statement)) {
+                        $stmt = $pdo->query($statement);
+                        $stmt->fetchAll(); // Drain result set
+                        $stmt->closeCursor(); // Explicitly close cursor
+                        unset($stmt); // Free statement
+                        continue;
+                    }
+                    $pdo->exec($statement);
+                }
             }
         }
         
         echo "✓ Success\n";
         
+    } catch (Exception $e) {
+        echo "✗ Failed\n";
+        echo "Error: " . $e->getMessage() . "\n";
+        echo "Consider manually executing: {$migrationFile}\n";
     } catch (PDOException $e) {
         echo "✗ Failed\n";
         echo "Error: " . $e->getMessage() . "\n";

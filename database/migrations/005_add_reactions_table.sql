@@ -11,9 +11,7 @@ CREATE TABLE IF NOT EXISTS reactions (
   UNIQUE KEY unique_user_reaction (user_id, reactable_type, reactable_id),
   INDEX idx_reactable (reactable_type, reactable_id),
   INDEX idx_user (user_id),
+  INDEX idx_reaction_type (reaction_type),
+  INDEX idx_created_at (created_at),
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Add indexes for performance
-CREATE INDEX idx_reaction_type ON reactions(reaction_type);
-CREATE INDEX idx_created_at ON reactions(created_at);

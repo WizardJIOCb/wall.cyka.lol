@@ -2,24 +2,51 @@
 -- Add FULLTEXT indexes and search logging table
 
 -- ============================================================================
--- 1. Add FULLTEXT indexes for search functionality
+-- 1. Add FULLTEXT indexes for search functionality (with idempotency checks)
 -- ============================================================================
 
--- Posts table FULLTEXT index
-ALTER TABLE posts 
-ADD FULLTEXT INDEX idx_posts_search (title, content);
+DELIMITER $$
 
--- Walls table FULLTEXT index  
-ALTER TABLE walls
-ADD FULLTEXT INDEX idx_walls_search (name, description);
+CREATE PROCEDURE IF NOT EXISTS add_index_if_not_exists(
+    IN p_table VARCHAR(64),
+    IN p_index VARCHAR(64),
+    IN p_columns TEXT,
+    IN p_is_fulltext BOOLEAN
+)
+BEGIN
+    DECLARE index_count INT;
+    
+    SELECT COUNT(*) INTO index_count
+    FROM INFORMATION_SCHEMA.STATISTICS
+    WHERE table_schema = DATABASE()
+      AND table_name = p_table
+      AND index_name = p_index;
+    
+    IF index_count = 0 THEN
+        IF p_is_fulltext THEN
+            SET @sql = CONCAT('ALTER TABLE ', p_table, ' ADD FULLTEXT INDEX ', p_index, ' (', p_columns, ')');
+        ELSE
+            SET @sql = CONCAT('ALTER TABLE ', p_table, ' ADD INDEX ', p_index, ' (', p_columns, ')');
+        END IF;
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- Posts table FULLTEXT index
+CALL add_index_if_not_exists('posts', 'idx_posts_search', 'title, content', TRUE);
+
+-- Walls table FULLTEXT index
+CALL add_index_if_not_exists('walls', 'idx_walls_search', 'name, description', TRUE);
 
 -- Users table FULLTEXT index
-ALTER TABLE users
-ADD FULLTEXT INDEX idx_users_search (display_name, bio, username);
+CALL add_index_if_not_exists('users', 'idx_users_search', 'display_name, bio, username', TRUE);
 
--- AI Applications table FULLTEXT index (if table exists)
-ALTER TABLE ai_applications
-ADD FULLTEXT INDEX idx_ai_apps_search (title, description, tags);
+-- AI Applications table FULLTEXT index
+CALL add_index_if_not_exists('ai_applications', 'idx_ai_apps_search', 'title, description, tags', TRUE);
 
 -- ============================================================================
 -- 2. Create search_logs table for analytics and trending searches
@@ -42,23 +69,23 @@ CREATE TABLE IF NOT EXISTS search_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 3. Add indexes for better search performance
+-- 3. Add indexes for better search performance (with idempotency checks)
 -- ============================================================================
 
 -- Posts: Additional indexes for sorting
-ALTER TABLE posts
-ADD INDEX idx_posts_reaction_count (reaction_count),
-ADD INDEX idx_posts_comment_count (comment_count),
-ADD INDEX idx_posts_created (created_at);
+CALL add_index_if_not_exists('posts', 'idx_posts_reaction_count', 'reaction_count', FALSE);
+CALL add_index_if_not_exists('posts', 'idx_posts_comment_count', 'comment_count', FALSE);
+CALL add_index_if_not_exists('posts', 'idx_posts_created', 'created_at', FALSE);
 
 -- Walls: Additional indexes for sorting
-ALTER TABLE walls
-ADD INDEX idx_walls_subscriber_count (subscriber_count),
-ADD INDEX idx_walls_post_count (post_count);
+CALL add_index_if_not_exists('walls', 'idx_walls_subscriber_count', 'subscriber_count', FALSE);
+CALL add_index_if_not_exists('walls', 'idx_walls_post_count', 'post_count', FALSE);
 
 -- Users: Additional indexes for sorting
-ALTER TABLE users
-ADD INDEX idx_users_followers_count (followers_count);
+CALL add_index_if_not_exists('users', 'idx_users_followers_count', 'followers_count', FALSE);
+
+-- Clean up the procedure
+DROP PROCEDURE IF EXISTS add_index_if_not_exists;
 
 -- ============================================================================
 -- 4. Create view for popular searches (optional optimization)
@@ -76,16 +103,16 @@ GROUP BY query, DATE(created_at)
 ORDER BY search_count DESC;
 
 -- ============================================================================
--- Verification Queries
+-- Verification Queries (commented out - these should be run manually if needed)
 -- ============================================================================
 
 -- Verify FULLTEXT indexes were created
-SHOW INDEX FROM posts WHERE Key_name = 'idx_posts_search';
-SHOW INDEX FROM walls WHERE Key_name = 'idx_walls_search';
-SHOW INDEX FROM users WHERE Key_name = 'idx_users_search';
+-- SHOW INDEX FROM posts WHERE Key_name = 'idx_posts_search';
+-- SHOW INDEX FROM walls WHERE Key_name = 'idx_walls_search';
+-- SHOW INDEX FROM users WHERE Key_name = 'idx_users_search';
 
 -- Verify search_logs table was created
-DESCRIBE search_logs;
+-- DESCRIBE search_logs;
 
 -- Test FULLTEXT search on posts
 -- SELECT * FROM posts WHERE MATCH(title, content) AGAINST('test' IN NATURAL LANGUAGE MODE);
