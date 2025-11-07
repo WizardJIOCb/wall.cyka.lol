@@ -5,6 +5,13 @@
  * Handles authentication endpoints
  */
 
+namespace App\Controllers;
+
+use App\Services\AuthService;
+use App\Services\SessionManager;
+use App\Models\User;
+use Exception;
+
 class AuthController
 {
     /**
