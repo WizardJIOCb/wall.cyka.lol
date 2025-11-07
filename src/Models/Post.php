@@ -32,7 +32,9 @@ class Post
                 job.actual_bricks_cost,
                 job.prompt_tokens as input_tokens,
                 job.completion_tokens as output_tokens,
-                job.total_tokens
+                job.total_tokens,
+                job.tokens_per_second,
+                job.elapsed_time
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 LEFT JOIN ai_applications ai ON p.post_id = ai.post_id
@@ -251,6 +253,8 @@ class Post
                     'output_tokens' => isset($post['output_tokens']) ? (int)$post['output_tokens'] : 0,
                     'total_tokens' => isset($post['total_tokens']) ? (int)$post['total_tokens'] : 0,
                     'bricks_cost' => isset($post['actual_bricks_cost']) ? (int)$post['actual_bricks_cost'] : 0,
+                    'tokens_per_second' => isset($post['tokens_per_second']) ? (float)$post['tokens_per_second'] : null,
+                    'elapsed_time' => isset($post['elapsed_time']) ? (int)$post['elapsed_time'] : null,
                 ];
             }
         }

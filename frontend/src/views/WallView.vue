@@ -123,6 +123,22 @@
                 </div>
               </div>
               
+              <!-- Generation Stats -->
+              <div class="ai-generation-stats" v-if="post.ai_content?.generation_time || post.ai_content?.total_tokens">
+                <div v-if="post.ai_content?.generation_time" class="stat-item">
+                  <strong>Time:</strong> 
+                  <span class="stat-value">{{ (post.ai_content.generation_time / 1000).toFixed(2) }}s</span>
+                </div>
+                <div v-if="post.ai_content?.total_tokens" class="stat-item">
+                  <strong>Total Tokens:</strong> 
+                  <span class="stat-value">{{ post.ai_content.total_tokens.toLocaleString() }}</span>
+                </div>
+                <div v-if="getAverageSpeed(post) > 0" class="stat-item">
+                  <strong>Avg Speed:</strong> 
+                  <span class="stat-value">{{ getAverageSpeed(post).toFixed(2) }} tok/s</span>
+                </div>
+              </div>
+              
               <div v-if="post.ai_content?.user_prompt" class="ai-preview-prompt">
                 <strong>Prompt:</strong> {{ truncateText(post.ai_content.user_prompt, 150) }}
               </div>
@@ -875,6 +891,27 @@ const averageTokensPerSecond = computed(() => {
   return 0
 })
 
+// Helper function to get average speed for any post
+const getAverageSpeed = (post: any) => {
+  if (!post?.ai_content) return 0
+  
+  // Try using stored tokens_per_second from database first
+  if (post.ai_content.tokens_per_second && post.ai_content.tokens_per_second > 0) {
+    return post.ai_content.tokens_per_second
+  }
+  
+  // Otherwise calculate from output_tokens and generation_time
+  const outputTokens = post.ai_content.output_tokens || 0
+  const generationTime = post.ai_content.generation_time || 0
+  
+  if (outputTokens > 0 && generationTime > 0) {
+    // generation_time is in milliseconds, convert to seconds
+    return outputTokens / (generationTime / 1000)
+  }
+  
+  return 0
+}
+
 const openAIModal = async (post: any) => {
   try {
     // For generating posts, use data from the post itself
@@ -1476,6 +1513,40 @@ onUnmounted(() => {
 .status-badge.processing {
   color: #f59e0b;
   background: rgba(245, 158, 11, 0.1);
+}
+
+/* AI Generation Stats */
+.ai-generation-stats {
+  display: flex;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  flex-wrap: wrap;
+}
+
+.ai-generation-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 120px;
+}
+
+.ai-generation-stats .stat-item strong {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ai-generation-stats .stat-value {
+  color: var(--color-text-primary);
+  font-weight: 700;
+  font-size: 1rem;
+  font-family: 'Courier New', monospace;
 }
 
 .ai-preview-prompt {
