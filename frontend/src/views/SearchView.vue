@@ -447,8 +447,8 @@ onMounted(() => {
 
 .search-icon {
   position: absolute;
-  left: var(--spacing-3);
-  top: 50%;
+  left: 10px;
+  top: 36%;
   transform: translateY(-50%);
   font-size: 1.1rem;
   color: var(--color-text-secondary);

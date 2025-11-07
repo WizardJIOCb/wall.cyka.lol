@@ -300,8 +300,8 @@ onMounted(() => {
 
 .search-icon {
   position: absolute;
-  left: 18px;
-  top: 50%;
+  left: 13px;
+  top: 37%;
   transform: translateY(-50%);
   font-size: 1.1rem;
   color: var(--color-text-secondary);
