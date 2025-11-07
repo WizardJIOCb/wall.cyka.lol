@@ -102,8 +102,6 @@ class SearchController
      */
     private static function searchPosts($query, $sort, $limit, $offset, $userId = null)
     {
-        $searchTerm = Database::escape($query);
-        
         $sql = "SELECT 
                     p.id,
                     p.wall_id,
@@ -122,11 +120,11 @@ class SearchController
                     u.display_name as author_name,
                     u.avatar_url as author_avatar,
                     w.name as wall_name,
-                    MATCH(p.title, p.content) AGAINST(:search IN NATURAL LANGUAGE MODE) as relevance
+                    MATCH(p.title, p.content) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM posts p
                 INNER JOIN users u ON p.author_id = u.id
                 INNER JOIN walls w ON p.wall_id = w.id
-                WHERE MATCH(p.title, p.content) AGAINST(:search IN NATURAL LANGUAGE MODE)
+                WHERE MATCH(p.title, p.content) AGAINST(? IN NATURAL LANGUAGE MODE)
                   AND p.is_deleted = 0
                   AND p.visibility IN ('public', 'unlisted')";
 
@@ -144,23 +142,21 @@ class SearchController
                 break;
         }
 
-        $sql .= " LIMIT :limit OFFSET :offset";
+        $sql .= " LIMIT ? OFFSET ?";
 
-        $results = Database::query($sql, [
-            ':search' => $searchTerm,
-            ':limit' => $limit,
-            ':offset' => $offset
-        ]);
+        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
+        $results = $stmt->fetchAll();
 
         // Get total count
         $countSql = "SELECT COUNT(*) as total 
                      FROM posts p
-                     WHERE MATCH(p.title, p.content) AGAINST(:search IN NATURAL LANGUAGE MODE)
+                     WHERE MATCH(p.title, p.content) AGAINST(? IN NATURAL LANGUAGE MODE)
                        AND p.is_deleted = 0
                        AND p.visibility IN ('public', 'unlisted')";
         
-        $countResult = Database::query($countSql, [':search' => $searchTerm]);
-        $total = $countResult ? (int)$countResult[0]['total'] : 0;
+        $countStmt = Database::query($countSql, [$query]);
+        $countResult = $countStmt->fetch();
+        $total = $countResult ? (int)$countResult['total'] : 0;
 
         return [
             'items' => $results ?: [],
@@ -173,8 +169,6 @@ class SearchController
      */
     private static function searchWalls($query, $sort, $limit, $offset, $userId = null)
     {
-        $searchTerm = Database::escape($query);
-        
         $sql = "SELECT 
                     w.id,
                     w.user_id,
@@ -188,10 +182,10 @@ class SearchController
                     u.username as owner_username,
                     u.display_name as owner_name,
                     u.avatar_url as owner_avatar,
-                    MATCH(w.name, w.description) AGAINST(:search IN NATURAL LANGUAGE MODE) as relevance
+                    MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM walls w
                 INNER JOIN users u ON w.user_id = u.id
-                WHERE MATCH(w.name, w.description) AGAINST(:search IN NATURAL LANGUAGE MODE)
+                WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
                   AND w.privacy IN ('public', 'unlisted')";
 
         // Apply sorting
@@ -208,22 +202,20 @@ class SearchController
                 break;
         }
 
-        $sql .= " LIMIT :limit OFFSET :offset";
+        $sql .= " LIMIT ? OFFSET ?";
 
-        $results = Database::query($sql, [
-            ':search' => $searchTerm,
-            ':limit' => $limit,
-            ':offset' => $offset
-        ]);
+        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
+        $results = $stmt->fetchAll();
 
         // Get total count
         $countSql = "SELECT COUNT(*) as total 
                      FROM walls w
-                     WHERE MATCH(w.name, w.description) AGAINST(:search IN NATURAL LANGUAGE MODE)
+                     WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
                        AND w.privacy IN ('public', 'unlisted')";
         
-        $countResult = Database::query($countSql, [':search' => $searchTerm]);
-        $total = $countResult ? (int)$countResult[0]['total'] : 0;
+        $countStmt = Database::query($countSql, [$query]);
+        $countResult = $countStmt->fetch();
+        $total = $countResult ? (int)$countResult['total'] : 0;
 
         return [
             'items' => $results ?: [],
@@ -236,8 +228,6 @@ class SearchController
      */
     private static function searchUsers($query, $sort, $limit, $offset, $userId = null)
     {
-        $searchTerm = Database::escape($query);
-        
         $sql = "SELECT 
                     u.id,
                     u.username,
@@ -247,13 +237,16 @@ class SearchController
                     u.followers_count,
                     u.following_count,
                     u.created_at,
-                    MATCH(u.display_name, u.bio, u.username) AGAINST(:search IN NATURAL LANGUAGE MODE) as relevance
+                    MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM users u
-                WHERE MATCH(u.display_name, u.bio, u.username) AGAINST(:search IN NATURAL LANGUAGE MODE)";
+                WHERE MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE)";
+
+        $params = [$query, $query];
 
         // Boost results from followed users
         if ($userId) {
-            $sql .= " OR u.id IN (SELECT following_id FROM user_follows WHERE follower_id = :user_id)";
+            $sql .= " OR u.id IN (SELECT following_id FROM user_follows WHERE follower_id = ?)";
+            $params[] = $userId;
         }
 
         // Apply sorting
@@ -270,22 +263,21 @@ class SearchController
                 break;
         }
 
-        $sql .= " LIMIT :limit OFFSET :offset";
+        $sql .= " LIMIT ? OFFSET ?";
+        $params[] = $limit;
+        $params[] = $offset;
 
-        $params = [':search' => $searchTerm, ':limit' => $limit, ':offset' => $offset];
-        if ($userId) {
-            $params[':user_id'] = $userId;
-        }
-
-        $results = Database::query($sql, $params);
+        $stmt = Database::query($sql, $params);
+        $results = $stmt->fetchAll();
 
         // Get total count
         $countSql = "SELECT COUNT(*) as total 
                      FROM users u
-                     WHERE MATCH(u.display_name, u.bio, u.username) AGAINST(:search IN NATURAL LANGUAGE MODE)";
+                     WHERE MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE)";
         
-        $countResult = Database::query($countSql, [':search' => $searchTerm]);
-        $total = $countResult ? (int)$countResult[0]['total'] : 0;
+        $countStmt = Database::query($countSql, [$query]);
+        $countResult = $countStmt->fetch();
+        $total = $countResult ? (int)$countResult['total'] : 0;
 
         return [
             'items' => $results ?: [],
@@ -298,8 +290,6 @@ class SearchController
      */
     private static function searchAIApps($query, $sort, $limit, $offset, $userId = null)
     {
-        $searchTerm = Database::escape($query);
-        
         $sql = "SELECT 
                     a.id,
                     a.user_id,
@@ -315,10 +305,10 @@ class SearchController
                     u.username as author_username,
                     u.display_name as author_name,
                     u.avatar_url as author_avatar,
-                    MATCH(a.title, a.description, a.tags) AGAINST(:search IN NATURAL LANGUAGE MODE) as relevance
+                    MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM ai_applications a
                 INNER JOIN users u ON a.user_id = u.id
-                WHERE MATCH(a.title, a.description, a.tags) AGAINST(:search IN NATURAL LANGUAGE MODE)
+                WHERE MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE)
                   AND a.visibility = 'public'
                   AND a.status = 'completed'";
 
@@ -336,23 +326,21 @@ class SearchController
                 break;
         }
 
-        $sql .= " LIMIT :limit OFFSET :offset";
+        $sql .= " LIMIT ? OFFSET ?";
 
-        $results = Database::query($sql, [
-            ':search' => $searchTerm,
-            ':limit' => $limit,
-            ':offset' => $offset
-        ]);
+        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
+        $results = $stmt->fetchAll();
 
         // Get total count
         $countSql = "SELECT COUNT(*) as total 
                      FROM ai_applications a
-                     WHERE MATCH(a.title, a.description, a.tags) AGAINST(:search IN NATURAL LANGUAGE MODE)
+                     WHERE MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE)
                        AND a.visibility = 'public'
                        AND a.status = 'completed'";
         
-        $countResult = Database::query($countSql, [':search' => $searchTerm]);
-        $total = $countResult ? (int)$countResult[0]['total'] : 0;
+        $countStmt = Database::query($countSql, [$query]);
+        $countResult = $countStmt->fetch();
+        $total = $countResult ? (int)$countResult['total'] : 0;
 
         return [
             'items' => $results ?: [],
@@ -376,13 +364,9 @@ class SearchController
         // Async logging - don't block response
         try {
             $sql = "INSERT INTO search_logs (user_id, query, search_type, created_at)
-                    VALUES (:user_id, :query, :search_type, NOW())";
+                    VALUES (?, ?, ?, NOW())";
             
-            Database::query($sql, [
-                ':user_id' => $userId,
-                ':query' => $query,
-                ':search_type' => $type
-            ]);
+            Database::query($sql, [$userId, $query, $type]);
         } catch (\Exception $e) {
             // Silent fail - don't interrupt search
             error_log("Search tracking error: " . $e->getMessage());
@@ -401,6 +385,7 @@ class SearchController
         $cached = Cache::get('search:trending');
         if ($cached) {
             jsonResponse(true, $cached, 'Trending searches retrieved', 200);
+            return;
         }
 
         try {
@@ -412,9 +397,10 @@ class SearchController
                     WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
                     GROUP BY query
                     ORDER BY search_count DESC
-                    LIMIT :limit";
+                    LIMIT ?";
             
-            $results = Database::query($sql, [':limit' => $limit]);
+            $stmt = Database::query($sql, [$limit]);
+            $results = $stmt->fetchAll();
 
             // Cache for 30 minutes
             Cache::set('search:trending', $results, 1800);

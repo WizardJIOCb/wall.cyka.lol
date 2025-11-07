@@ -6,6 +6,7 @@ export const useUIStore = defineStore('ui', () => {
   const sidebarOpen = ref(false)
   const loading = ref(false)
   const breakpoint = ref<'mobile' | 'tablet' | 'desktop'>('desktop')
+  const createPostModalOpen = ref(false)
 
   // Actions
   const toggleSidebar = () => {
@@ -35,6 +36,14 @@ export const useUIStore = defineStore('ui', () => {
     }
   }
 
+  const openCreatePostModal = () => {
+    createPostModalOpen.value = true
+  }
+
+  const closeCreatePostModal = () => {
+    createPostModalOpen.value = false
+  }
+
   // Initialize breakpoint
   updateBreakpoint()
   window.addEventListener('resize', updateBreakpoint)
@@ -44,12 +53,15 @@ export const useUIStore = defineStore('ui', () => {
     sidebarOpen,
     loading,
     breakpoint,
+    createPostModalOpen,
     
     // Actions
     toggleSidebar,
     closeSidebar,
     openSidebar,
     setLoading,
-    updateBreakpoint
+    updateBreakpoint,
+    openCreatePostModal,
+    closeCreatePostModal
   }
 })

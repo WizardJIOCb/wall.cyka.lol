@@ -17,6 +17,7 @@
 
       <div class="header-center">
         <div class="search-container">
+          <span class="search-icon">🔍</span>
           <input
             v-model="headerSearchQuery"
             type="search"
@@ -24,12 +25,8 @@
             class="search-input"
             aria-label="Search"
             @keyup.enter="handleHeaderSearch"
-            @input="handleHeaderSearchInput"
             maxlength="200"
           />
-          <button class="search-btn" aria-label="Search" @click="handleHeaderSearch">
-            <span class="icon">🔍</span>
-          </button>
         </div>
       </div>
 
@@ -74,7 +71,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import { useNotifications } from '@/composables/useNotifications'
-import { useDebounceFn } from '@vueuse/core'
 import { useToast } from '@/composables/useToast'
 import AppButton from '@/components/common/AppButton.vue'
 import AppAvatar from '@/components/common/AppAvatar.vue'
@@ -103,7 +99,7 @@ const toggleSidebar = () => {
 }
 
 const handleCreate = () => {
-  router.push('/ai')
+  uiStore.openCreatePostModal()
 }
 
 const handleLogout = async () => {
@@ -118,16 +114,6 @@ const handleHeaderSearch = () => {
     headerSearchQuery.value = ''
   } else if (query.length > 0) {
     toast.warning('Please enter at least 2 characters to search')
-  }
-}
-
-const debouncedHeaderSearch = useDebounceFn(() => {
-  handleHeaderSearch()
-}, 300)
-
-const handleHeaderSearchInput = () => {
-  if (headerSearchQuery.value.trim().length >= 2) {
-    debouncedHeaderSearch()
   }
 }
 </script>
@@ -190,7 +176,8 @@ const handleHeaderSearchInput = () => {
 
 .search-input {
   width: 100%;
-  padding: var(--spacing-2) 48px var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+  padding-left: 40px;
   background: var(--background);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
@@ -203,23 +190,15 @@ const handleHeaderSearchInput = () => {
   border-color: var(--primary);
 }
 
-.search-btn {
+.search-icon {
   position: absolute;
-  right: var(--spacing-2);
+  left: var(--spacing-3);
   top: 50%;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: var(--spacing-2);
+  font-size: 1.25rem;
   color: var(--text-primary);
-  opacity: 0.7;
-  border-radius: var(--radius-md);
-  transition: opacity 0.2s ease;
-}
-
-.search-btn:hover {
-  opacity: 1;
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .btn-icon {

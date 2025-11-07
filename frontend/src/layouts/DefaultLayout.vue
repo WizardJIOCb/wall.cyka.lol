@@ -20,10 +20,20 @@
     <!-- Mobile Bottom Navigation -->
     <AppBottomNav />
 
+    <!-- Global Post Creator Modal -->
+    <Teleport to="body">
+      <AppModal 
+        v-model="uiStore.createPostModalOpen" 
+        title="Create Post" 
+        size="md"
+        @close="uiStore.closeCreatePostModal"
+      >
+        <CreatePostForm @success="handlePostCreated" />
+      </AppModal>
+    </Teleport>
+
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container" aria-live="polite"></div>
-
-    <!-- Modal Container - Dynamically created when needed -->
   </div>
 </template>
 
@@ -32,6 +42,18 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import AppBottomNav from '@/components/layout/AppBottomNav.vue'
 import AppWidgets from '@/components/layout/AppWidgets.vue'
+import AppModal from '@/components/common/AppModal.vue'
+import CreatePostForm from '@/components/posts/CreatePostForm.vue'
+import { useUIStore } from '@/stores/ui'
+import { useToast } from '@/composables/useToast'
+
+const uiStore = useUIStore()
+const toast = useToast()
+
+const handlePostCreated = () => {
+  uiStore.closeCreatePostModal()
+  toast.success('Post created successfully!')
+}
 </script>
 
 <style scoped>
