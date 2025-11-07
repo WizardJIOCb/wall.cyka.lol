@@ -486,6 +486,8 @@ docker-compose exec -T mysql mysql -u wall_user -pwall_secure_password_123 wall_
 docker-compose exec php php database/run_migrations.php
 ```
 
+**Important**: Migrations must be run to create required tables like `user_preferences`. Without this, settings will not save.
+
 ### Redis Management
 
 **Access Redis CLI:**

@@ -425,6 +425,7 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing-6);
+  padding-bottom: 120px; /* Safe zone for sticky footer */
 }
 
 .settings-header {
@@ -709,6 +710,9 @@ onMounted(async () => {
   background: var(--color-bg-primary);
   padding: var(--spacing-4) 0;
   border-top: 2px solid var(--color-border);
+  z-index: 100;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  will-change: transform;
 }
 
 .btn-primary,
@@ -771,6 +775,10 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
+  .settings-view {
+    padding-bottom: 140px; /* Larger safe zone for mobile */
+  }
+  
   .settings-container {
     grid-template-columns: 1fr;
   }
