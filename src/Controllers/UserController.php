@@ -5,6 +5,14 @@
  * Handles user profile operations
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Models\User;
+use App\Models\SocialLink;
+use App\Utils\Validator;
+use Exception;
+
 class UserController
 {
     /**

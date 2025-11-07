@@ -5,6 +5,13 @@
  * Handles user settings and preferences
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Models\User;
+use App\Utils\Database;
+use Exception;
+
 class SettingsController
 {
     /**
