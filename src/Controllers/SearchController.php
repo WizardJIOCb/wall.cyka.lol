@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\AIApplication;
 use App\Middleware\AuthMiddleware;
 use App\Core\Cache;
+use App\Utils\Database;
 
 class SearchController
 {
@@ -149,7 +150,7 @@ class SearchController
 
         $sql .= " LIMIT ? OFFSET ?";
 
-        $stmt = \Database::query($sql, [$query, $query, $limit, $offset]);
+        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
         $results = $stmt->fetchAll();
 
         // Get total count
@@ -159,7 +160,7 @@ class SearchController
                        AND p.is_deleted = 0
                        AND p.visibility IN ('public', 'unlisted')";
         
-        $countStmt = \Database::query($countSql, [$query]);
+        $countStmt = Database::query($countSql, [$query]);
         $countResult = $countStmt->fetch();
         $total = $countResult ? (int)$countResult['total'] : 0;
 
@@ -209,7 +210,7 @@ class SearchController
 
         $sql .= " LIMIT ? OFFSET ?";
 
-        $stmt = \Database::query($sql, [$query, $query, $limit, $offset]);
+        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
         $results = $stmt->fetchAll();
 
         // Get total count
@@ -218,7 +219,7 @@ class SearchController
                      WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
                        AND w.privacy IN ('public', 'unlisted')";
         
-        $countStmt = \Database::query($countSql, [$query]);
+        $countStmt = Database::query($countSql, [$query]);
         $countResult = $countStmt->fetch();
         $total = $countResult ? (int)$countResult['total'] : 0;
 
@@ -272,7 +273,7 @@ class SearchController
         $params[] = $limit;
         $params[] = $offset;
 
-        $stmt = \Database::query($sql, $params);
+        $stmt = Database::query($sql, $params);
         $results = $stmt->fetchAll();
 
         // Get total count
@@ -280,7 +281,7 @@ class SearchController
                      FROM users u
                      WHERE MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE)";
         
-        $countStmt = \Database::query($countSql, [$query]);
+        $countStmt = Database::query($countSql, [$query]);
         $countResult = $countStmt->fetch();
         $total = $countResult ? (int)$countResult['total'] : 0;
 
@@ -333,7 +334,7 @@ class SearchController
 
         $sql .= " LIMIT ? OFFSET ?";
 
-        $stmt = \Database::query($sql, [$query, $query, $limit, $offset]);
+        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
         $results = $stmt->fetchAll();
 
         // Get total count
@@ -343,7 +344,7 @@ class SearchController
                        AND a.visibility = 'public'
                        AND a.status = 'completed'";
         
-        $countStmt = \Database::query($countSql, [$query]);
+        $countStmt = Database::query($countSql, [$query]);
         $countResult = $countStmt->fetch();
         $total = $countResult ? (int)$countResult['total'] : 0;
 
@@ -371,7 +372,7 @@ class SearchController
             $sql = "INSERT INTO search_logs (user_id, query, search_type, created_at)
                     VALUES (?, ?, ?, NOW())";
             
-            \Database::query($sql, [$userId, $query, $type]);
+            Database::query($sql, [$userId, $query, $type]);
         } catch (\Exception $e) {
             // Silent fail - don't interrupt search
             error_log("Search tracking error: " . $e->getMessage());
@@ -406,7 +407,7 @@ class SearchController
                     ORDER BY search_count DESC
                     LIMIT ?";
             
-            $stmt = \Database::query($sql, [$limit]);
+            $stmt = Database::query($sql, [$limit]);
             $results = $stmt->fetchAll();
 
             // Cache for 30 minutes
