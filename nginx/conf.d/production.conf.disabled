@@ -293,3 +293,593 @@ server {
     access_log /var/log/nginx/wall_access.log combined;
     error_log /var/log/nginx/wall_error.log warn;
 }
+# Wall Social Platform - Production Nginx Configuration
+# Domain: wall.cyka.lol
+# Document Root: /var/www/wall.cyka.lol/public
+
+# HTTP Server Block - Redirect all HTTP traffic to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name wall.cyka.lol www.wall.cyka.lol;
+
+    # Allow Let's Encrypt ACME challenge for SSL certificate verification
+    location /.well-known/acme-challenge/ {
+        root /var/www/wall.cyka.lol/public;
+        allow all;
+    }
+
+    # Redirect all other HTTP requests to HTTPS
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+# HTTPS Server Block - Main application
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name wall.cyka.lol www.wall.cyka.lol;
+    root /var/www/wall.cyka.lol/public;
+    index index.html api.php;
+
+    # ============================================================================
+    # SSL/TLS Configuration
+    # ============================================================================
+    
+    # SSL Certificate paths (Let's Encrypt)
+    ssl_certificate /etc/letsencrypt/live/wall.cyka.lol/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/wall.cyka.lol/privkey.pem;
+    
+    # SSL Protocols and Ciphers
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    
+    # SSL Session Cache
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # OCSP Stapling
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    ssl_trusted_certificate /etc/letsencrypt/live/wall.cyka.lol/chain.pem;
+    resolver 8.8.8.8 8.8.4.4 valid=300s;
+    resolver_timeout 5s;
+
+    # ============================================================================
+    # Security Headers
+    # ============================================================================
+    
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    
+    # Content Security Policy for AI-generated apps
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self';" always;
+
+    # ============================================================================
+    # File Upload Configuration
+    # ============================================================================
+    
+    # Client body size for media uploads (50MB)
+    client_max_body_size 50M;
+    client_body_buffer_size 128k;
+    client_body_timeout 60s;
+
+    # ============================================================================
+    # Gzip Compression
+    # ============================================================================
+    
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_comp_level 6;
+    gzip_proxied any;
+    gzip_types 
+        text/plain 
+        text/css 
+        text/xml 
+        text/javascript 
+        application/json 
+        application/javascript 
+        application/x-javascript
+        application/xml+rss 
+        application/rss+xml 
+        font/truetype 
+        font/opentype 
+        application/vnd.ms-fontobject 
+        image/svg+xml;
+    gzip_disable "msie6";
+
+    # ============================================================================
+    # Main Application Routing
+    # ============================================================================
+    
+    # Vue SPA - serve index.html for all non-API routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ============================================================================
+    # API Routing
+    # ============================================================================
+    
+    # API routes - proxy to PHP backend
+    location /api/ {
+        try_files $uri $uri/ /api.php?$query_string;
+    }
+
+    # Health check endpoint
+    location = /health {
+        try_files $uri /api.php?$query_string;
+    }
+
+    # ============================================================================
+    # PHP-FPM Processing
+    # ============================================================================
+    
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        
+        # Use Unix socket for better performance (or 127.0.0.1:9000 if socket unavailable)
+        fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+        # Alternative TCP connection:
+        # fastcgi_pass 127.0.0.1:9000;
+        
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        
+        # Increased timeouts for AI generation requests
+        fastcgi_read_timeout 300;
+        fastcgi_send_timeout 300;
+        fastcgi_connect_timeout 60;
+        
+        # Buffer settings
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+    }
+
+    # ============================================================================
+    # Server-Sent Events (SSE) for Real-time Updates
+    # ============================================================================
+    
+    # SSE endpoints for AI generation progress and live updates
+    location ~ ^/api/v1/(ai/generation/[^/]+/(progress|content)|ai/jobs/[^/]+/status|queue/live|conversations/[^/]+/live)$ {
+        # Pass to PHP-FPM
+        try_files $uri /api.php?$query_string;
+        
+        fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+        # Alternative: fastcgi_pass 127.0.0.1:9000;
+        
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root/api.php;
+        
+        # SSE requires these settings
+        fastcgi_buffering off;
+        fastcgi_cache off;
+        fastcgi_read_timeout 24h;
+        fastcgi_send_timeout 24h;
+        
+        # Proxy headers for real-time
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Enable chunked transfer encoding
+        chunked_transfer_encoding on;
+    }
+
+    # ============================================================================
+    # Static Assets Caching
+    # ============================================================================
+    
+    # Long-term caching for static assets (30 days)
+    # BUT use ETag for cache validation to allow updates
+    location ~* \.(jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+        log_not_found off;
+    }
+    
+    # Shorter cache for JS/CSS with validation (allow updates)
+    location ~* \.(js|css)$ {
+        expires 7d;
+        add_header Cache-Control "public, must-revalidate";
+        etag on;
+    }
+
+    # ============================================================================
+    # Media Uploads Directory
+    # ============================================================================
+    
+    location /uploads/ {
+        alias /var/www/wall.cyka.lol/public/uploads/;
+        expires 7d;
+        add_header Cache-Control "public";
+        
+        # Security: prevent script execution in uploads
+        location ~ \.php$ {
+            deny all;
+        }
+    }
+
+    # ============================================================================
+    # AI-Generated Applications Sandbox
+    # ============================================================================
+    
+    location /ai-apps/ {
+        alias /var/www/wall.cyka.lol/public/ai-apps/;
+        
+        # Strict sandbox for user-generated content
+        add_header Content-Security-Policy "sandbox allow-scripts allow-forms allow-modals allow-popups; default-src 'self' 'unsafe-inline' 'unsafe-eval';" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        
+        # Security: prevent script execution
+        location ~ \.php$ {
+            deny all;
+        }
+    }
+
+    # ============================================================================
+    # Security: Deny Access to Sensitive Files
+    # ============================================================================
+    
+    # Deny access to hidden files
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # Deny access to configuration and sensitive files
+    location ~ /\.(env|git|svn|htaccess|htpasswd)$ {
+        deny all;
+    }
+    
+    # Deny access to composer files
+    location ~ composer\.(json|lock)$ {
+        deny all;
+    }
+    
+    # Deny access to package files
+    location ~ package(-lock)?\.json$ {
+        deny all;
+    }
+
+    # ============================================================================
+    # Monitoring and Health Checks
+    # ============================================================================
+    
+    # Nginx status endpoint (restricted to localhost)
+    location /nginx_status {
+        stub_status on;
+        access_log off;
+        allow 127.0.0.1;
+        allow ::1;
+        deny all;
+    }
+
+    # ============================================================================
+    # Error Pages
+    # ============================================================================
+    
+    # Client errors (404) - serve Vue SPA for client-side routing
+    error_page 404 /index.html;
+    
+    # Server errors - custom error page
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+
+    # ============================================================================
+    # Logging
+    # ============================================================================
+    
+    access_log /var/log/nginx/wall_access.log combined;
+    error_log /var/log/nginx/wall_error.log warn;
+}
+# Wall Social Platform - Production Nginx Configuration
+# Domain: wall.cyka.lol
+# Document Root: /var/www/wall.cyka.lol/public
+
+# HTTP Server Block - Redirect all HTTP traffic to HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name wall.cyka.lol www.wall.cyka.lol;
+
+    # Allow Let's Encrypt ACME challenge for SSL certificate verification
+    location /.well-known/acme-challenge/ {
+        root /var/www/wall.cyka.lol/public;
+        allow all;
+    }
+
+    # Redirect all other HTTP requests to HTTPS
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+# HTTPS Server Block - Main application
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name wall.cyka.lol www.wall.cyka.lol;
+    root /var/www/wall.cyka.lol/public;
+    index index.html api.php;
+
+    # ============================================================================
+    # SSL/TLS Configuration
+    # ============================================================================
+    
+    # SSL Certificate paths (Let's Encrypt)
+    ssl_certificate /etc/letsencrypt/live/wall.cyka.lol/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/wall.cyka.lol/privkey.pem;
+    
+    # SSL Protocols and Ciphers
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    
+    # SSL Session Cache
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    
+    # OCSP Stapling
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    ssl_trusted_certificate /etc/letsencrypt/live/wall.cyka.lol/chain.pem;
+    resolver 8.8.8.8 8.8.4.4 valid=300s;
+    resolver_timeout 5s;
+
+    # ============================================================================
+    # Security Headers
+    # ============================================================================
+    
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    
+    # Content Security Policy for AI-generated apps
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self';" always;
+
+    # ============================================================================
+    # File Upload Configuration
+    # ============================================================================
+    
+    # Client body size for media uploads (50MB)
+    client_max_body_size 50M;
+    client_body_buffer_size 128k;
+    client_body_timeout 60s;
+
+    # ============================================================================
+    # Gzip Compression
+    # ============================================================================
+    
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_comp_level 6;
+    gzip_proxied any;
+    gzip_types 
+        text/plain 
+        text/css 
+        text/xml 
+        text/javascript 
+        application/json 
+        application/javascript 
+        application/x-javascript
+        application/xml+rss 
+        application/rss+xml 
+        font/truetype 
+        font/opentype 
+        application/vnd.ms-fontobject 
+        image/svg+xml;
+    gzip_disable "msie6";
+
+    # ============================================================================
+    # Main Application Routing
+    # ============================================================================
+    
+    # Vue SPA - serve index.html for all non-API routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ============================================================================
+    # API Routing
+    # ============================================================================
+    
+    # API routes - proxy to PHP backend
+    location /api/ {
+        try_files $uri $uri/ /api.php?$query_string;
+    }
+
+    # Health check endpoint
+    location = /health {
+        try_files $uri /api.php?$query_string;
+    }
+
+    # ============================================================================
+    # PHP-FPM Processing
+    # ============================================================================
+    
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        
+        # Use Unix socket for better performance (or 127.0.0.1:9000 if socket unavailable)
+        fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+        # Alternative TCP connection:
+        # fastcgi_pass 127.0.0.1:9000;
+        
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        
+        # Increased timeouts for AI generation requests
+        fastcgi_read_timeout 300;
+        fastcgi_send_timeout 300;
+        fastcgi_connect_timeout 60;
+        
+        # Buffer settings
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+    }
+
+    # ============================================================================
+    # Server-Sent Events (SSE) for Real-time Updates
+    # ============================================================================
+    
+    # SSE endpoints for AI generation progress and live updates
+    location ~ ^/api/v1/(ai/generation/[^/]+/(progress|content)|ai/jobs/[^/]+/status|queue/live|conversations/[^/]+/live)$ {
+        # Pass to PHP-FPM
+        try_files $uri /api.php?$query_string;
+        
+        fastcgi_pass unix:/run/php/php8.1-fpm.sock;
+        # Alternative: fastcgi_pass 127.0.0.1:9000;
+        
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root/api.php;
+        
+        # SSE requires these settings
+        fastcgi_buffering off;
+        fastcgi_cache off;
+        fastcgi_read_timeout 24h;
+        fastcgi_send_timeout 24h;
+        
+        # Proxy headers for real-time
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Enable chunked transfer encoding
+        chunked_transfer_encoding on;
+    }
+
+    # ============================================================================
+    # Static Assets Caching
+    # ============================================================================
+    
+    # Long-term caching for static assets (30 days)
+    # BUT use ETag for cache validation to allow updates
+    location ~* \.(jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+        log_not_found off;
+    }
+    
+    # Shorter cache for JS/CSS with validation (allow updates)
+    location ~* \.(js|css)$ {
+        expires 7d;
+        add_header Cache-Control "public, must-revalidate";
+        etag on;
+    }
+
+    # ============================================================================
+    # Media Uploads Directory
+    # ============================================================================
+    
+    location /uploads/ {
+        alias /var/www/wall.cyka.lol/public/uploads/;
+        expires 7d;
+        add_header Cache-Control "public";
+        
+        # Security: prevent script execution in uploads
+        location ~ \.php$ {
+            deny all;
+        }
+    }
+
+    # ============================================================================
+    # AI-Generated Applications Sandbox
+    # ============================================================================
+    
+    location /ai-apps/ {
+        alias /var/www/wall.cyka.lol/public/ai-apps/;
+        
+        # Strict sandbox for user-generated content
+        add_header Content-Security-Policy "sandbox allow-scripts allow-forms allow-modals allow-popups; default-src 'self' 'unsafe-inline' 'unsafe-eval';" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        
+        # Security: prevent script execution
+        location ~ \.php$ {
+            deny all;
+        }
+    }
+
+    # ============================================================================
+    # Security: Deny Access to Sensitive Files
+    # ============================================================================
+    
+    # Deny access to hidden files
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # Deny access to configuration and sensitive files
+    location ~ /\.(env|git|svn|htaccess|htpasswd)$ {
+        deny all;
+    }
+    
+    # Deny access to composer files
+    location ~ composer\.(json|lock)$ {
+        deny all;
+    }
+    
+    # Deny access to package files
+    location ~ package(-lock)?\.json$ {
+        deny all;
+    }
+
+    # ============================================================================
+    # Monitoring and Health Checks
+    # ============================================================================
+    
+    # Nginx status endpoint (restricted to localhost)
+    location /nginx_status {
+        stub_status on;
+        access_log off;
+        allow 127.0.0.1;
+        allow ::1;
+        deny all;
+    }
+
+    # ============================================================================
+    # Error Pages
+    # ============================================================================
+    
+    # Client errors (404) - serve Vue SPA for client-side routing
+    error_page 404 /index.html;
+    
+    # Server errors - custom error page
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+
+    # ============================================================================
+    # Logging
+    # ============================================================================
+    
+    access_log /var/log/nginx/wall_access.log combined;
+    error_log /var/log/nginx/wall_error.log warn;
+}
