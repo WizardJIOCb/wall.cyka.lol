@@ -195,7 +195,7 @@ const router = useRouter()
 
 const authStore = useAuthStore()
 const promptText = ref('')
-const selectedModel = ref('deepseek-coder:6.7b')
+const selectedModel = ref('gpt-oss:20b')
 const priority = ref('normal')
 const estimatedCost = ref(100)
 const bricksBalance = ref(authStore.user?.bricks_balance || 0)
