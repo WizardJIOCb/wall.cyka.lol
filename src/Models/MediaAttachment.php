@@ -5,6 +5,11 @@
  * Handles media attachments for posts
  */
 
+namespace App\Models;
+
+use App\Utils\Database;
+use Exception;
+
 class MediaAttachment
 {
     /**

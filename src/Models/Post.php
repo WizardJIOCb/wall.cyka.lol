@@ -5,6 +5,11 @@
  * Handles post data operations
  */
 
+namespace App\Models;
+
+use App\Utils\Database;
+use Exception;
+
 class Post
 {
     /**
