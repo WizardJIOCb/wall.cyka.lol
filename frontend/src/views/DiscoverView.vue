@@ -294,14 +294,14 @@ onMounted(() => {
 }
 
 .search-container {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
 .search-input {
-  width: 100%;
+  flex: 1;
+  height: 48px;
   padding: 14px 18px;
   border: 2px solid var(--color-border);
   border-radius: 12px;
@@ -317,8 +317,8 @@ onMounted(() => {
 }
 
 .search-button {
-  width: 46px;
-  height: 39px;
+  width: 48px;
+  height: 48px;
   background: var(--color-primary);
   color: white;
   border: none;
@@ -327,6 +327,9 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .search-button:hover {

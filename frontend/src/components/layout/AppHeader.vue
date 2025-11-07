@@ -18,12 +18,16 @@
       <div class="header-center">
         <div class="search-container">
           <input
+            v-model="headerSearchQuery"
             type="search"
             placeholder="Search posts, walls, users..."
             class="search-input"
             aria-label="Search"
+            @keyup.enter="handleHeaderSearch"
+            @input="handleHeaderSearchInput"
+            maxlength="200"
           />
-          <button class="search-btn" aria-label="Search">
+          <button class="search-btn" aria-label="Search" @click="handleHeaderSearch">
             <span class="icon">🔍</span>
           </button>
         </div>
@@ -65,11 +69,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import { useNotifications } from '@/composables/useNotifications'
+import { useDebounceFn } from '@vueuse/core'
+import { useToast } from '@/composables/useToast'
 import AppButton from '@/components/common/AppButton.vue'
 import AppAvatar from '@/components/common/AppAvatar.vue'
 import AppDropdown from '@/components/common/AppDropdown.vue'
@@ -77,9 +83,11 @@ import AppDropdown from '@/components/common/AppDropdown.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const toast = useToast()
 const { unreadCount } = useNotifications()
 
 const currentUser = computed(() => authStore.user)
+const headerSearchQuery = ref('')
 
 const formatCount = (count: number) => {
   if (count > 99) return '99+'
@@ -100,6 +108,27 @@ const handleCreate = () => {
 
 const handleLogout = async () => {
   await authStore.logout()
+}
+
+// Header search functionality
+const handleHeaderSearch = () => {
+  const query = headerSearchQuery.value.trim()
+  if (query.length >= 2) {
+    router.push({ path: '/search', query: { q: query } })
+    headerSearchQuery.value = ''
+  } else if (query.length > 0) {
+    toast.warning('Please enter at least 2 characters to search')
+  }
+}
+
+const debouncedHeaderSearch = useDebounceFn(() => {
+  handleHeaderSearch()
+}, 300)
+
+const handleHeaderSearchInput = () => {
+  if (headerSearchQuery.value.trim().length >= 2) {
+    debouncedHeaderSearch()
+  }
 }
 </script>
 
