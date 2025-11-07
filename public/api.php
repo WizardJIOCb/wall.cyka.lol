@@ -70,6 +70,25 @@ spl_autoload_register(function ($class) {
     }
 });
 
+// Import controllers
+use App\Controllers\AuthController;
+use App\Controllers\WallController;
+use App\Controllers\PostController;
+use App\Controllers\QueueController;
+use App\Controllers\AIController;
+use App\Controllers\AIGenerationProgressController;
+use App\Controllers\BricksController;
+use App\Controllers\UserController;
+use App\Controllers\SearchController;
+use App\Controllers\FollowController;
+use App\Controllers\NotificationController;
+use App\Controllers\MessagingController;
+use App\Controllers\SocialController;
+use App\Controllers\CommentController;
+use App\Controllers\SettingsController;
+use App\Controllers\DiscoverController;
+use App\Controllers\UploadController;
+
 // CORS headers for API
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
