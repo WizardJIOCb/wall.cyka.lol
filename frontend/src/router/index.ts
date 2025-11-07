@@ -92,6 +92,18 @@ const router = createRouter({
       meta: { title: 'AI Generate' },
       props: true
     },
+    {
+      path: '/search',
+      name: 'search',
+      component: () => import('@/views/SearchView.vue'),
+      beforeEnter: requireAuth,
+      meta: { title: 'Search Results' },
+      props: route => ({
+        initialQuery: route.query.q || '',
+        initialType: route.query.type || 'all',
+        initialSort: route.query.sort || 'relevance'
+      })
+    },
 
     // 404 Not Found
     {
