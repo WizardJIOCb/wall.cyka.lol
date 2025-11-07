@@ -5,6 +5,8 @@
  * Handles wall data operations
  */
 
+namespace App\Models;
+
 class Wall
 {
     /**
