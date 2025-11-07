@@ -196,8 +196,8 @@ const handleHeaderSearch = () => {
 
 .search-icon {
   position: absolute;
-  left: var(--spacing-3);
-  top: 50%;
+  left: 13px;
+  top: 36%;
   transform: translateY(-50%);
   font-size: 1.1rem;
   color: var(--text-primary);
