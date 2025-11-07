@@ -5,6 +5,16 @@
  * Handles post operations
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Models\Post;
+use App\Models\Wall;
+use App\Models\MediaAttachment;
+use App\Models\Location;
+use App\Utils\Validator;
+use Exception;
+
 class PostController
 {
     /**
