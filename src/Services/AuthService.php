@@ -38,6 +38,7 @@ class AuthService
             'email' => Validator::sanitizeEmail($data['email']),
             'password_hash' => User::hashPassword($data['password']),
             'display_name' => Validator::sanitize($data['display_name'] ?? $data['username']),
+            'name' => Validator::sanitize($data['name'] ?? $data['display_name'] ?? $data['username']),
             'email_verified' => 0
         ];
 

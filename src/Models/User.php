@@ -56,15 +56,16 @@ class User
         $config = require __DIR__ . '/../../config/config.php';
         
         $sql = "INSERT INTO users (
-            username, email, password_hash, display_name, 
+            username, email, password_hash, display_name, name,
             bricks_balance, theme_preference, email_verified, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $params = [
             $data['username'],
             $data['email'],
             $data['password_hash'],
             $data['display_name'] ?? $data['username'],
+            $data['name'] ?? $data['display_name'] ?? $data['username'],
             $config['bricks']['starting_balance'],
             $data['theme_preference'] ?? 'light',
             isset($data['email_verified']) ? (int)$data['email_verified'] : 0
