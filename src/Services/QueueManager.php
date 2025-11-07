@@ -5,6 +5,10 @@
  * Handles Redis-based job queue for AI generation
  */
 
+namespace App\Services;
+
+use App\Utils\RedisConnection;
+
 class QueueManager
 {
     private static $redis = null;
