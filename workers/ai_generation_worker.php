@@ -317,7 +317,7 @@ function processJob($jobId, $config, $connections) {
                     
                     // Update job progress in database
                     try {
-                        Database::query(
+                        \App\Utils\Database::query(
                             "UPDATE ai_generation_jobs SET 
                                 current_tokens = ?,
                                 tokens_per_second = ?,
@@ -333,7 +333,7 @@ function processJob($jobId, $config, $connections) {
                         );
                         
                         // CRITICAL: Also update ai_applications with partial content for real-time streaming
-                        Database::query(
+                        \App\Utils\Database::query(
                             "UPDATE ai_applications SET 
                                 html_content = ?,
                                 updated_at = NOW()
