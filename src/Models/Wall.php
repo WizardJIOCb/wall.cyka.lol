@@ -154,7 +154,7 @@ class Wall
     public static function getWallWithOwner($wallId)
     {
         $sql = "SELECT w.*, 
-                u.username, u.display_name as owner_name, u.avatar_url as owner_avatar,
+                u.username, u.display_name as owner_name, u.avatar_url as owner_avatar, u.bio as owner_bio,
                 (SELECT COUNT(*) FROM posts p WHERE p.wall_id = w.wall_id AND p.is_deleted = FALSE) as posts_count,
                 (SELECT COUNT(*) FROM subscriptions s WHERE s.wall_id = w.wall_id) as subscribers_count
                 FROM walls w

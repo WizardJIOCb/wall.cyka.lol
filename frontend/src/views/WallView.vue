@@ -912,6 +912,19 @@ const getAverageSpeed = (post: any) => {
   return 0
 }
 
+// Function to render bio with markdown formatting and auto-linked URLs
+const renderBio = (bio: string) => {
+  if (!bio) return ''
+  
+  // Auto-link URLs in the bio text
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const linkedBio = bio.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
+  
+  // Parse markdown to HTML
+  const html = marked.parse(linkedBio, { async: false })
+  return html
+}
+
 const openAIModal = async (post: any) => {
   try {
     // For generating posts, use data from the post itself
@@ -1183,6 +1196,31 @@ onUnmounted(() => {
 .wall-description {
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-4);
+  line-height: 1.6;
+}
+
+.wall-description :deep(a) {
+  color: var(--color-primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.wall-description :deep(a:hover) {
+  border-bottom-color: var(--color-primary);
+}
+
+.wall-description :deep(p) {
+  margin: 0.25rem 0;
+}
+
+.wall-description :deep(strong) {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.wall-description :deep(em) {
+  font-style: italic;
 }
 
 .wall-stats {
