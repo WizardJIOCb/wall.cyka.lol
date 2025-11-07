@@ -390,10 +390,7 @@ const handleAvatarSelect = async (event: Event) => {
   }
 }
 
-const uploadAvatar = () => {
-  // TODO: Implement avatar upload
-  console.log('Avatar upload coming soon')
-}
+// Avatar upload is handled by triggerAvatarUpload + handleAvatarSelect
 
 const confirmDeleteAccount = () => {
   if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
