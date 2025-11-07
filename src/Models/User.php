@@ -90,13 +90,14 @@ class User
     private static function createDefaultWall($userId, $username)
     {
         $sql = "INSERT INTO walls (
-            user_id, wall_slug, display_name, description, 
+            user_id, name, wall_slug, display_name, description, 
             privacy_level, allow_comments, allow_reactions, allow_reposts, 
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $params = [
             $userId,
+            $username . "'s Wall", // name field
             $username,
             $username . "'s Wall",
             'Welcome to my wall!',

@@ -62,14 +62,15 @@ class Wall
     public static function create($data)
     {
         $sql = "INSERT INTO walls (
-            user_id, wall_slug, display_name, description, 
+            user_id, name, wall_slug, display_name, description, 
             cover_image_url, theme_settings, privacy_level, 
             allow_comments, allow_reactions, allow_reposts, 
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $params = [
             $data['user_id'],
+            $data['name'] ?? $data['display_name'] ?? $data['wall_slug'],
             $data['wall_slug'],
             $data['display_name'],
             $data['description'] ?? '',
