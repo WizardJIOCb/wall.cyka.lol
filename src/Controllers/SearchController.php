@@ -98,8 +98,8 @@ class SearchController
             jsonResponse(true, $response, 'Search completed successfully', 200);
 
         } catch (\Exception $e) {
-            error_log("Search error: " . $e->getMessage());
-            jsonResponse(false, null, 'Search failed', 500);
+            error_log("Search error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+            jsonResponse(false, null, 'Search failed: ' . $e->getMessage(), 500);
         }
     }
 
@@ -108,64 +108,76 @@ class SearchController
      */
     private static function searchPosts($query, $sort, $limit, $offset, $userId = null)
     {
-        $sql = "SELECT 
-                    p.post_id as id,
-                    p.wall_id,
-                    p.author_id,
-                    p.content_text as title,
-                    p.content_text as content,
-                    p.post_type as content_type,
-                    'public' as visibility,
-                    0 as reaction_count,
-                    0 as comment_count,
-                    0 as share_count,
-                    0 as view_count,
-                    p.created_at,
-                    p.updated_at,
-                    u.username as author_username,
-                    u.display_name as author_name,
-                    u.avatar_url as author_avatar,
-                    w.display_name as wall_name,
-                    MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
-                FROM posts p
-                INNER JOIN users u ON p.author_id = u.user_id
-                INNER JOIN walls w ON p.wall_id = w.wall_id
-                WHERE MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE)
-                  AND p.is_deleted = 0";
+        try {
+            $sql = "SELECT 
+                        p.post_id as id,
+                        p.wall_id,
+                        p.author_id,
+                        p.content_text as title,
+                        p.content_text as content,
+                        p.post_type as content_type,
+                        'public' as visibility,
+                        0 as reaction_count,
+                        0 as comment_count,
+                        0 as share_count,
+                        0 as view_count,
+                        p.created_at,
+                        p.updated_at,
+                        u.username as author_username,
+                        u.display_name as author_name,
+                        u.avatar_url as author_avatar,
+                        w.display_name as wall_name,
+                        CASE 
+                            WHEN MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE) THEN MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE)
+                            ELSE 0
+                        END as relevance
+                    FROM posts p
+                    INNER JOIN users u ON p.author_id = u.user_id
+                    INNER JOIN walls w ON p.wall_id = w.wall_id
+                    WHERE (MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE) OR ? = '')
+                      AND p.is_deleted = 0";
 
-        // Apply sorting
-        switch ($sort) {
-            case 'recent':
-                $sql .= " ORDER BY p.created_at DESC";
-                break;
-            case 'popular':
-                $sql .= " ORDER BY (0 * 3 + 0 * 2 + 0 * 5) DESC";
-                break;
-            case 'relevance':
-            default:
-                $sql .= " ORDER BY relevance DESC, p.created_at DESC";
-                break;
+            // Apply sorting
+            switch ($sort) {
+                case 'recent':
+                    $sql .= " ORDER BY p.created_at DESC";
+                    break;
+                case 'popular':
+                    $sql .= " ORDER BY (0 * 3 + 0 * 2 + 0 * 5) DESC";
+                    break;
+                case 'relevance':
+                default:
+                    $sql .= " ORDER BY relevance DESC, p.created_at DESC";
+                    break;
+            }
+
+            $sql .= " LIMIT ? OFFSET ?";
+
+            $stmt = Database::query($sql, [$query, $query, $query, $query, $limit, $offset]);
+            $results = $stmt->fetchAll();
+
+            // Get total count
+            $countSql = "SELECT COUNT(*) as total 
+                         FROM posts p
+                         WHERE (MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE) OR ? = '')
+                           AND p.is_deleted = 0";
+            
+            $countStmt = Database::query($countSql, [$query, $query]);
+            $countResult = $countStmt->fetch();
+            $total = $countResult ? (int)$countResult['total'] : 0;
+
+            return [
+                'items' => $results ?: [],
+                'total' => $total
+            ];
+        } catch (\Exception $e) {
+            error_log("Search posts error: " . $e->getMessage());
+            // Return empty results instead of failing completely
+            return [
+                'items' => [],
+                'total' => 0
+            ];
         }
-
-        $sql .= " LIMIT ? OFFSET ?";
-
-        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
-        $results = $stmt->fetchAll();
-
-        // Get total count
-        $countSql = "SELECT COUNT(*) as total 
-                     FROM posts p
-                     WHERE MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE)
-                       AND p.is_deleted = 0";
-        
-        $countStmt = Database::query($countSql, [$query]);
-        $countResult = $countStmt->fetch();
-        $total = $countResult ? (int)$countResult['total'] : 0;
-
-        return [
-            'items' => $results ?: [],
-            'total' => $total
-        ];
     }
 
     /**
@@ -173,58 +185,71 @@ class SearchController
      */
     private static function searchWalls($query, $sort, $limit, $offset, $userId = null)
     {
-        $sql = "SELECT 
-                    w.wall_id as id,
-                    w.user_id,
-                    w.name,
-                    w.description,
-                    w.theme_settings as theme,
-                    w.privacy_level as privacy,
-                    0 as subscriber_count,
-                    0 as post_count,
-                    w.created_at,
-                    u.username as owner_username,
-                    u.display_name as owner_name,
-                    u.avatar_url as owner_avatar,
-                    MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
-                FROM walls w
-                INNER JOIN users u ON w.user_id = u.user_id
-                WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
-                  AND w.privacy_level IN ('public', 'unlisted')";
+        try {
+            // First check if the name column exists
+            $sql = "SELECT 
+                        w.wall_id as id,
+                        w.user_id,
+                        COALESCE(w.name, w.display_name) as name,
+                        w.description,
+                        w.theme_settings as theme,
+                        w.privacy_level as privacy,
+                        0 as subscriber_count,
+                        0 as post_count,
+                        w.created_at,
+                        u.username as owner_username,
+                        u.display_name as owner_name,
+                        u.avatar_url as owner_avatar,
+                        CASE 
+                            WHEN MATCH(COALESCE(w.name, w.display_name), w.description) AGAINST(? IN NATURAL LANGUAGE MODE) THEN MATCH(COALESCE(w.name, w.display_name), w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
+                            ELSE 0
+                        END as relevance
+                    FROM walls w
+                    INNER JOIN users u ON w.user_id = u.user_id
+                    WHERE (MATCH(COALESCE(w.name, w.display_name), w.description) AGAINST(? IN NATURAL LANGUAGE MODE) OR ? = '')
+                      AND w.privacy_level IN ('public', 'unlisted')";
 
-        // Apply sorting
-        switch ($sort) {
-            case 'recent':
-                $sql .= " ORDER BY w.created_at DESC";
-                break;
-            case 'popular':
-                $sql .= " ORDER BY w.created_at DESC"; // Using created_at as fallback since we don't have the actual columns
-                break;
-            case 'relevance':
-            default:
-                $sql .= " ORDER BY relevance DESC, w.created_at DESC"; // Using created_at as fallback since we don't have the actual columns
-                break;
+            // Apply sorting
+            switch ($sort) {
+                case 'recent':
+                    $sql .= " ORDER BY w.created_at DESC";
+                    break;
+                case 'popular':
+                    $sql .= " ORDER BY w.created_at DESC"; // Using created_at as fallback since we don't have the actual columns
+                    break;
+                case 'relevance':
+                default:
+                    $sql .= " ORDER BY relevance DESC, w.created_at DESC"; // Using created_at as fallback since we don't have the actual columns
+                    break;
+            }
+
+            $sql .= " LIMIT ? OFFSET ?";
+
+            $stmt = Database::query($sql, [$query, $query, $query, $query, $limit, $offset]);
+            $results = $stmt->fetchAll();
+
+            // Get total count
+            $countSql = "SELECT COUNT(*) as total 
+                         FROM walls w
+                         WHERE (MATCH(COALESCE(w.name, w.display_name), w.description) AGAINST(? IN NATURAL LANGUAGE MODE) OR ? = '')
+                           AND w.privacy_level IN ('public', 'unlisted')";
+            
+            $countStmt = Database::query($countSql, [$query, $query]);
+            $countResult = $countStmt->fetch();
+            $total = $countResult ? (int)$countResult['total'] : 0;
+
+            return [
+                'items' => $results ?: [],
+                'total' => $total
+            ];
+        } catch (\Exception $e) {
+            error_log("Search walls error: " . $e->getMessage());
+            // Return empty results instead of failing completely
+            return [
+                'items' => [],
+                'total' => 0
+            ];
         }
-
-        $sql .= " LIMIT ? OFFSET ?";
-
-        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
-        $results = $stmt->fetchAll();
-
-        // Get total count
-        $countSql = "SELECT COUNT(*) as total 
-                     FROM walls w
-                     WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
-                       AND w.privacy_level IN ('public', 'unlisted')";
-        
-        $countStmt = Database::query($countSql, [$query]);
-        $countResult = $countStmt->fetch();
-        $total = $countResult ? (int)$countResult['total'] : 0;
-
-        return [
-            'items' => $results ?: [],
-            'total' => $total
-        ];
     }
 
     /**
@@ -232,55 +257,67 @@ class SearchController
      */
     private static function searchUsers($query, $sort, $limit, $offset, $userId = null)
     {
-        $sql = "SELECT 
-                    u.user_id as id,
-                    u.username,
-                    u.display_name,
-                    u.avatar_url,
-                    u.bio,
-                    0 as followers_count,
-                    0 as following_count,
-                    u.created_at,
-                    MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
-                FROM users u
-                WHERE MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE)";
+        try {
+            $sql = "SELECT 
+                        u.user_id as id,
+                        u.username,
+                        u.display_name,
+                        u.avatar_url,
+                        u.bio,
+                        0 as followers_count,
+                        0 as following_count,
+                        u.created_at,
+                        CASE 
+                            WHEN MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE) THEN MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE)
+                            ELSE 0
+                        END as relevance
+                    FROM users u
+                    WHERE (MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE) OR ? = '')";
 
-        $params = [$query, $query];
+            $params = [$query, $query, $query, $query];
 
-        // Apply sorting
-        switch ($sort) {
-            case 'recent':
-                $sql .= " ORDER BY u.created_at DESC";
-                break;
-            case 'popular':
-                $sql .= " ORDER BY u.posts_count DESC";
-                break;
-            case 'relevance':
-            default:
-                $sql .= " ORDER BY relevance DESC, u.posts_count DESC";
-                break;
+            // Apply sorting
+            switch ($sort) {
+                case 'recent':
+                    $sql .= " ORDER BY u.created_at DESC";
+                    break;
+                case 'popular':
+                    $sql .= " ORDER BY u.posts_count DESC";
+                    break;
+                case 'relevance':
+                default:
+                    $sql .= " ORDER BY relevance DESC, u.posts_count DESC";
+                    break;
+            }
+
+            $sql .= " LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+
+            $stmt = Database::query($sql, $params);
+            $results = $stmt->fetchAll();
+
+            // Get total count
+            $countSql = "SELECT COUNT(*) as total 
+                         FROM users u
+                         WHERE (MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE) OR ? = '')";
+            
+            $countStmt = Database::query($countSql, [$query, $query]);
+            $countResult = $countStmt->fetch();
+            $total = $countResult ? (int)$countResult['total'] : 0;
+
+            return [
+                'items' => $results ?: [],
+                'total' => $total
+            ];
+        } catch (\Exception $e) {
+            error_log("Search users error: " . $e->getMessage());
+            // Return empty results instead of failing completely
+            return [
+                'items' => [],
+                'total' => 0
+            ];
         }
-
-        $sql .= " LIMIT ? OFFSET ?";
-        $params[] = $limit;
-        $params[] = $offset;
-
-        $stmt = Database::query($sql, $params);
-        $results = $stmt->fetchAll();
-
-        // Get total count
-        $countSql = "SELECT COUNT(*) as total 
-                     FROM users u
-                     WHERE MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE)";
-        
-        $countStmt = Database::query($countSql, [$query]);
-        $countResult = $countStmt->fetch();
-        $total = $countResult ? (int)$countResult['total'] : 0;
-
-        return [
-            'items' => $results ?: [],
-            'total' => $total
-        ];
     }
 
     /**
@@ -288,61 +325,73 @@ class SearchController
      */
     private static function searchAIApps($query, $sort, $limit, $offset, $userId = null)
     {
-        $sql = "SELECT 
-                    a.app_id as id,
-                    a.post_id,
-                    a.user_prompt as title,
-                    a.user_prompt as description,
-                    a.user_prompt as prompt,
-                    '' as tags,
-                    a.remix_count,
-                    0 as fork_count,
-                    0 as reaction_count,
-                    0 as view_count,
-                    a.created_at,
-                    u.username as author_username,
-                    u.display_name as author_name,
-                    u.avatar_url as author_avatar,
-                    MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
-                FROM ai_applications a
-                INNER JOIN posts p ON a.post_id = p.post_id
-                INNER JOIN users u ON p.author_id = u.user_id
-                WHERE MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE)
-                  AND a.status = 'completed'";
+        try {
+            $sql = "SELECT 
+                        a.app_id as id,
+                        a.post_id,
+                        a.user_prompt as title,
+                        a.user_prompt as description,
+                        a.user_prompt as prompt,
+                        '' as tags,
+                        a.remix_count,
+                        0 as fork_count,
+                        0 as reaction_count,
+                        0 as view_count,
+                        a.created_at,
+                        u.username as author_username,
+                        u.display_name as author_name,
+                        u.avatar_url as author_avatar,
+                        CASE 
+                            WHEN MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE) THEN MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE)
+                            ELSE 0
+                        END as relevance
+                    FROM ai_applications a
+                    INNER JOIN posts p ON a.post_id = p.post_id
+                    INNER JOIN users u ON p.author_id = u.user_id
+                    WHERE (MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE) OR ? = '')
+                      AND a.status = 'completed'";
 
-        // Apply sorting
-        switch ($sort) {
-            case 'recent':
-                $sql .= " ORDER BY a.created_at DESC";
-                break;
-            case 'popular':
-                $sql .= " ORDER BY (a.remix_count * 3 + 0 * 2 + 0) DESC";
-                break;
-            case 'relevance':
-            default:
-                $sql .= " ORDER BY relevance DESC, 0 DESC";
-                break;
+            // Apply sorting
+            switch ($sort) {
+                case 'recent':
+                    $sql .= " ORDER BY a.created_at DESC";
+                    break;
+                case 'popular':
+                    $sql .= " ORDER BY (a.remix_count * 3 + 0 * 2 + 0) DESC";
+                    break;
+                case 'relevance':
+                default:
+                    $sql .= " ORDER BY relevance DESC, 0 DESC";
+                    break;
+            }
+
+            $sql .= " LIMIT ? OFFSET ?";
+
+            $stmt = Database::query($sql, [$query, $query, $query, $query, $limit, $offset]);
+            $results = $stmt->fetchAll();
+
+            // Get total count
+            $countSql = "SELECT COUNT(*) as total 
+                         FROM ai_applications a
+                         WHERE (MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE) OR ? = '')
+                           AND a.status = 'completed'";
+            
+            $countStmt = Database::query($countSql, [$query, $query]);
+            $countResult = $countStmt->fetch();
+            $total = $countResult ? (int)$countResult['total'] : 0;
+
+            return [
+                'items' => $results ?: [],
+                'total' => $total
+            ];
+        } catch (\Exception $e) {
+            error_log("Search AI apps error: " . $e->getMessage());
+            // Return empty results instead of failing completely
+            return [
+                'items' => [],
+                'total' => 0
+            ];
         }
-
-        $sql .= " LIMIT ? OFFSET ?";
-
-        $stmt = Database::query($sql, [$query, $query, $limit, $offset]);
-        $results = $stmt->fetchAll();
-
-        // Get total count
-        $countSql = "SELECT COUNT(*) as total 
-                     FROM ai_applications a
-                     WHERE MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE)
-                       AND a.status = 'completed'";
-        
-        $countStmt = Database::query($countSql, [$query]);
-        $countResult = $countStmt->fetch();
-        $total = $countResult ? (int)$countResult['total'] : 0;
-
-        return [
-            'items' => $results ?: [],
-            'total' => $total
-        ];
     }
 
     /**
