@@ -176,20 +176,20 @@ class SearchController
         $sql = "SELECT 
                     w.wall_id as id,
                     w.user_id,
-                    w.display_name as name,
+                    w.name,
                     w.description,
                     w.theme_settings as theme,
                     w.privacy_level as privacy,
-                    0 as subscriber_count,  // Fix column name - using 0 as placeholder since the column doesn't exist
-                    0 as post_count,        // Fix column name - using 0 as placeholder since the column doesn't exist
+                    0 as subscriber_count,
+                    0 as post_count,
                     w.created_at,
                     u.username as owner_username,
                     u.display_name as owner_name,
                     u.avatar_url as owner_avatar,
-                    MATCH(w.display_name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
+                    MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM walls w
                 INNER JOIN users u ON w.user_id = u.user_id
-                WHERE MATCH(w.display_name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
+                WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
                   AND w.privacy_level IN ('public', 'unlisted')";
 
         // Apply sorting
@@ -198,11 +198,11 @@ class SearchController
                 $sql .= " ORDER BY w.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY 0 DESC, 0 DESC";  // Using 0 as placeholders since the columns don't exist
+                $sql .= " ORDER BY w.created_at DESC"; // Using created_at as fallback since we don't have the actual columns
                 break;
             case 'relevance':
             default:
-                $sql .= " ORDER BY relevance DESC, 0 DESC";  // Using 0 as placeholder since the column doesn't exist
+                $sql .= " ORDER BY relevance DESC, w.created_at DESC"; // Using created_at as fallback since we don't have the actual columns
                 break;
         }
 
@@ -214,7 +214,7 @@ class SearchController
         // Get total count
         $countSql = "SELECT COUNT(*) as total 
                      FROM walls w
-                     WHERE MATCH(w.display_name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
+                     WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
                        AND w.privacy_level IN ('public', 'unlisted')";
         
         $countStmt = Database::query($countSql, [$query]);
@@ -238,8 +238,8 @@ class SearchController
                     u.display_name,
                     u.avatar_url,
                     u.bio,
-                    u.followers_count,
-                    u.following_count,
+                    0 as followers_count,
+                    0 as following_count,
                     u.created_at,
                     MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM users u
@@ -247,23 +247,17 @@ class SearchController
 
         $params = [$query, $query];
 
-        // Boost results from followed users
-        if ($userId) {
-            $sql .= " OR u.user_id IN (SELECT following_id FROM user_follows WHERE follower_id = ?)";
-            $params[] = $userId;
-        }
-
         // Apply sorting
         switch ($sort) {
             case 'recent':
                 $sql .= " ORDER BY u.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY u.followers_count DESC";
+                $sql .= " ORDER BY u.posts_count DESC";
                 break;
             case 'relevance':
             default:
-                $sql .= " ORDER BY relevance DESC, u.followers_count DESC";
+                $sql .= " ORDER BY relevance DESC, u.posts_count DESC";
                 break;
         }
 
@@ -296,20 +290,21 @@ class SearchController
     {
         $sql = "SELECT 
                     a.app_id as id,
-                    a.user_id,
+                    a.post_id,
                     a.title,
                     a.description,
                     a.tags,
                     a.remix_count,
                     a.view_count,
-                    0 as reaction_count,  // Using 0 as placeholder since the column doesn't exist
+                    0 as reaction_count,
                     a.created_at,
                     u.username as author_username,
                     u.display_name as author_name,
                     u.avatar_url as author_avatar,
                     MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM ai_applications a
-                INNER JOIN users u ON a.user_id = u.user_id
+                INNER JOIN posts p ON a.post_id = p.post_id
+                INNER JOIN users u ON p.author_id = u.user_id
                 WHERE MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE)
                   AND a.status = 'completed'";
 
@@ -319,7 +314,7 @@ class SearchController
                 $sql .= " ORDER BY a.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY (a.remix_count * 3 + a.view_count * 2 + 0) DESC";  // Using 0 as placeholder
+                $sql .= " ORDER BY (a.remix_count * 3 + a.view_count * 2 + 0) DESC";
                 break;
             case 'relevance':
             default:
