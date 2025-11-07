@@ -5,6 +5,11 @@
  * Handles content discovery: trending walls, popular posts, suggested users, search
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Utils\Database;
+
 class DiscoverController
 {
     /**
