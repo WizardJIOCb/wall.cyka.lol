@@ -5,6 +5,17 @@
  * Handles AI generation requests and management
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Models\Wall;
+use App\Models\Post;
+use App\Models\AIApplication;
+use App\Utils\Database;
+use App\Utils\RedisConnection;
+use App\Services\QueueManager;
+use Exception;
+
 class AIController
 {
     /**

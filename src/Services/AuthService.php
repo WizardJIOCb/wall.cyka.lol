@@ -9,6 +9,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Utils\Validator;
+use Exception;
 
 class AuthService
 {
