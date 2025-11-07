@@ -1,4 +1,4 @@
-﻿-- Wall Social Platform Database Schema
+-- Wall Social Platform Database Schema
 -- MySQL 8.0+ Required
 -- Complete schema with 28 tables
 
@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NULL,
   display_name VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL DEFAULT '',
   avatar_url VARCHAR(500) NULL,
   bio VARCHAR(500) NULL,
   extended_bio TEXT NULL,
@@ -32,7 +33,8 @@ CREATE TABLE IF NOT EXISTS users (
   is_active BOOLEAN DEFAULT TRUE,
   email_verified BOOLEAN DEFAULT FALSE,
   INDEX idx_username (username),
-  INDEX idx_email (email)
+  INDEX idx_email (email),
+  INDEX idx_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- OAuth Connections Table
