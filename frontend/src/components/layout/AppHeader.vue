@@ -30,7 +30,7 @@
       </div>
 
       <div class="header-right">
-        <AppButton variant="primary" size="sm" class="create-btn">
+        <AppButton variant="primary" size="sm" class="create-btn" @click="handleCreate">
           <span class="icon">+</span>
           <span class="text">Create</span>
         </AppButton>
@@ -92,6 +92,10 @@ const goToNotifications = () => {
 
 const toggleSidebar = () => {
   uiStore.toggleSidebar()
+}
+
+const handleCreate = () => {
+  router.push('/ai')
 }
 
 const handleLogout = async () => {
@@ -157,7 +161,7 @@ const handleLogout = async () => {
 
 .search-input {
   width: 100%;
-  padding: var(--spacing-2) var(--spacing-10) var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-2) 48px var(--spacing-2) var(--spacing-3);
   background: var(--background);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
@@ -179,7 +183,14 @@ const handleLogout = async () => {
   border: none;
   cursor: pointer;
   padding: var(--spacing-2);
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  opacity: 0.7;
+  border-radius: var(--radius-md);
+  transition: opacity 0.2s ease;
+}
+
+.search-btn:hover {
+  opacity: 1;
 }
 
 .btn-icon {

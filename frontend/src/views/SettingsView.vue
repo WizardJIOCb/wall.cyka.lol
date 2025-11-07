@@ -93,8 +93,17 @@
           <div class="form-section">
             <label class="form-label">Avatar</label>
             <div class="avatar-upload">
-              <img :src="avatarPreview" alt="Avatar" class="avatar-preview" />
-              <button @click="uploadAvatar" class="btn-secondary">{{ $t('common.actions.upload') }}</button>
+              <img :src="localAvatarPreview" alt="Avatar" class="avatar-preview" />
+              <input 
+                ref="avatarFileInput" 
+                type="file" 
+                accept="image/jpeg,image/png,image/webp" 
+                @change="handleAvatarSelect" 
+                style="display: none;"
+              />
+              <button @click="triggerAvatarUpload" class="btn-secondary" :disabled="uploadingAvatar">
+                {{ uploadingAvatar ? 'Uploading...' : $t('common.actions.upload') }}
+              </button>
             </div>
           </div>
         </div>
@@ -272,6 +281,9 @@ const passwordData = ref({
 
 const selectedTheme = ref(themeStore.currentTheme || 'light')
 const avatarPreview = computed(() => authStore.user?.avatar_url || '/assets/images/default-avatar.svg')
+const localAvatarPreview = ref(avatarPreview.value)
+const uploadingAvatar = ref(false)
+const avatarFileInput = ref<HTMLInputElement | null>(null)
 
 const bricksBalance = ref(authStore.user?.bricks_balance || 0)
 const canClaimDaily = ref(true)
@@ -318,6 +330,69 @@ const changePassword = async () => {
     alert('Password changed successfully')
   } catch (error: any) {
     alert(error.response?.data?.message || 'Failed to change password')
+  }
+}
+
+const triggerAvatarUpload = () => {
+  avatarFileInput.value?.click()
+}
+
+const handleAvatarSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  
+  if (!file) return
+  
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    alert('Please select a valid image file (JPEG, PNG, or WebP)')
+    return
+  }
+  
+  // Validate file size (5MB)
+  const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+  if (file.size > maxSize) {
+    alert('Image must be smaller than 5MB')
+    return
+  }
+  
+  try {
+    uploadingAvatar.value = true
+    
+    // Update preview immediately with local URL
+    localAvatarPreview.value = URL.createObjectURL(file)
+    
+    // Create form data
+    const formData = new FormData()
+    formData.append('avatar', file)
+    
+    // Upload to server
+    const response = await fetch(import.meta.env.VITE_API_URL + '/upload/avatar', {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    })
+    
+    const result = await response.json()
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Upload failed')
+    }
+    
+    // Update auth store with new avatar URL
+    authStore.updateUser({ avatar_url: result.data.avatar_url })
+    localAvatarPreview.value = result.data.avatar_url
+    
+    alert('Avatar uploaded successfully!')
+  } catch (error: any) {
+    // Revert preview on error
+    localAvatarPreview.value = avatarPreview.value
+    alert(error.message || 'Failed to upload avatar. Please try again.')
+  } finally {
+    uploadingAvatar.value = false
+    // Reset file input
+    if (target) target.value = ''
   }
 }
 
@@ -425,7 +500,7 @@ onMounted(async () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing-6);
-  padding-bottom: 120px; /* Safe zone for sticky footer */
+  padding-bottom: 160px; /* Safe zone for sticky footer */
 }
 
 .settings-header {
@@ -776,7 +851,7 @@ onMounted(async () => {
 
 @media (max-width: 768px) {
   .settings-view {
-    padding-bottom: 140px; /* Larger safe zone for mobile */
+    padding-bottom: 180px; /* Larger safe zone for mobile */
   }
   
   .settings-container {

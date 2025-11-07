@@ -778,6 +778,13 @@ route('DELETE', 'api/v1/users/me/account', function() {
     SettingsController::deleteAccount();
 });
 
+// ==================== UPLOAD ROUTES ====================
+
+// Upload avatar
+route('POST', 'api/v1/upload/avatar', function() {
+    UploadController::uploadAvatar();
+});
+
 // ==================== MESSAGING ROUTES ====================
 
 // Get conversations
