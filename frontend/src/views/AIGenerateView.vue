@@ -107,8 +107,10 @@
           <select v-model="selectedModel" class="form-select" @change="calculateCost">
             <option value="gpt-oss:20b">gpt-oss:20b</option>
             <option value="deepseek-coder:6.7b">DeepSeek Coder (Recommended)</option>
+            <!--
             <option value="llama-coder">Llama Coder</option>
             <option value="codellama">CodeLlama</option>
+            -->
           </select>
         </div>
 
