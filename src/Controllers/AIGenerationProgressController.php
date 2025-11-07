@@ -4,6 +4,10 @@
  * Provides real-time progress updates for AI generation jobs via Server-Sent Events (SSE)
  */
 
+namespace App\Controllers;
+
+use App\Utils\Database;
+
 class AIGenerationProgressController {
     
     /**
