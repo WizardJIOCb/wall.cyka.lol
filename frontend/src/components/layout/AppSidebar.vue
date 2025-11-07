@@ -83,7 +83,8 @@ const isActive = (path: string) => {
 
 .nav-item.active {
   background: var(--primary-light);
-  color: var(--primary);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .nav-icon {

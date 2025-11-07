@@ -22,7 +22,7 @@
           <div class="wall-details">
             <h1 class="wall-title">{{ wall.display_name }}</h1>
             <p v-if="wall.owner_username" class="wall-owner">by @{{ wall.owner_username }}</p>
-            <p v-if="wall.description" class="wall-description">{{ wall.description }}</p>
+            <p v-if="wall.owner_bio" class="wall-description">{{ wall.owner_bio }}</p>
           </div>
           <div class="wall-stats">
             <div class="stat">

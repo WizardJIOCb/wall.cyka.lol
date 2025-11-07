@@ -192,6 +192,7 @@ class Wall
             'owner_username' => $wall['username'] ?? null,
             'owner_name' => $wall['owner_name'] ?? null,
             'owner_avatar' => $wall['owner_avatar'] ?? null,
+            'owner_bio' => $wall['owner_bio'] ?? null,
         ];
     }
 

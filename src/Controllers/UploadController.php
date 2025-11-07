@@ -5,6 +5,8 @@
  * Handles file upload operations
  */
 
+namespace App\Controllers;
+
 class UploadController
 {
     private const MAX_AVATAR_SIZE = 5242880; // 5MB
