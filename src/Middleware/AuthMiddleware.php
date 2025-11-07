@@ -5,6 +5,10 @@
  * Validates user authentication for protected routes
  */
 
+namespace App\Middleware;
+
+use App\Services\AuthService;
+
 class AuthMiddleware
 {
     /**

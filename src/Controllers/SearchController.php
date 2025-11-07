@@ -36,7 +36,9 @@ class SearchController
             jsonResponse(false, null, 'Search query too long (max 200 characters)', 400);
         }
 
-        $currentUserId = AuthMiddleware::getUserIdOptional();
+        // Optional authentication - get user ID if logged in
+        AuthMiddleware::optionalAuth();
+        $currentUserId = AuthMiddleware::getCurrentUserId();
 
         // Try cache first
         $cacheKey = self::getCacheKey($query, $type, $sort, $page, $limit);

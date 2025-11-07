@@ -5,6 +5,8 @@
  * Validates and sanitizes user input
  */
 
+namespace App\Utils;
+
 class Validator
 {
     private $data;

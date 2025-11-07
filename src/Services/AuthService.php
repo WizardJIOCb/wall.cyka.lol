@@ -5,6 +5,11 @@
  * Handles user authentication logic
  */
 
+namespace App\Services;
+
+use App\Models\User;
+use App\Utils\Validator;
+
 class AuthService
 {
     /**

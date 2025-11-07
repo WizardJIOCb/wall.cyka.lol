@@ -5,6 +5,8 @@
  * Manages user sessions using Redis
  */
 
+namespace App\Services;
+
 class SessionManager
 {
     private static $redis = null;
