@@ -379,7 +379,9 @@ class SearchController
      */
     public static function getTrendingSearches()
     {
-        $limit = isset($_GET['limit']) ? min(20, max(1, (int)$_GET['limit'])) : 10;
+        // Handle both direct params and nested params
+        $params = $_GET['params'] ?? $_GET;
+        $limit = isset($params['limit']) ? min(20, max(1, (int)$params['limit'])) : 10;
         
         // Try cache first
         $cached = Cache::get('search:trending');
