@@ -5,7 +5,7 @@
 -- 1. Add missing columns to posts table
 -- ============================================================================
 
--- Add title column to posts table
+-- Add title column to posts table (if not exists)
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS title VARCHAR(255) NULL AFTER post_id;
 
 -- Add visibility column to posts table (if not exists)
@@ -27,8 +27,7 @@ ALTER TABLE posts ADD COLUMN IF NOT EXISTS view_count INT DEFAULT 0 NOT NULL AFT
 -- 2. Add missing columns to walls table
 -- ============================================================================
 
--- Fix column name from wall_slug to name (if needed)
--- Note: This is a complex change, so we'll just ensure the correct columns exist
+-- Add name column to walls table (if not exists)
 ALTER TABLE walls ADD COLUMN IF NOT EXISTS name VARCHAR(100) NULL AFTER user_id;
 
 -- Add subscribers_count column to walls table (if not exists)
@@ -44,20 +43,23 @@ ALTER TABLE walls MODIFY COLUMN name VARCHAR(100) NOT NULL;
 -- 3. Add missing columns to ai_applications table
 -- ============================================================================
 
--- Add title column to ai_applications table
+-- Add title column to ai_applications table (if not exists)
 ALTER TABLE ai_applications ADD COLUMN IF NOT EXISTS title VARCHAR(255) NULL AFTER user_id;
 
--- Add description column to ai_applications table
+-- Add description column to ai_applications table (if not exists)
 ALTER TABLE ai_applications ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER title;
 
--- Add tags column to ai_applications table
+-- Add tags column to ai_applications table (if not exists)
 ALTER TABLE ai_applications ADD COLUMN IF NOT EXISTS tags TEXT NULL AFTER description;
 
 -- Add view_count column to ai_applications table (if not exists)
 ALTER TABLE ai_applications ADD COLUMN IF NOT EXISTS view_count INT DEFAULT 0 NOT NULL AFTER fork_count;
 
 -- Update existing ai_applications to set title from user_prompt if title is null
-UPDATE ai_applications SET title = LEFT(user_prompt, 255) WHERE title IS NULL;
+UPDATE ai_applications SET title = LEFT(user_prompt, 255) WHERE title IS NULL AND user_prompt IS NOT NULL;
+
+-- Update existing ai_applications to set description from user_prompt if description is null
+UPDATE ai_applications SET description = LEFT(user_prompt, 500) WHERE description IS NULL AND user_prompt IS NOT NULL;
 
 -- ============================================================================
 -- 4. Add FULLTEXT indexes for search functionality (with idempotency checks)
@@ -114,10 +116,7 @@ DROP PROCEDURE IF EXISTS add_index_if_not_exists;
 -- ============================================================================
 
 -- Set default titles for posts where title is NULL
-UPDATE posts SET title = LEFT(content_text, 100) WHERE title IS NULL AND content_text IS NOT NULL;
-
--- Set default descriptions for ai_applications where description is NULL
-UPDATE ai_applications SET description = LEFT(user_prompt, 500) WHERE description IS NULL AND user_prompt IS NOT NULL;
+UPDATE posts SET title = LEFT(COALESCE(content_text, 'Untitled'), 100) WHERE title IS NULL;
 
 -- ============================================================================
 -- Verification Queries (commented out - these should be run manually if needed)
