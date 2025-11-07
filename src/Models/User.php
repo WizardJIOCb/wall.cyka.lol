@@ -54,17 +54,18 @@ class User
     public static function create($data)
     {
         $config = require __DIR__ . '/../../config/config.php';
-        
+
         $sql = "INSERT INTO users (
-            username, email, password_hash, display_name, 
-            bricks_balance, theme_preference, email_verified, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+            username, email, password_hash, display_name,
+            name, bricks_balance, theme_preference, email_verified, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
         $params = [
             $data['username'],
             $data['email'],
             $data['password_hash'],
             $data['display_name'] ?? $data['username'],
+            $data['name'] ?? $data['username'], // Add name field with fallback to username
             $config['bricks']['starting_balance'],
             $data['theme_preference'] ?? 'light',
             isset($data['email_verified']) ? (int)$data['email_verified'] : 0
@@ -73,10 +74,10 @@ class User
         try {
             Database::query($sql, $params);
             $userId = Database::lastInsertId();
-            
+
             // Create default wall for user
             self::createDefaultWall($userId, $data['username']);
-            
+
             return self::findById($userId);
         } catch (Exception $e) {
             throw new Exception('Failed to create user: ' . $e->getMessage());

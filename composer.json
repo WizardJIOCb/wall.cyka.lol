@@ -23,11 +23,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Wall\\": "src/",
-            "Wall\\Controllers\\": "src/Controllers/",
-            "Wall\\Models\\": "src/Models/",
-            "Wall\\Services\\": "src/Services/",
-            "Wall\\Utils\\": "src/Utils/"
+            "App\\": "src/"
         },
         "classmap": [
             "src/Utils/"
