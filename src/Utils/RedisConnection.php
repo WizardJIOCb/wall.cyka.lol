@@ -5,6 +5,11 @@
  * Handles Redis connections for caching, sessions, and queue
  */
 
+namespace App\Utils;
+
+use Redis;
+use Exception;
+
 class RedisConnection
 {
     private static $connections = [];

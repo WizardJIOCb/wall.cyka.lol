@@ -7,6 +7,9 @@
 
 namespace App\Services;
 
+use App\Utils\RedisConnection;
+use App\Utils\Database;
+
 class SessionManager
 {
     private static $redis = null;
