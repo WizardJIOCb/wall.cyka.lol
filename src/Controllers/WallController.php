@@ -5,6 +5,11 @@
  * Handles wall management operations
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Models\Wall;
+
 class WallController
 {
     /**
