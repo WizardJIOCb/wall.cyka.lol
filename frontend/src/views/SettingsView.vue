@@ -334,14 +334,21 @@ const changePassword = async () => {
 }
 
 const triggerAvatarUpload = () => {
+  console.log('triggerAvatarUpload called - opening file picker')
   avatarFileInput.value?.click()
 }
 
 const handleAvatarSelect = async (event: Event) => {
+  console.log('handleAvatarSelect called')
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   
-  if (!file) return
+  if (!file) {
+    console.log('No file selected')
+    return
+  }
+  
+  console.log('File selected:', file.name, file.type, file.size)
   
   // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
