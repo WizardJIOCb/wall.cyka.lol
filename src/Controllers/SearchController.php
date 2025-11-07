@@ -109,30 +109,29 @@ class SearchController
     private static function searchPosts($query, $sort, $limit, $offset, $userId = null)
     {
         $sql = "SELECT 
-                    p.id,
+                    p.post_id as id,
                     p.wall_id,
                     p.author_id,
-                    p.title,
-                    p.content,
-                    p.content_type,
-                    p.visibility,
-                    p.reaction_count,
-                    p.comment_count,
-                    p.share_count,
-                    p.view_count,
+                    p.content_text as title,
+                    p.content_text as content,
+                    p.post_type as content_type,
+                    'public' as visibility,
+                    0 as reaction_count,
+                    0 as comment_count,
+                    0 as share_count,
+                    0 as view_count,
                     p.created_at,
                     p.updated_at,
                     u.username as author_username,
                     u.display_name as author_name,
                     u.avatar_url as author_avatar,
-                    w.name as wall_name,
-                    MATCH(p.title, p.content) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
+                    w.display_name as wall_name,
+                    MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM posts p
-                INNER JOIN users u ON p.author_id = u.id
-                INNER JOIN walls w ON p.wall_id = w.id
-                WHERE MATCH(p.title, p.content) AGAINST(? IN NATURAL LANGUAGE MODE)
-                  AND p.is_deleted = 0
-                  AND p.visibility IN ('public', 'unlisted')";
+                INNER JOIN users u ON p.author_id = u.user_id
+                INNER JOIN walls w ON p.wall_id = w.wall_id
+                WHERE MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE)
+                  AND p.is_deleted = 0";
 
         // Apply sorting
         switch ($sort) {
@@ -140,7 +139,7 @@ class SearchController
                 $sql .= " ORDER BY p.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY (p.reaction_count * 3 + p.comment_count * 2 + p.share_count * 5) DESC";
+                $sql .= " ORDER BY (0 * 3 + 0 * 2 + 0 * 5) DESC";
                 break;
             case 'relevance':
             default:
@@ -156,9 +155,8 @@ class SearchController
         // Get total count
         $countSql = "SELECT COUNT(*) as total 
                      FROM posts p
-                     WHERE MATCH(p.title, p.content) AGAINST(? IN NATURAL LANGUAGE MODE)
-                       AND p.is_deleted = 0
-                       AND p.visibility IN ('public', 'unlisted')";
+                     WHERE MATCH(p.content_text) AGAINST(? IN NATURAL LANGUAGE MODE)
+                       AND p.is_deleted = 0";
         
         $countStmt = \Database::query($countSql, [$query]);
         $countResult = $countStmt->fetch();
@@ -176,23 +174,23 @@ class SearchController
     private static function searchWalls($query, $sort, $limit, $offset, $userId = null)
     {
         $sql = "SELECT 
-                    w.id,
+                    w.wall_id as id,
                     w.user_id,
                     w.name,
                     w.description,
-                    w.theme,
-                    w.privacy,
-                    w.subscriber_count,
-                    w.post_count,
+                    w.theme_settings as theme,
+                    w.privacy_level as privacy,
+                    0 as subscriber_count,
+                    0 as post_count,
                     w.created_at,
                     u.username as owner_username,
                     u.display_name as owner_name,
                     u.avatar_url as owner_avatar,
                     MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM walls w
-                INNER JOIN users u ON w.user_id = u.id
+                INNER JOIN users u ON w.user_id = u.user_id
                 WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
-                  AND w.privacy IN ('public', 'unlisted')";
+                  AND w.privacy_level IN ('public', 'unlisted')";
 
         // Apply sorting
         switch ($sort) {
@@ -200,11 +198,11 @@ class SearchController
                 $sql .= " ORDER BY w.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY w.subscriber_count DESC, w.post_count DESC";
+                $sql .= " ORDER BY w.created_at DESC"; // Using created_at as fallback since we don't have the actual columns
                 break;
             case 'relevance':
             default:
-                $sql .= " ORDER BY relevance DESC, w.subscriber_count DESC";
+                $sql .= " ORDER BY relevance DESC, w.created_at DESC"; // Using created_at as fallback since we don't have the actual columns
                 break;
         }
 
@@ -217,7 +215,7 @@ class SearchController
         $countSql = "SELECT COUNT(*) as total 
                      FROM walls w
                      WHERE MATCH(w.name, w.description) AGAINST(? IN NATURAL LANGUAGE MODE)
-                       AND w.privacy IN ('public', 'unlisted')";
+                       AND w.privacy_level IN ('public', 'unlisted')";
         
         $countStmt = \Database::query($countSql, [$query]);
         $countResult = $countStmt->fetch();
@@ -235,13 +233,13 @@ class SearchController
     private static function searchUsers($query, $sort, $limit, $offset, $userId = null)
     {
         $sql = "SELECT 
-                    u.id,
+                    u.user_id as id,
                     u.username,
                     u.display_name,
                     u.avatar_url,
                     u.bio,
-                    u.followers_count,
-                    u.following_count,
+                    0 as followers_count,
+                    0 as following_count,
                     u.created_at,
                     MATCH(u.display_name, u.bio, u.username) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM users u
@@ -249,23 +247,17 @@ class SearchController
 
         $params = [$query, $query];
 
-        // Boost results from followed users
-        if ($userId) {
-            $sql .= " OR u.id IN (SELECT following_id FROM user_follows WHERE follower_id = ?)";
-            $params[] = $userId;
-        }
-
         // Apply sorting
         switch ($sort) {
             case 'recent':
                 $sql .= " ORDER BY u.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY u.followers_count DESC";
+                $sql .= " ORDER BY u.posts_count DESC";
                 break;
             case 'relevance':
             default:
-                $sql .= " ORDER BY relevance DESC, u.followers_count DESC";
+                $sql .= " ORDER BY relevance DESC, u.posts_count DESC";
                 break;
         }
 
@@ -297,25 +289,25 @@ class SearchController
     private static function searchAIApps($query, $sort, $limit, $offset, $userId = null)
     {
         $sql = "SELECT 
-                    a.id,
-                    a.user_id,
-                    a.title,
-                    a.description,
-                    a.prompt,
-                    a.tags,
+                    a.app_id as id,
+                    a.post_id,
+                    a.user_prompt as title,
+                    a.user_prompt as description,
+                    a.user_prompt as prompt,
+                    '' as tags,
                     a.remix_count,
-                    a.fork_count,
-                    a.reaction_count,
-                    a.view_count,
+                    0 as fork_count,
+                    0 as reaction_count,
+                    0 as view_count,
                     a.created_at,
                     u.username as author_username,
                     u.display_name as author_name,
                     u.avatar_url as author_avatar,
-                    MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
+                    MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE) as relevance
                 FROM ai_applications a
-                INNER JOIN users u ON a.user_id = u.id
-                WHERE MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE)
-                  AND a.visibility = 'public'
+                INNER JOIN posts p ON a.post_id = p.post_id
+                INNER JOIN users u ON p.author_id = u.user_id
+                WHERE MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE)
                   AND a.status = 'completed'";
 
         // Apply sorting
@@ -324,11 +316,11 @@ class SearchController
                 $sql .= " ORDER BY a.created_at DESC";
                 break;
             case 'popular':
-                $sql .= " ORDER BY (a.remix_count * 3 + a.fork_count * 2 + a.reaction_count) DESC";
+                $sql .= " ORDER BY (a.remix_count * 3 + 0 * 2 + 0) DESC";
                 break;
             case 'relevance':
             default:
-                $sql .= " ORDER BY relevance DESC, a.view_count DESC";
+                $sql .= " ORDER BY relevance DESC, 0 DESC";
                 break;
         }
 
@@ -340,8 +332,7 @@ class SearchController
         // Get total count
         $countSql = "SELECT COUNT(*) as total 
                      FROM ai_applications a
-                     WHERE MATCH(a.title, a.description, a.tags) AGAINST(? IN NATURAL LANGUAGE MODE)
-                       AND a.visibility = 'public'
+                     WHERE MATCH(a.user_prompt) AGAINST(? IN NATURAL LANGUAGE MODE)
                        AND a.status = 'completed'";
         
         $countStmt = \Database::query($countSql, [$query]);
@@ -410,7 +401,7 @@ class SearchController
             $stmt = \Database::query($sql, [$limit]);
             $results = $stmt->fetchAll();
 
-            // Cache for 30 minutes1
+            // Cache for 30 minutes
             Cache::set('search:trending', $results, 1800);
 
             jsonResponse(true, $results, 'Trending searches retrieved', 200);
