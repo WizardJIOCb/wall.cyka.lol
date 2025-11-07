@@ -7,6 +7,10 @@
 
 namespace App\Controllers;
 
+use App\Middleware\AuthMiddleware;
+use App\Models\User;
+use Exception;
+
 class UploadController
 {
     private const MAX_AVATAR_SIZE = 5242880; // 5MB
