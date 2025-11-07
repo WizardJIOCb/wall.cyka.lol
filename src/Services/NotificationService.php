@@ -5,6 +5,10 @@
  * Handles notification creation and delivery
  */
 
+namespace App\Services;
+
+use App\Utils\Database;
+
 class NotificationService
 {
     /**
