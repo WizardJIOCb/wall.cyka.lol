@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS search_logs (
     INDEX idx_created (created_at),
     INDEX idx_type (search_type),
     
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
@@ -98,7 +98,7 @@ SELECT
     MAX(created_at) as last_searched,
     DATE(created_at) as search_date
 FROM search_logs
-WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAYS)
+WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
 GROUP BY query, DATE(created_at)
 ORDER BY search_count DESC;
 
@@ -133,7 +133,7 @@ ALTER TABLE users DROP INDEX idx_users_search;
 ALTER TABLE ai_applications DROP INDEX idx_ai_apps_search;
 
 -- Drop search_logs table
-DROP TABLE IF NOT EXISTS search_logs;
+DROP TABLE IF EXISTS search_logs;
 
 -- Drop view
 DROP VIEW IF EXISTS popular_searches;
