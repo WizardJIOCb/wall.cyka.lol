@@ -89,6 +89,9 @@ use App\Controllers\SettingsController;
 use App\Controllers\DiscoverController;
 use App\Controllers\UploadController;
 
+// Import utils and models
+use App\Utils\Database;
+
 // CORS headers for API
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');

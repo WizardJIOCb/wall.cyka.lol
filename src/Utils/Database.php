@@ -6,6 +6,11 @@
  * and error handling.
  */
 
+namespace App\Utils;
+
+use PDO;
+use PDOException;
+
 class Database {
     private static ?PDO $connection = null;
     
