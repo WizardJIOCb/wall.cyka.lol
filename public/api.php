@@ -753,7 +753,12 @@ route('GET', 'api/v1/discover/suggested-users', function() {
 
 // Global search
 route('GET', 'api/v1/search', function() {
-    DiscoverController::search();
+    SearchController::unifiedSearch();
+});
+
+// Trending searches
+route('GET', 'api/v1/search/trending', function() {
+    SearchController::getTrendingSearches();
 });
 
 // ==================== SETTINGS ROUTES ====================
