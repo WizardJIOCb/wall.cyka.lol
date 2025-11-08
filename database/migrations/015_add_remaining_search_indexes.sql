@@ -6,11 +6,51 @@
 -- ============================================================================
 
 -- Walls table FULLTEXT index on name and description
-ALTER TABLE walls DROP INDEX IF EXISTS idx_walls_search;
+-- First check if the index exists
+SET @indexExists = (
+    SELECT COUNT(*) 
+    FROM INFORMATION_SCHEMA.STATISTICS 
+    WHERE TABLE_SCHEMA = DATABASE() 
+    AND TABLE_NAME = 'walls' 
+    AND INDEX_NAME = 'idx_walls_search'
+);
+
+-- Drop the index if it exists
+SET @sql = IF(
+    @indexExists > 0,
+    'ALTER TABLE walls DROP INDEX idx_walls_search',
+    'SELECT \'Index idx_walls_search does not exist\' as message'
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Add the FULLTEXT index
 ALTER TABLE walls ADD FULLTEXT INDEX idx_walls_search (name, description);
 
 -- AI Applications table FULLTEXT index on title, description, and tags
-ALTER TABLE ai_applications DROP INDEX IF EXISTS idx_ai_apps_search;
+-- First check if the index exists
+SET @indexExists = (
+    SELECT COUNT(*) 
+    FROM INFORMATION_SCHEMA.STATISTICS 
+    WHERE TABLE_SCHEMA = DATABASE() 
+    AND TABLE_NAME = 'ai_applications' 
+    AND INDEX_NAME = 'idx_ai_apps_search'
+);
+
+-- Drop the index if it exists
+SET @sql = IF(
+    @indexExists > 0,
+    'ALTER TABLE ai_applications DROP INDEX idx_ai_apps_search',
+    'SELECT \'Index idx_ai_apps_search does not exist\' as message'
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Add the FULLTEXT index
 ALTER TABLE ai_applications ADD FULLTEXT INDEX idx_ai_apps_search (title, description, tags);
 
 -- ============================================================================

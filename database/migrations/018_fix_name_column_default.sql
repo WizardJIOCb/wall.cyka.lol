@@ -24,7 +24,7 @@ DEALLOCATE PREPARE stmt;
 -- Ensure the column has the correct properties
 ALTER TABLE users MODIFY COLUMN name VARCHAR(100) NOT NULL DEFAULT '';
 
--- Add index if it doesn't exist
+-- Check if index exists
 SET @indexExists = (
     SELECT COUNT(*) 
     FROM INFORMATION_SCHEMA.STATISTICS 
@@ -33,6 +33,7 @@ SET @indexExists = (
     AND INDEX_NAME = 'idx_name'
 );
 
+-- Add index if it doesn't exist
 SET @sql = IF(
     @indexExists = 0,
     'ALTER TABLE users ADD INDEX idx_name (name)',
@@ -44,4 +45,4 @@ EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
 -- Populate name column with display_name values where name is empty
-UPDATE users SET name = display_name WHERE name = '';
+UPDATE users SET name = display_name WHERE name = '' OR name IS NULL;
