@@ -1,111 +1,130 @@
-# Post Interaction Features Implementation Summary
+# Implementation Summary: Post View Count Batch Processing and Open Count
 
-## Features Implemented
+## Overview
+This implementation addresses two key requirements:
+1. **Batch Processing**: Reduce the number of database queries for post view counts by processing them in batches
+2. **Open Count**: Track how many times posts are fully opened (detailed views) separately from view counts
 
-### 1. View Count Tracking
-- Added `incrementViewCount($postId)` method to Post model
-- This method increments the `view_count` column in the posts table
-- Called automatically when retrieving a post via GET /api/v1/posts/{postId}
+## Files Modified
 
-### 2. Post Pinning
-- Added `togglePin($postId, $isPinned)` method to Post model
-- Allows users to pin/unpin their own posts
-- Accessible via POST /api/v1/posts/{postId}/pin
+### 1. Database Migration
+- **File**: `database/migrations/022_add_open_count_to_posts.sql`
+- **Changes**: 
+  - Added `open_count` column to posts table
+  - Added index for performance optimization
 
-### 3. Repost Functionality
-- Added `repostPost($params)` method to PostController
-- Creates a new post that references an original post
-- Maintains all original content and media attachments
-- Increments the original post's share_count
-- Prevents circular reposts (reposting a repost)
-- Respects original wall's repost settings
-- Accessible via POST /api/v1/posts/{postId}/repost
+### 2. Backend (PHP)
 
-### 4. Enhanced Post Data
-- Updated `getPublicData` method in Post model to include:
-  - `reaction_count`
-  - `comment_count`
-  - `share_count`
-  - `view_count`
-  - `is_pinned`
+#### Post Model (`src/Models/Post.php`)
+- **Changes**:
+  - Updated all SELECT queries to include `open_count` column
+  - Added `incrementOpenCount()` method for single post open count increment
+  - Added `batchIncrementViewCounts()` method for batch view count processing
+  - Updated `getPublicData()` to include `open_count` in returned data
 
-## Database Schema Updates
+#### Post Controller (`src/Controllers/PostController.php`)
+- **Changes**:
+  - Added `batchIncrementViewCounts()` method to handle batch requests
+  - Added `incrementOpenCount()` method to handle open count requests
 
-The following columns were added to the posts table via migration 014_fix_search_columns_final.sql:
-- `reaction_count` (INT DEFAULT 0)
-- `comment_count` (INT DEFAULT 0)
-- `share_count` (INT DEFAULT 0)
-- `view_count` (INT DEFAULT 0)
-- `is_pinned` (BOOLEAN DEFAULT FALSE)
+#### API Routes (`public/api.php`)
+- **Changes**:
+  - Added POST `/api/v1/posts/batch-view` endpoint
+  - Added POST `/api/v1/posts/{postId}/open` endpoint
+
+### 3. Frontend (Vue.js)
+
+#### Posts API Service (`frontend/src/services/api/posts.ts`)
+- **Changes**:
+  - Added `batchIncrementViewCounts()` method
+  - Added `incrementOpenCount()` method
+
+#### WallView Component (`frontend/src/views/WallView.vue`)
+- **Changes**:
+  - Implemented batch processing logic for view counts
+  - Added tracking for processed posts to avoid duplicates
+  - Added open count increment when posts are fully opened
+  - Replaced individual view count increments with batch processing
+
+## Key Features
+
+### Batch Processing
+- Instead of making individual HTTP requests for each post view count, we collect post IDs and send them in a single batch request
+- Reduces HTTP requests from N requests to 1 request for N posts
+- Reduces database queries from N queries to 1 query for N posts
+- Falls back to individual processing if batch processing fails
+
+### Open Count Tracking
+- Separate metric for tracking detailed post views
+- Incremented when user fully opens a post (clicks to view details)
+- Provides insights into user engagement beyond simple view counts
+
+## Benefits
+
+1. **Performance Improvement**: Significantly reduced number of HTTP requests and database queries
+2. **Scalability**: System can handle larger numbers of posts without performance degradation
+3. **Better Analytics**: Separate tracking for views vs. detailed opens provides more insights
+4. **Resource Efficiency**: Reduced load on both frontend and backend systems
+
+## Implementation Details
+
+### Batch Processing Logic
+```javascript
+// Collect unprocessed post IDs
+const postIdsToProcess = posts.filter(post => 
+  !batchProcessedPosts.has(post.post_id) && 
+  !viewedPosts.has(post.post_id)
+).map(post => post.post_id);
+
+// Send batch request if we have posts to process
+if (postIdsToProcess.length > 0) {
+  await postsAPI.batchIncrementViewCounts(postIdsToProcess);
+}
+```
+
+### Open Count Logic
+```javascript
+// Increment open count when post is fully opened
+const openAIModal = async (post) => {
+  await incrementPostOpenCount(post.post_id);
+  // ... rest of modal opening logic
+}
+```
 
 ## API Endpoints
 
-### New Endpoints
-1. `POST /api/v1/posts/{postId}/repost` - Repost a post
-2. `POST /api/v1/posts/{postId}/pin` - Pin/unpin a post
+1. **POST `/api/v1/posts/batch-view`**
+   - Accepts array of post IDs
+   - Increments view count for all specified posts
 
-### Modified Endpoints
-1. `GET /api/v1/posts/{postId}` - Now increments view count
-2. `GET /api/v1/posts/{postId}` - Response now includes counters and pin status
+2. **POST `/api/v1/posts/{postId}/open`**
+   - Increments open count for specified post
 
-## Testing Instructions
+## Database Schema Changes
 
-### Prerequisites
-1. Ensure database migrations have been run (migration 014 and later)
-2. Have a test post available
-3. Have a user account for testing
+```sql
+ALTER TABLE posts ADD COLUMN open_count INT DEFAULT 0 NOT NULL AFTER view_count;
+ALTER TABLE posts ADD INDEX idx_open_count (open_count);
+```
 
-### Test View Count Tracking
-1. Make a GET request to `/api/v1/posts/{postId}`
-2. Check that the response includes `view_count` field
-3. Make the same request again
-4. Verify that the view_count has incremented
+## Testing
 
-### Test Post Pinning
-1. Create a post with a user account
-2. Make a POST request to `/api/v1/posts/{postId}/pin` with JSON body:
-   ```json
-   {
-     "is_pinned": true
-   }
-   ```
-3. Verify the response indicates success
-4. Retrieve the post and check that `is_pinned` is true
+The implementation has been designed to:
+- Fall back to individual processing if batch processing fails
+- Track processed posts to avoid duplicate counting
+- Maintain backward compatibility with existing code
 
-### Test Repost Functionality
-1. Create an original post with user A
-2. With user B, make a POST request to `/api/v1/posts/{postId}/repost` with JSON body:
-   ```json
-   {
-     "wall_id": [user_B_wall_id],
-     "commentary": "This is my commentary on the repost"
-   }
-   ```
-3. Verify the response includes the new repost
-4. Check that the original post's share_count has incremented
-5. Verify the repost includes:
-   - `is_repost: true`
-   - `original_post_id: [original_post_id]`
-   - `repost_commentary: "This is my commentary on the repost"`
+## Deployment
 
-## Code Changes Summary
-
-### Modified Files
-1. `src/Models/Post.php`:
-   - Added `incrementViewCount` method
-   - Added `togglePin` method
-   - Updated `getPublicData` method to include counters
-
-2. `src/Controllers/PostController.php`:
-   - Added `repostPost` method
-
-3. `public/api.php`:
-   - Added route for repost functionality
-   - Added route for pin functionality (was already there but now fully implemented)
+To deploy these changes:
+1. Apply the database migration (`022_add_open_count_to_posts.sql`)
+2. Deploy updated backend code (PostController, Post model)
+3. Deploy updated frontend code (WallView component, posts API service)
+4. Update API routes configuration
 
 ## Future Improvements
 
-1. Add validation to ensure users can only repost to their own walls or walls they have permission to post to
-2. Implement notifications when a post is reposted
-3. Add analytics for tracking repost sources
-4. Implement quote reposts with custom content
+1. **Queue-based Processing**: Implement a queue system for even more efficient batch processing
+2. **Rate Limiting**: Add rate limiting to prevent abuse of batch endpoints
+3. **Analytics Dashboard**: Create dashboard to visualize view vs. open count metrics
+4. **Caching**: Implement caching for frequently accessed post counts

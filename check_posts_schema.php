@@ -1,41 +1,29 @@
 <?php
-require_once 'vendor/autoload.php';
-require_once 'config/database.php';
+require 'config/config.php';
 
 try {
-    $db = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Check if view_count column exists in posts table
-    $stmt = $db->prepare("DESCRIBE posts");
-    $stmt->execute();
-    $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $pdo = new PDO('mysql:host=' . getenv('DB_HOST') . ';dbname=' . getenv('DB_NAME'), getenv('DB_USER'), getenv('DB_PASS'));
+    $stmt = $pdo->query('DESCRIBE posts');
+    $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
     echo "Posts table columns:\n";
     foreach ($columns as $column) {
-        echo "- " . $column['Field'] . " (" . $column['Type'] . ")\n";
+        echo "- " . $column . "\n";
+    }
+    
+    // Check if open_count column exists
+    if (in_array('open_count', $columns)) {
+        echo "\n✓ open_count column exists\n";
+    } else {
+        echo "\n✗ open_count column does not exist\n";
     }
     
     // Check if view_count column exists
-    $viewCountExists = false;
-    foreach ($columns as $column) {
-        if ($column['Field'] === 'view_count') {
-            $viewCountExists = true;
-            break;
-        }
+    if (in_array('view_count', $columns)) {
+        echo "✓ view_count column exists\n";
+    } else {
+        echo "✗ view_count column does not exist\n";
     }
-    
-    echo "\nView count column exists: " . ($viewCountExists ? "YES" : "NO") . "\n";
-    
-    // Check a sample post
-    $stmt = $db->prepare("SELECT post_id, view_count FROM posts LIMIT 1");
-    $stmt->execute();
-    $post = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($post) {
-        echo "\nSample post view_count: " . $post['view_count'] . "\n";
-    }
-    
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
 }

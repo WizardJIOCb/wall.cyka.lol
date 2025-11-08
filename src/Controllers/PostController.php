@@ -451,6 +451,54 @@ class PostController
     }
 
     /**
+     * Batch increment post view counts
+     * POST /api/v1/posts/batch-view
+     */
+    public static function batchIncrementViewCounts()
+    {
+        $data = self::getRequestData();
+        $postIds = $data['post_ids'] ?? [];
+
+        if (empty($postIds) || !is_array($postIds)) {
+            self::jsonResponse(false, ['code' => 'INVALID_POST_IDS'], 'Post IDs array is required', 400);
+        }
+
+        // Validate that all post IDs are integers
+        foreach ($postIds as $postId) {
+            if (!is_numeric($postId)) {
+                self::jsonResponse(false, ['code' => 'INVALID_POST_ID'], 'All post IDs must be numeric', 400);
+            }
+        }
+
+        try {
+            Post::batchIncrementViewCounts($postIds);
+            self::jsonResponse(true, ['message' => 'View counts incremented']);
+        } catch (Exception $e) {
+            self::jsonResponse(false, ['code' => 'VIEW_COUNTS_FAILED'], $e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * Increment post open count
+     * POST /api/v1/posts/{postId}/open
+     */
+    public static function incrementOpenCount($params)
+    {
+        $postId = $params['postId'] ?? null;
+
+        if (!$postId) {
+            self::jsonResponse(false, ['code' => 'INVALID_POST_ID'], 'Post ID is required', 400);
+        }
+
+        try {
+            Post::incrementOpenCount($postId);
+            self::jsonResponse(true, ['message' => 'Open count incremented']);
+        } catch (Exception $e) {
+            self::jsonResponse(false, ['code' => 'OPEN_COUNT_FAILED'], $e->getMessage(), 400);
+        }
+    }
+
+    /**
      * Sanitize HTML content
      */
     private static function sanitizeHtml($html)

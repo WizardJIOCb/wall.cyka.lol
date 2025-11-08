@@ -17,7 +17,7 @@ class Post
      */
     public static function findById($postId)
     {
-        $sql = "SELECT p.*, p.view_count, u.username, u.display_name as author_name, u.avatar_url as author_avatar
+        $sql = "SELECT p.*, p.view_count, p.open_count, u.username, u.display_name as author_name, u.avatar_url as author_avatar
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 WHERE p.post_id = ? AND p.is_deleted = FALSE";
@@ -30,7 +30,7 @@ class Post
     public static function getWallPosts($wallId, $limit = 20, $offset = 0)
     {
         // Get token counts from ai_generation_jobs table (source of truth) not ai_applications
-        $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
+        $sql = "SELECT p.*, p.view_count, p.open_count, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
                 ai.status as ai_status, ai.app_id, ai.job_id, ai.queue_position, ai.user_prompt,
                 ai.html_content, ai.css_content, ai.js_content, ai.generation_model,
                 ai.generation_time,
@@ -56,7 +56,7 @@ class Post
      */
     public static function getUserPosts($userId, $limit = 20, $offset = 0)
     {
-        $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar
+        $sql = "SELECT p.*, p.view_count, p.open_count, u.username, u.display_name as author_name, u.avatar_url as author_avatar
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 WHERE p.author_id = ? AND p.is_deleted = FALSE
@@ -80,7 +80,7 @@ class Post
             $orderBy = 'p.view_count DESC, p.created_at DESC';
         }
 
-        $sql = "SELECT p.*, p.view_count, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
+        $sql = "SELECT p.*, p.view_count, p.open_count, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
                 w.privacy_level
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
@@ -223,6 +223,30 @@ class Post
     }
 
     /**
+     * Increment open count for a post
+     */
+    public static function incrementOpenCount($postId)
+    {
+        $sql = "UPDATE posts SET open_count = open_count + 1 WHERE post_id = ?";
+        Database::query($sql, [$postId]);
+    }
+
+    /**
+     * Batch increment view counts for multiple posts
+     */
+    public static function batchIncrementViewCounts($postIds)
+    {
+        if (empty($postIds)) {
+            return;
+        }
+        
+        // Create placeholders for the IN clause
+        $placeholders = str_repeat('?,', count($postIds) - 1) . '?';
+        $sql = "UPDATE posts SET view_count = view_count + 1 WHERE post_id IN ($placeholders)";
+        Database::query($sql, $postIds);
+    }
+
+    /**
      * Get post public data
      */
     public static function getPublicData($post)
@@ -243,9 +267,10 @@ class Post
             'original_post_id' => $post['original_post_id'] ?? null,
             'repost_commentary' => $post['repost_commentary'] ?? null,
             'reaction_count' => (int)($post['reaction_count'] ?? 0),
-            'comments_count' => (int)($post['comment_count'] ?? 0),
+            'comment_count' => (int)($post['comment_count'] ?? 0),
             'share_count' => (int)($post['share_count'] ?? 0),
             'view_count' => (int)($post['view_count'] ?? 0),
+            'open_count' => (int)($post['open_count'] ?? 0),
             'is_pinned' => (bool)($post['is_pinned'] ?? false),
             'ai_status' => $post['ai_status'] ?? null,
             'ai_app_id' => $post['app_id'] ?? null,

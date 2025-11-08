@@ -106,6 +106,20 @@ export const postsAPI = {
    */
   async incrementViewCount(postId: number): Promise<void> {
     return apiClient.post(`/posts/${postId}/view`)
+  },
+
+  /**
+   * Batch increment post view counts
+   */
+  async batchIncrementViewCounts(postIds: number[]): Promise<void> {
+    return apiClient.post('/posts/batch-view', { post_ids: postIds })
+  },
+
+  /**
+   * Increment post open count
+   */
+  async incrementOpenCount(postId: number): Promise<void> {
+    return apiClient.post(`/posts/${postId}/open`)
   }
 }
 

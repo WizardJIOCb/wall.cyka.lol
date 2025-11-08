@@ -377,6 +377,8 @@ let progressEventSources: Map<number, EventSource> = new Map() // Track progress
 
 // Add this ref to track viewed posts
 const viewedPosts = new Set<number>()
+// Add this ref to track posts that have been batch processed
+const batchProcessedPosts = new Set<number>()
 
 const isOwnWall = computed(() => {
   return wall.value && authStore.user && wall.value.user_id === authStore.user.id
@@ -413,6 +415,44 @@ const incrementPostViewCount = async (postId: number) => {
     console.log(`View count incremented for post ${postId}`)
   } catch (error: any) {
     console.error(`Failed to increment view count for post ${postId}:`, error)
+  }
+}
+
+// Add this method to batch increment view counts
+const batchIncrementViewCounts = async () => {
+  // Get all post IDs that haven't been batch processed yet
+  const postIdsToProcess: number[] = []
+  posts.value.forEach((post: any) => {
+    if (!batchProcessedPosts.has(post.post_id) && !viewedPosts.has(post.post_id)) {
+      postIdsToProcess.push(post.post_id)
+      batchProcessedPosts.add(post.post_id)
+    }
+  })
+  
+  // Only process if we have posts to process
+  if (postIdsToProcess.length > 0) {
+    try {
+      await postsAPI.batchIncrementViewCounts(postIdsToProcess)
+      postIdsToProcess.forEach(id => viewedPosts.add(id))
+      console.log(`Batch view counts incremented for ${postIdsToProcess.length} posts`)
+    } catch (error: any) {
+      console.error('Failed to batch increment view counts:', error)
+      // If batch fails, fall back to individual increments
+      postIdsToProcess.forEach(id => {
+        batchProcessedPosts.delete(id) // Remove from batch processed so individual increment can try
+        incrementPostViewCount(id)
+      })
+    }
+  }
+}
+
+// Add this method to increment open count for a post
+const incrementPostOpenCount = async (postId: number) => {
+  try {
+    await postsAPI.incrementOpenCount(postId)
+    console.log(`Open count incremented for post ${postId}`)
+  } catch (error: any) {
+    console.error(`Failed to increment open count for post ${postId}:`, error)
   }
 }
 
@@ -501,17 +541,13 @@ const loadPosts = async (isPolling = false) => {
           updatePostsData(newPosts)
         } else {
           posts.value = newPosts
-          // Increment view count for each post when first loaded
-          newPosts.forEach((post: any) => {
-            incrementPostViewCount(post.post_id)
-          })
+          // Use batch processing for view counts
+          batchIncrementViewCounts()
         }
       } else {
         posts.value = [...posts.value, ...newPosts]
-        // Increment view count for newly loaded posts
-        newPosts.forEach((post: any) => {
-          incrementPostViewCount(post.post_id)
-        })
+        // Use batch processing for view counts on newly loaded posts
+        batchIncrementViewCounts()
       }
       
       hasMorePosts.value = newPosts.length === limit
@@ -955,6 +991,8 @@ const renderBio = (bio: string) => {
 
 const openAIModal = async (post: any) => {
   try {
+    // Increment open count when post is fully opened
+    await incrementPostOpenCount(post.post_id)
     // For generating posts, use data from the post itself
     if (post.ai_status === 'queued' || post.ai_status === 'processing') {
       console.log('Opening modal for generating post, using post data:', {

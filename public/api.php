@@ -481,6 +481,16 @@ route('POST', 'api/v1/posts/{postId}/view', function($params) {
     PostController::incrementViewCount($params);
 });
 
+// Batch increment post view counts
+route('POST', 'api/v1/posts/batch-view', function() {
+    PostController::batchIncrementViewCounts();
+});
+
+// Increment post open count
+route('POST', 'api/v1/posts/{postId}/open', function($params) {
+    PostController::incrementOpenCount($params);
+});
+
 // Get wall posts
 route('GET', 'api/v1/walls/{wallId}/posts', function($params) {
     PostController::getWallPosts($params);
