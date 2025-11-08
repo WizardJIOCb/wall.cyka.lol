@@ -1,0 +1,26 @@
+# Server Update Commands
+
+## 1. First, update the repository to get any other changes
+git fetch origin && git reset --hard origin/main
+
+## 2. Apply database migrations to add the missing columns
+php database/run_migrations.php
+
+## 3. Clean frontend build artifacts
+rm -rf frontend/node_modules/.vite frontend/.vite frontend/dist
+rm -rf public/assets/*
+
+## 4. Rebuild the frontend
+cd frontend
+npm install
+npm run build
+cd ..
+
+## 5. Restart services to apply all changes
+# If using Docker:
+docker-compose down
+docker-compose up -d
+
+# If using systemd:
+sudo systemctl restart nginx
+sudo systemctl restart php-fpm

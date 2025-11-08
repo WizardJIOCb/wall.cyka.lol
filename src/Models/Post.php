@@ -80,7 +80,7 @@ class Post
             $orderBy = 'p.view_count DESC, p.created_at DESC';
         }
 
-        $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
+        $sql = "SELECT p.*, p.view_count, u.username, u.display_name as author_name, u.avatar_url as author_avatar,
                 w.privacy_level
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
