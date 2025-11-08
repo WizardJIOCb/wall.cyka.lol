@@ -476,6 +476,11 @@ route('GET', 'api/v1/posts/{postId}', function($params) {
     PostController::getPost($params);
 });
 
+// Increment post view count
+route('POST', 'api/v1/posts/{postId}/view', function($params) {
+    PostController::incrementViewCount($params);
+});
+
 // Get wall posts
 route('GET', 'api/v1/walls/{wallId}/posts', function($params) {
     PostController::getWallPosts($params);

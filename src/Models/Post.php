@@ -214,6 +214,15 @@ class Post
     }
 
     /**
+     * Increment view count for a post
+     */
+    public static function incrementViewCount($postId)
+    {
+        $sql = "UPDATE posts SET view_count = view_count + 1 WHERE post_id = ?";
+        Database::query($sql, [$postId]);
+    }
+
+    /**
      * Get post public data
      */
     public static function getPublicData($post)

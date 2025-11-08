@@ -431,6 +431,26 @@ class PostController
     }
 
     /**
+     * Increment post view count
+     * POST /api/v1/posts/{postId}/view
+     */
+    public static function incrementViewCount($params)
+    {
+        $postId = $params['postId'] ?? null;
+
+        if (!$postId) {
+            self::jsonResponse(false, ['code' => 'INVALID_POST_ID'], 'Post ID is required', 400);
+        }
+
+        try {
+            Post::incrementViewCount($postId);
+            self::jsonResponse(true, ['message' => 'View count incremented']);
+        } catch (Exception $e) {
+            self::jsonResponse(false, ['code' => 'VIEW_COUNT_FAILED'], $e->getMessage(), 400);
+        }
+    }
+
+    /**
      * Sanitize HTML content
      */
     private static function sanitizeHtml($html)

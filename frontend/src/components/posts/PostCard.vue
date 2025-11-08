@@ -24,15 +24,15 @@
     </div>
 
     <div class="post-actions">
-      <button class="action-btn" @click="toggleReaction">
-        <span>{{ hasReacted ? '❤️' : '🤍' }}</span>
-        <span v-if="post.reactions_count">{{ post.reactions_count }}</span>
-      </button>
+      <ReactionPicker 
+        reactable-type="post" 
+        :reactable-id="post.post_id" 
+      />
       <button class="action-btn" @click="toggleComments">
         <span>💬</span>
         <span v-if="post.comments_count">{{ post.comments_count }}</span>
       </button>
-      <button class="action-btn" @click="$emit('share')">
+      <button class="action-btn" @click="handleRepost">
         <span>🔄</span>
         <span v-if="post.shares_count">{{ post.shares_count }}</span>
       </button>
@@ -48,13 +48,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { Post } from '@/types/models'
 import AppAvatar from '@/components/common/AppAvatar.vue'
 import AppDropdown from '@/components/common/AppDropdown.vue'
 import CommentSection from '@/components/comments/CommentSection.vue'
+import ReactionPicker from '@/components/social/ReactionPicker.vue'
 import { formatRelativeTime } from '@/utils/formatting'
 import { useAuthStore } from '@/stores/auth'
+import { useRepost } from '@/composables/useRepost'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps<{ post: Post }>()
 const emit = defineEmits<{
@@ -67,13 +70,24 @@ const emit = defineEmits<{
 
 const authStore = useAuthStore()
 const showComments = ref(false)
-const hasReacted = computed(() => false) // TODO: Track user reactions
 const canEdit = computed(() => authStore.user?.id === props.post.user_id)
 
+const { repostPost } = useRepost()
+const { showToast } = useToast()
+
 const formatTime = (date: string) => formatRelativeTime(date)
-const toggleReaction = () => emit('react', 'like')
 const toggleComments = () => {
   showComments.value = !showComments.value
+}
+
+const handleRepost = async () => {
+  try {
+    await repostPost(props.post.post_id)
+    showToast('Post reposted successfully', 'success')
+  } catch (error) {
+    showToast('Failed to repost post', 'error')
+    console.error('Repost failed:', error)
+  }
 }
 </script>
 
