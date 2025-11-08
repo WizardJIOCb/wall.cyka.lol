@@ -5,7 +5,10 @@
  * Handles reactions (likes, dislikes, etc.) for posts and comments
  */
 
+namespace App\Models;
+
 use App\Utils\Database;
+use Exception;
 
 class Reaction
 {

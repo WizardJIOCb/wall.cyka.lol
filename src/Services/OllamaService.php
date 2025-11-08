@@ -5,6 +5,11 @@
  * Handles integration with Ollama API for AI generation
  */
 
+namespace App\Services;
+
+use App\Models\User;
+use Exception;
+
 class OllamaService
 {
     private static $config = null;

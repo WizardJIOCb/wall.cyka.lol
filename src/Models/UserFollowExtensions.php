@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Core\Database;
+use App\Utils\Database;
 
 /**
  * User Model - Extensions for Follow System

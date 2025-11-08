@@ -5,7 +5,10 @@
  * Handles threaded comments with reactions
  */
 
+namespace App\Models;
+
 use App\Utils\Database;
+use Exception;
 
 class Comment
 {

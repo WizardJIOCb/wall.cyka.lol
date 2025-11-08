@@ -5,6 +5,16 @@
  * Handles all comment-related operations including nested replies and reactions
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Models\Comment;
+use App\Models\Post;
+use App\Models\Wall;
+use App\Models\Reaction;
+use App\Services\NotificationService;
+use Exception;
+
 class CommentController
 {
     /**

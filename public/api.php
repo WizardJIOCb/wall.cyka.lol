@@ -684,6 +684,28 @@ route('GET', 'api/v1/reactions/{reactableType}/{reactableId}', function($params)
     SocialController::getReactions($params);
 });
 
+// Create comment
+route('POST', 'api/v1/comments', function() {
+    SocialController::createComment();
+});
+
+// ==================== POST REACTIONS ROUTES ====================
+
+// Add reaction to post
+route('POST', 'api/v1/posts/{postId}/reactions', function($params) {
+    PostController::addReactionToPost($params);
+});
+
+// Remove reaction from post
+route('DELETE', 'api/v1/posts/{postId}/reactions/{reactionType}', function($params) {
+    PostController::removeReactionFromPost($params);
+});
+
+// Get post reactions
+route('GET', 'api/v1/posts/{postId}/reactions', function($params) {
+    PostController::getPostReactions($params);
+});
+
 // ==================== COMMENTS ROUTES ====================
 
 // Get post comments

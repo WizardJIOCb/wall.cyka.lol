@@ -5,7 +5,10 @@
  * Handles user social links
  */
 
+namespace App\Models;
+
 use App\Utils\Database;
+use Exception;
 
 class SocialLink
 {

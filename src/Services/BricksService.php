@@ -5,6 +5,12 @@
  * Handles bricks currency system operations
  */
 
+namespace App\Services;
+
+use App\Models\User;
+use App\Utils\Database;
+use Exception;
+
 class BricksService
 {
     private static $config = null;
