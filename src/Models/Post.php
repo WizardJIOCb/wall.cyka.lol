@@ -17,7 +17,7 @@ class Post
      */
     public static function findById($postId)
     {
-        $sql = "SELECT p.*, u.username, u.display_name as author_name, u.avatar_url as author_avatar
+        $sql = "SELECT p.*, p.view_count, u.username, u.display_name as author_name, u.avatar_url as author_avatar
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 WHERE p.post_id = ? AND p.is_deleted = FALSE";
@@ -243,7 +243,7 @@ class Post
             'original_post_id' => $post['original_post_id'] ?? null,
             'repost_commentary' => $post['repost_commentary'] ?? null,
             'reaction_count' => (int)($post['reaction_count'] ?? 0),
-            'comment_count' => (int)($post['comment_count'] ?? 0),
+            'comments_count' => (int)($post['comment_count'] ?? 0),
             'share_count' => (int)($post['share_count'] ?? 0),
             'view_count' => (int)($post['view_count'] ?? 0),
             'is_pinned' => (bool)($post['is_pinned'] ?? false),
