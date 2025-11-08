@@ -99,6 +99,13 @@ export const postsAPI = {
    */
   async sharePost(postId: number, wallId: number, content?: string): Promise<Post> {
     return apiClient.post(`/posts/${postId}/share`, { wall_id: wallId, content })
+  },
+
+  /**
+   * Increment post view count
+   */
+  async incrementViewCount(postId: number): Promise<void> {
+    return apiClient.post(`/posts/${postId}/view`)
   }
 }
 

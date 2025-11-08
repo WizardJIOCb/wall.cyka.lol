@@ -346,6 +346,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api/client'
+import postsAPI from '@/services/api/posts'
 import AIGenerationProgress from '@/components/ai/AIGenerationProgress.vue'
 import { marked } from 'marked'
 
@@ -374,6 +375,9 @@ let pollInterval: any = null
 let contentEventSources: Map<number, EventSource> = new Map() // Track SSE connections per job
 let progressEventSources: Map<number, EventSource> = new Map() // Track progress SSE connections
 
+// Add this ref to track viewed posts
+const viewedPosts = new Set<number>()
+
 const isOwnWall = computed(() => {
   return wall.value && authStore.user && wall.value.user_id === authStore.user.id
 })
@@ -387,7 +391,7 @@ const bannerStyle = computed(() => {
 
 // Filter out failed AI posts
 const visiblePosts = computed(() => {
-  return posts.value.filter(post => {
+  return posts.value.filter((post: any) => {
     // Hide failed AI posts
     if (post.post_type === 'ai_app' && post.ai_status === 'failed') {
       return false
@@ -395,6 +399,22 @@ const visiblePosts = computed(() => {
     return true
   })
 })
+
+// Add this method to increment view count for a post
+const incrementPostViewCount = async (postId: number) => {
+  // Only increment view count once per post per session
+  if (viewedPosts.has(postId)) {
+    return
+  }
+  
+  try {
+    await postsAPI.incrementViewCount(postId)
+    viewedPosts.add(postId)
+    console.log(`View count incremented for post ${postId}`)
+  } catch (error: any) {
+    console.error(`Failed to increment view count for post ${postId}:`, error)
+  }
+}
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -423,7 +443,7 @@ const loadWall = async () => {
       throw new Error('No wall identifier provided')
     }
 
-    let response;
+    let response: any;
     
     // Handle special case: /wall/me
     if (wallIdToFetch === 'me') {
@@ -481,9 +501,17 @@ const loadPosts = async (isPolling = false) => {
           updatePostsData(newPosts)
         } else {
           posts.value = newPosts
+          // Increment view count for each post when first loaded
+          newPosts.forEach((post: any) => {
+            incrementPostViewCount(post.post_id)
+          })
         }
       } else {
         posts.value = [...posts.value, ...newPosts]
+        // Increment view count for newly loaded posts
+        newPosts.forEach((post: any) => {
+          incrementPostViewCount(post.post_id)
+        })
       }
       
       hasMorePosts.value = newPosts.length === limit
@@ -503,10 +531,10 @@ const loadPosts = async (isPolling = false) => {
 
 const updatePostsData = (newPosts: any[]) => {
   // Create a map of new posts by post_id for quick lookup
-  const newPostsMap = new Map(newPosts.map(post => [post.post_id, post]))
+  const newPostsMap = new Map(newPosts.map((post: any) => [post.post_id, post]))
   
   // Update existing posts with new data WITHOUT causing re-render
-  posts.value.forEach((post, index) => {
+  posts.value.forEach((post: any, index: number) => {
     const updatedPost = newPostsMap.get(post.post_id)
     if (updatedPost) {
       // Update ALL fields, not just status
@@ -524,12 +552,12 @@ const updatePostsData = (newPosts: any[]) => {
 
 const checkForPendingAIPosts = () => {
   const pendingPosts = posts.value.filter(
-    post => post.post_type === 'ai_app' && 
+    (post: any) => post.post_type === 'ai_app' && 
            (post.ai_status === 'queued' || post.ai_status === 'processing')
   )
   
   console.log('[WallView] Checking pending AI posts:', pendingPosts.length)
-  pendingPosts.forEach(post => {
+  pendingPosts.forEach((post: any) => {
     console.log('[WallView] Pending post:', {
       post_id: post.post_id,
       ai_status: post.ai_status,
@@ -542,7 +570,7 @@ const checkForPendingAIPosts = () => {
   // DISABLE POLLING - SSE handles all real-time updates
   // Only start content streaming for processing posts
   if (pendingPosts.length > 0) {
-    pendingPosts.forEach(post => {
+    pendingPosts.forEach((post: any) => {
       if (post.ai_status === 'processing' && post.ai_job_id) {
         startContentStream(post)
       }
