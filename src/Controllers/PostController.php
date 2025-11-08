@@ -542,6 +542,142 @@ class PostController
     }
 
     /**
+     * Add reaction to post
+     * POST /api/v1/posts/{postId}/reactions
+     */
+    public static function addReactionToPost($params)
+    {
+        try {
+            $currentUser = AuthMiddleware::requireAuth();
+            $userId = $currentUser['user_id'];
+            $postId = (int)$params['postId'];
+            
+            // Verify post exists
+            $post = Post::findById($postId);
+            if (!$post) {
+                self::jsonResponse(false, ['code' => 'POST_NOT_FOUND'], 'Post not found', 404);
+            }
+            
+            // Check if reactions are allowed on this post/wall
+            $wall = Wall::findById($post['wall_id']);
+            if ($wall && !$wall['allow_reactions']) {
+                self::jsonResponse(false, ['code' => 'REACTIONS_DISABLED'], 'Reactions are not allowed on this wall', 403);
+            }
+            
+            // Get request body
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            // Validate reaction type
+            if (empty($input['reaction_type'])) {
+                self::jsonResponse(false, ['code' => 'INVALID_INPUT'], 'Reaction type is required', 400);
+            }
+            
+            $reactionType = $input['reaction_type'];
+            $allowedReactions = ['like', 'dislike', 'love', 'haha', 'wow', 'sad', 'angry'];
+            
+            if (!in_array($reactionType, $allowedReactions)) {
+                self::jsonResponse(false, ['code' => 'INVALID_REACTION'], 'Invalid reaction type', 400);
+            }
+            
+            // Add or update reaction
+            $result = Reaction::addOrUpdate($userId, 'post', $postId, $reactionType);
+            
+            // Get updated post data
+            $updatedPost = Post::findById($postId);
+            
+            self::jsonResponse(true, [
+                'action' => $result['action'],
+                'post' => Post::getPublicData($updatedPost),
+                'message' => $result['action'] === 'removed' ? 'Reaction removed' : 
+                            ($result['action'] === 'updated' ? 'Reaction updated' : 'Reaction added')
+            ], 200);
+            
+        } catch (Exception $e) {
+            error_log("Error in addReactionToPost: " . $e->getMessage());
+            self::jsonResponse(false, ['code' => 'REACTION_FAILED'], 'Failed to add reaction', 500);
+        }
+    }
+    
+    /**
+     * Remove reaction from post
+     * DELETE /api/v1/posts/{postId}/reactions/{reactionType}
+     */
+    public static function removeReactionFromPost($params)
+    {
+        try {
+            $currentUser = AuthMiddleware::requireAuth();
+            $userId = $currentUser['user_id'];
+            $postId = (int)$params['postId'];
+            
+            // Verify post exists
+            $post = Post::findById($postId);
+            if (!$post) {
+                self::jsonResponse(false, ['code' => 'POST_NOT_FOUND'], 'Post not found', 404);
+            }
+            
+            // Remove reaction
+            Reaction::removeReaction($userId, 'post', $postId);
+            
+            // Get updated post data
+            $updatedPost = Post::findById($postId);
+            
+            self::jsonResponse(true, [
+                'post' => Post::getPublicData($updatedPost),
+                'message' => 'Reaction removed'
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error in removeReactionFromPost: " . $e->getMessage());
+            self::jsonResponse(false, ['code' => 'REACTION_REMOVAL_FAILED'], 'Failed to remove reaction', 500);
+        }
+    }
+    
+    /**
+     * Get post reactions
+     * GET /api/v1/posts/{postId}/reactions
+     */
+    public static function getPostReactions($params)
+    {
+        try {
+            $postId = (int)$params['postId'];
+            
+            // Verify post exists
+            $post = Post::findById($postId);
+            if (!$post) {
+                self::jsonResponse(false, ['code' => 'POST_NOT_FOUND'], 'Post not found', 404);
+            }
+            
+            // Get reactions
+            $reactions = Reaction::getReactions('post', $postId, 100);
+            
+            // Format reactions
+            $formattedReactions = array_map(function($reaction) {
+                return [
+                    'reaction_id' => $reaction['reaction_id'],
+                    'user_id' => $reaction['user_id'],
+                    'reaction_type' => $reaction['reaction_type'],
+                    'created_at' => $reaction['created_at'],
+                    'user' => [
+                        'user_id' => $reaction['user_id'],
+                        'username' => $reaction['username'],
+                        'display_name' => $reaction['display_name'],
+                        'avatar_url' => $reaction['avatar_url']
+                    ]
+                ];
+            }, $reactions);
+            
+            self::jsonResponse(true, [
+                'reactions' => $formattedReactions,
+                'count' => count($formattedReactions)
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error in getPostReactions: " . $e->getMessage());
+            self::jsonResponse(false, ['code' => 'REACTIONS_FETCH_FAILED'], 'Failed to fetch reactions', 500);
+        }
+    }
+
+    /**
      * Sanitize HTML content
      */
     private static function sanitizeHtml($html)
