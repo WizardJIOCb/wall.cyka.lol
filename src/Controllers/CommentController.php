@@ -44,7 +44,7 @@ class CommentController
             if ($userId) {
                 $commentIds = array_map(function($c) { return $c['comment_id']; }, $comments);
                 if (!empty($commentIds)) {
-                    $userReactions = Reaction::getUserReactions($userId, 'comment', $commentIds);
+                    $userReactions = \Reaction::getUserReactions($userId, 'comment', $commentIds);
                     $reactionMap = [];
                     foreach ($userReactions as $r) {
                         $reactionMap[$r['target_id']] = $r['reaction_type'];

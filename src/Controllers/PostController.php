@@ -244,7 +244,7 @@ class PostController
         if ($currentUserId) {
             $postIds = array_map(function($post) { return $post['post_id']; }, $posts);
             if (!empty($postIds)) {
-                $userReactions = Reaction::getUserReactions($currentUserId, 'post', $postIds);
+                $userReactions = \Reaction::getUserReactions($currentUserId, 'post', $postIds);
                 $reactionMap = [];
                 foreach ($userReactions as $r) {
                     $reactionMap[$r['reactable_id']] = $r['reaction_type'];
