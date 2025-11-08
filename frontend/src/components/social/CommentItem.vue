@@ -1,5 +1,5 @@
 <template>
-  <div :class="['comment-item', { 'is-reply': depth > 0 }]" :style="{ marginLeft: `${depth * 40}px` }">
+  <div v-if="comment" :class="['comment-item', { 'is-reply': depth > 0 }]" :style="{ marginLeft: `${depth * 40}px` }">
     <!-- Comment Header -->
     <div class="comment-header">
       <img 
@@ -138,6 +138,11 @@ const emit = defineEmits<{
   (e: 'comment-deleted', commentId: number): void
 }>()
 
+// Add a safety check for the comment prop
+if (!props.comment) {
+  console.warn('CommentItem: comment prop is required')
+}
+
 const authStore = useAuthStore()
 const { addComment, updateComment, deleteComment, loadReplies: loadCommentReplies } = useComments(ref(props.postId))
 
@@ -150,15 +155,15 @@ const loadingReplies = ref(false)
 const replies = ref<Comment[]>([])
 
 const canEdit = computed(() => {
-  return authStore.user?.user_id === props.comment.author_id
+  return props.comment && authStore.user?.user_id === props.comment.author_id
 })
 
 const canDelete = computed(() => {
-  return authStore.user?.user_id === props.comment.author_id
+  return props.comment && authStore.user?.user_id === props.comment.author_id
 })
 
 const canReply = computed(() => {
-  return depth.value < maxDepth.value
+  return props.comment && depth.value < maxDepth.value
 })
 
 const formatTime = (dateString: string) => {
@@ -186,6 +191,7 @@ const cancelEdit = () => {
 
 const handleEditSubmit = async (text: string) => {
   try {
+    if (!props.comment) return
     const updated = await updateComment(props.comment.comment_id, {
       content_text: text
     })
@@ -199,7 +205,7 @@ const handleEditSubmit = async (text: string) => {
 }
 
 const handleDelete = async () => {
-  if (!confirm('Delete this comment?')) return
+  if (!props.comment || !confirm('Delete this comment?')) return
   
   try {
     await deleteComment(props.comment.comment_id)
@@ -215,6 +221,7 @@ const toggleReply = () => {
 
 const handleReplySubmit = async (text: string) => {
   try {
+    if (!props.comment) return
     const reply = await addComment({
       post_id: props.postId,
       content_text: text,
@@ -233,6 +240,7 @@ const handleReplySubmit = async (text: string) => {
 }
 
 const loadReplies = async () => {
+  if (!props.comment) return
   loadingReplies.value = true
   try {
     replies.value = await loadCommentReplies(props.comment.comment_id)
@@ -249,6 +257,7 @@ const handleReplyAdded = (reply: Comment) => {
 }
 
 const viewFullThread = () => {
+  if (!props.comment) return
   // Navigate to full thread view
   console.log('View full thread for comment:', props.comment.comment_id)
 }

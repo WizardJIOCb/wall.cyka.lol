@@ -35,12 +35,23 @@ export function useComments(postId: Ref<number> | number) {
         }
       })
       
-      // The API client interceptor already unwraps the response, so we access response directly
+      // The API client interceptor already unwraps the response
       // response is already the data part: { comments: [...], count: 6, has_more: false }
-      comments.value = response.comments || []
+      // Make sure we have a valid array of comments
+      if (response && Array.isArray(response.comments)) {
+        // Filter out any null or undefined comments and ensure each comment is a valid object
+        comments.value = response.comments.filter((comment: any) => 
+          comment !== null && 
+          typeof comment === 'object' && 
+          comment.hasOwnProperty('comment_id')
+        )
+      } else {
+        comments.value = []
+      }
     } catch (err: any) {
       error.value = err.message || 'Failed to load comments'
       console.error('Error loading comments:', err)
+      comments.value = [] // Ensure we have an empty array on error
     } finally {
       loading.value = false
     }
@@ -54,15 +65,19 @@ export function useComments(postId: Ref<number> | number) {
       // response is already the data part: { comment: {...} }
       const newComment = response.comment
       
-      // Add to comments list
-      if (!commentData.parent_id) {
-        comments.value.unshift(newComment)
-      } else {
-        // Add as reply (will be handled by component)
+      // Make sure we have a valid comment object
+      if (newComment && typeof newComment === 'object' && newComment.comment_id) {
+        // Add to comments list
+        if (!commentData.parent_id) {
+          comments.value.unshift(newComment)
+        } else {
+          // Add as reply (will be handled by component)
+          return newComment
+        }
+        
         return newComment
       }
-      
-      return newComment
+      return null
     } catch (err: any) {
       error.value = err.message || 'Failed to add comment'
       throw err
@@ -77,13 +92,17 @@ export function useComments(postId: Ref<number> | number) {
       // response is already the data part: { comment: {...} }
       const updatedComment = response.comment
       
-      // Update in comments list
-      const index = comments.value.findIndex((c: Comment) => c.comment_id === commentId)
-      if (index !== -1) {
-        comments.value[index] = { ...comments.value[index], ...updatedComment }
+      // Make sure we have a valid comment object
+      if (updatedComment && typeof updatedComment === 'object' && updatedComment.comment_id) {
+        // Update in comments list
+        const index = comments.value.findIndex((c: Comment) => c && c.comment_id === commentId)
+        if (index !== -1) {
+          comments.value[index] = { ...comments.value[index], ...updatedComment }
+        }
+        
+        return updatedComment
       }
-      
-      return updatedComment
+      return null
     } catch (err: any) {
       error.value = err.message || 'Failed to update comment'
       throw err
@@ -95,7 +114,7 @@ export function useComments(postId: Ref<number> | number) {
       await apiClient.delete(`/comments/${commentId}`)
       
       // Remove from comments list
-      comments.value = comments.value.filter((c: Comment) => c.comment_id !== commentId)
+      comments.value = comments.value.filter((c: Comment) => c && c.comment_id !== undefined && c.comment_id !== commentId)
     } catch (err: any) {
       error.value = err.message || 'Failed to delete comment'
       throw err
@@ -112,7 +131,15 @@ export function useComments(postId: Ref<number> | number) {
       
       // The API client interceptor already unwraps the response
       // response is already the data part: { comments: [...] }
-      return response.comments || []
+      if (response && Array.isArray(response.comments)) {
+        // Filter out any null or undefined comments and ensure each comment is a valid object
+        return response.comments.filter((comment: any) => 
+          comment !== null && 
+          typeof comment === 'object' && 
+          comment.hasOwnProperty('comment_id')
+        )
+      }
+      return []
     } catch (err: any) {
       error.value = err.message || 'Failed to load replies'
       return []

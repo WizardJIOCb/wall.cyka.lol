@@ -112,7 +112,7 @@ const pollInterval = ref<number | null>(null)
 
 // Computed
 const topLevelComments = computed(() => {
-  return comments.value.filter(c => !c.parent_comment_id)
+  return comments.value.filter(c => c && !c.parent_comment_id)
 })
 
 // Methods
@@ -129,15 +129,29 @@ const fetchComments = async () => {
     
     // The API client interceptor already unwraps the response
     // response is already the data part: { comments: [...], count: 6, has_more: false }
-    comments.value = response.comments || []
-    hasMore.value = response.has_more || false
-    totalCount.value = response.count || 0
+    // Make sure we have valid data before accessing properties
+    if (response && response.comments && Array.isArray(response.comments)) {
+      comments.value = response.comments.filter((comment: any) => 
+        comment !== null && 
+        typeof comment === 'object' && 
+        comment.hasOwnProperty('comment_id')
+      )
+      hasMore.value = response.has_more || false
+      totalCount.value = response.count || 0
+    } else {
+      comments.value = []
+      hasMore.value = false
+      totalCount.value = 0
+    }
     
     // Build comment tree
     buildCommentTree()
     
   } catch (error) {
     console.error('Failed to fetch comments:', error)
+    comments.value = []
+    hasMore.value = false
+    totalCount.value = 0
   } finally {
     loading.value = false
   }
@@ -147,13 +161,15 @@ const buildCommentTree = () => {
   // Create a map for quick lookup
   const commentMap = new Map<number, Comment>()
   comments.value.forEach(comment => {
-    comment.replies = []
-    commentMap.set(comment.comment_id, comment)
+    if (comment) {
+      comment.replies = []
+      commentMap.set(comment.comment_id, comment)
+    }
   })
   
   // Build tree structure
   comments.value.forEach(comment => {
-    if (comment.parent_comment_id) {
+    if (comment && comment.parent_comment_id) {
       const parent = commentMap.get(comment.parent_comment_id)
       if (parent && parent.replies) {
         parent.replies.push(comment)
@@ -170,26 +186,32 @@ const loadMore = async () => {
 
 const onCommentCreated = (comment: Comment) => {
   // Add new comment to the beginning
-  comments.value.unshift(comment)
-  totalCount.value++
-  buildCommentTree()
-}
-
-const onReplyCreated = (reply: Comment) => {
-  // Reply is already added to parent in CommentItem
-  totalCount.value++
-}
-
-const onCommentUpdated = (updatedComment: Comment) => {
-  const index = comments.value.findIndex(c => c.comment_id === updatedComment.comment_id)
-  if (index !== -1) {
-    comments.value[index] = { ...comments.value[index], ...updatedComment }
+  if (comment) {
+    comments.value.unshift(comment)
+    totalCount.value++
     buildCommentTree()
   }
 }
 
+const onReplyCreated = (reply: Comment) => {
+  // Reply is already added to parent in CommentItem
+  if (reply) {
+    totalCount.value++
+  }
+}
+
+const onCommentUpdated = (updatedComment: Comment) => {
+  if (updatedComment) {
+    const index = comments.value.findIndex(c => c && c.comment_id === updatedComment.comment_id)
+    if (index !== -1) {
+      comments.value[index] = { ...comments.value[index], ...updatedComment }
+      buildCommentTree()
+    }
+  }
+}
+
 const onCommentDeleted = (commentId: number) => {
-  comments.value = comments.value.filter(c => c.comment_id !== commentId)
+  comments.value = comments.value.filter(c => c && c.comment_id !== undefined && c.comment_id !== commentId)
   totalCount.value--
   buildCommentTree()
 }

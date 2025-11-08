@@ -1,5 +1,6 @@
 <template>
   <div 
+    v-if="comment && comment.comment_id"
     class="comment-item" 
     :class="`depth-${depth}`"
     :style="{ marginLeft: indentPixels }"
@@ -192,6 +193,11 @@ const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const authStore = useAuthStore()
 
+// Add safety check for comment prop
+if (!props.comment) {
+  console.warn('CommentItem: comment prop is required')
+}
+
 // State
 const isEditing = ref(false)
 const showReplyForm = ref(false)
@@ -211,10 +217,11 @@ const reactionTypes = [
 
 // Computed
 const isOwner = computed(() => {
-  return authStore.user?.user_id === props.comment.author_id
+  return props.comment && authStore.user?.user_id === props.comment.author_id
 })
 
 const canEdit = computed(() => {
+  if (!props.comment) return false
   const createdTime = new Date(props.comment.created_at).getTime()
   const now = Date.now()
   const minutesPassed = (now - createdTime) / 1000 / 60
@@ -222,7 +229,7 @@ const canEdit = computed(() => {
 })
 
 const indentPixels = computed(() => {
-  if (props.depth === 0) return '0'
+  if (!props.comment || props.depth === 0) return '0'
   const baseIndent = window.innerWidth > 768 ? 24 : 12
   return `${props.depth * baseIndent}px`
 })
@@ -263,7 +270,7 @@ const startEdit = () => {
 }
 
 const deleteComment = async () => {
-  if (!confirm(t('comments.deleteConfirm'))) return
+  if (!props.comment || !confirm(t('comments.deleteConfirm'))) return
   
   try {
     await apiClient.delete(`/comments/${props.comment.comment_id}`)
@@ -292,6 +299,8 @@ const toggleReactionPicker = () => {
 }
 
 const reactToComment = async (reactionType: string) => {
+  if (!props.comment) return
+  
   try {
     const response = await apiClient.post(
       `/comments/${props.comment.comment_id}/reactions`,
@@ -325,6 +334,7 @@ const onReplyCreated = (reply: Comment) => {
   showReplyForm.value = false
   
   // Add reply to local state
+  if (!props.comment) return
   if (!props.comment.replies) {
     props.comment.replies = []
   }
