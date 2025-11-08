@@ -202,6 +202,10 @@
                 <span class="icon">👁</span>
                 <span>{{ post.view_count || 0 }}</span>
               </button>
+              <button class="action-btn">
+                <span class="icon">📖</span>
+                <span>{{ post.open_count || 0 }}</span>
+              </button>
               <span class="post-time-footer">{{ formatDate(post.post_type === 'ai_app' ? post.updated_at : post.created_at) }}</span>
             </div>
           </div>
@@ -314,6 +318,47 @@
               </template>
             </div>
           </div>
+          
+          <!-- Post Counters -->
+          <div class="ai-modal-section" v-if="selectedAIPost">
+            <h3>📊 Post Metrics</h3>
+            <div class="post-counters">
+              <div class="counter-item">
+                <button class="counter-button" @click="toggleLike(selectedAIPost)">
+                  <span class="counter-icon">{{ selectedAIPost.user_liked ? '❤️' : '🤍' }}</span>
+                  <span class="counter-label">{{ selectedAIPost.user_liked ? 'Liked' : 'Like' }}</span>
+                  <span class="counter-value">{{ selectedAIPost.reaction_count || 0 }}</span>
+                </button>
+              </div>
+              <div class="counter-item">
+                <span class="counter-icon">💬</span>
+                <span class="counter-label">Comments</span>
+                <span class="counter-value">{{ selectedAIPost.comment_count || 0 }}</span>
+              </div>
+              <div class="counter-item">
+                <span class="counter-icon">👁</span>
+                <span class="counter-label">Views</span>
+                <span class="counter-value">{{ selectedAIPost.view_count || 0 }}</span>
+              </div>
+              <div class="counter-item">
+                <span class="counter-icon">📖</span>
+                <span class="counter-label">Opens</span>
+                <span class="counter-value">{{ selectedAIPost.open_count || 0 }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Comment Section -->
+          <div class="ai-modal-section" v-if="selectedAIPost">
+            <h3>💬 Comments</h3>
+            <CommentSection 
+              :post-id="selectedAIPost.post_id" 
+              :max-depth="3"
+              @comment-created="handleCommentCreated"
+              @comment-deleted="handleCommentDeleted"
+              @comment-updated="handleCommentUpdated"
+            />
+          </div>
         </div>
         
         <div class="modal-footer">
@@ -348,6 +393,7 @@ import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/services/api/client'
 import postsAPI from '@/services/api/posts'
 import AIGenerationProgress from '@/components/ai/AIGenerationProgress.vue'
+import CommentSection from '@/components/social/CommentSection.vue'
 import { marked } from 'marked'
 
 // Configure marked options
@@ -1106,6 +1152,77 @@ const copyToClipboard = (text: string, label: string) => {
     console.error('Failed to copy:', err)
     displayToast('✗ Failed to copy')
   })
+}
+
+const toggleLike = async (post: any) => {
+  try {
+    if (post.user_liked) {
+      // Remove like
+      await apiClient.delete(`/posts/${post.post_id}/reactions`)
+      post.user_liked = false
+      post.reaction_count = Math.max(0, (post.reaction_count || 0) - 1)
+      
+      // Update in posts list if it exists there
+      const postIndex = posts.value.findIndex((p: any) => p.post_id === post.post_id)
+      if (postIndex !== -1) {
+        posts.value[postIndex].user_liked = false
+        posts.value[postIndex].reaction_count = Math.max(0, (posts.value[postIndex].reaction_count || 0) - 1)
+      }
+    } else {
+      // Add like
+      await apiClient.post(`/posts/${post.post_id}/reactions`, { reaction_type: 'like' })
+      post.user_liked = true
+      post.reaction_count = (post.reaction_count || 0) + 1
+      
+      // Update in posts list if it exists there
+      const postIndex = posts.value.findIndex((p: any) => p.post_id === post.post_id)
+      if (postIndex !== -1) {
+        posts.value[postIndex].user_liked = true
+        posts.value[postIndex].reaction_count = (posts.value[postIndex].reaction_count || 0) + 1
+      }
+    }
+  } catch (error) {
+    console.error('Failed to toggle like:', error)
+    displayToast('✗ Failed to update like')
+  }
+}
+
+const handleCommentCreated = (comment: any) => {
+  // Update comment count in the selected post
+  if (selectedAIPost.value) {
+    selectedAIPost.value.comment_count = (selectedAIPost.value.comment_count || 0) + 1
+  }
+  
+  // Update comment count in the posts list
+  if (selectedAIPost.value) {
+    const postIndex = posts.value.findIndex((p: any) => p.post_id === selectedAIPost.value.post_id)
+    if (postIndex !== -1) {
+      posts.value[postIndex].comment_count = (posts.value[postIndex].comment_count || 0) + 1
+    }
+  }
+  
+  displayToast('✓ Comment added')
+}
+
+const handleCommentDeleted = (commentId: number) => {
+  // Update comment count in the selected post
+  if (selectedAIPost.value) {
+    selectedAIPost.value.comment_count = Math.max(0, (selectedAIPost.value.comment_count || 0) - 1)
+  }
+  
+  // Update comment count in the posts list
+  if (selectedAIPost.value) {
+    const postIndex = posts.value.findIndex((p: any) => p.post_id === selectedAIPost.value.post_id)
+    if (postIndex !== -1) {
+      posts.value[postIndex].comment_count = Math.max(0, (posts.value[postIndex].comment_count || 0) - 1)
+    }
+  }
+  
+  displayToast('✓ Comment deleted')
+}
+
+const handleCommentUpdated = (comment: any) => {
+  displayToast('✓ Comment updated')
 }
 
 const downloadAIApp = () => {
@@ -2181,6 +2298,67 @@ onUnmounted(() => {
   padding: var(--spacing-4);
   background: var(--color-bg-secondary);
   border-radius: var(--radius-md);
+}
+
+.post-counters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.counter-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-2);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.counter-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-2);
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.counter-button:hover {
+  background: var(--color-bg-secondary);
+  transform: translateY(-2px);
+}
+
+.ai-modal-section h3 {
+  margin-top: var(--spacing-6);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.counter-icon {
+  font-size: 1.5rem;
+}
+
+.counter-label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.counter-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary);
 }
 
 /* Progress bar in modal */

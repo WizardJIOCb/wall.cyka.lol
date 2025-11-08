@@ -272,6 +272,7 @@ class Post
             'view_count' => (int)($post['view_count'] ?? 0),
             'open_count' => (int)($post['open_count'] ?? 0),
             'is_pinned' => (bool)($post['is_pinned'] ?? false),
+            'user_liked' => ($post['user_reaction'] ?? null) === 'like',
             'ai_status' => $post['ai_status'] ?? null,
             'ai_app_id' => $post['app_id'] ?? null,
             'ai_job_id' => $post['job_id'] ?? null,

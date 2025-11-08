@@ -146,6 +146,14 @@ class PostController
             self::jsonResponse(false, ['code' => 'ACCESS_DENIED'], 'You do not have permission to view this post', 403);
         }
 
+        // Get user reaction if authenticated
+        if ($userId) {
+            $userReaction = Reaction::getUserReactions($userId, 'post', [$postId]);
+            if (!empty($userReaction)) {
+                $post['user_reaction'] = $userReaction[0]['reaction_type'];
+            }
+        }
+
         // Increment view count
         Post::incrementViewCount($postId);
 
@@ -183,6 +191,22 @@ class PostController
 
         $posts = Post::getWallPosts($wallId, $limit, $offset);
         
+        // Get user reactions if authenticated
+        if ($userId) {
+            $postIds = array_map(function($post) { return $post['post_id']; }, $posts);
+            if (!empty($postIds)) {
+                $userReactions = Reaction::getUserReactions($userId, 'post', $postIds);
+                $reactionMap = [];
+                foreach ($userReactions as $r) {
+                    $reactionMap[$r['reactable_id']] = $r['reaction_type'];
+                }
+                
+                foreach ($posts as &$post) {
+                    $post['user_reaction'] = $reactionMap[$post['post_id']] ?? null;
+                }
+            }
+        }
+        
         // Get media for each post
         $postsWithMedia = array_map(function($post) {
             $media = MediaAttachment::getPostMedia($post['post_id']);
@@ -213,6 +237,24 @@ class PostController
         }
 
         $posts = Post::getUserPosts($userId, $limit, $offset);
+        
+        // Get user reactions if authenticated
+        $currentUser = AuthMiddleware::optionalAuth();
+        $currentUserId = $currentUser ? $currentUser['user_id'] : null;
+        if ($currentUserId) {
+            $postIds = array_map(function($post) { return $post['post_id']; }, $posts);
+            if (!empty($postIds)) {
+                $userReactions = Reaction::getUserReactions($currentUserId, 'post', $postIds);
+                $reactionMap = [];
+                foreach ($userReactions as $r) {
+                    $reactionMap[$r['reactable_id']] = $r['reaction_type'];
+                }
+                
+                foreach ($posts as &$post) {
+                    $post['user_reaction'] = $reactionMap[$post['post_id']] ?? null;
+                }
+            }
+        }
         
         // Get media for each post
         $postsWithMedia = array_map(function($post) {
