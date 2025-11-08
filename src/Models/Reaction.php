@@ -15,7 +15,7 @@ class Reaction
     public static function addReaction($data)
     {
         $sql = "INSERT INTO reactions (
-            user_id, reactable_type, reactable_id, reaction_type, created_at
+            user_id, target_type, target_id, reaction_type, created_at
         ) VALUES (?, ?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE 
             reaction_type = VALUES(reaction_type),
@@ -23,8 +23,8 @@ class Reaction
 
         $params = [
             $data['user_id'],
-            $data['reactable_type'], // 'post' or 'comment'
-            $data['reactable_id'],
+            $data['target_type'], // 'post' or 'comment'
+            $data['target_id'],
             $data['reaction_type'] // 'like', 'dislike', 'love', 'haha', 'wow', 'sad', 'angry'
         ];
 
@@ -34,7 +34,7 @@ class Reaction
             Database::query($sql, $params);
             
             // Update counter on target
-            self::updateCounters($data['reactable_type'], $data['reactable_id']);
+            self::updateCounters($data['target_type'], $data['target_id']);
             
             // Update user counter
             $userSql = "UPDATE users SET reactions_given_count = reactions_given_count + 1 WHERE user_id = ?";
@@ -51,16 +51,16 @@ class Reaction
     /**
      * Remove reaction
      */
-    public static function removeReaction($userId, $reactableType, $reactableId)
+    public static function removeReaction($userId, $targetType, $targetId)
     {
         try {
             Database::beginTransaction();
             
-            $sql = "DELETE FROM reactions WHERE user_id = ? AND reactable_type = ? AND reactable_id = ?";
-            Database::query($sql, [$userId, $reactableType, $reactableId]);
+            $sql = "DELETE FROM reactions WHERE user_id = ? AND target_type = ? AND target_id = ?";
+            Database::query($sql, [$userId, $targetType, $targetId]);
             
             // Update counters
-            self::updateCounters($reactableType, $reactableId);
+            self::updateCounters($targetType, $targetId);
             
             // Update user counter
             $userSql = "UPDATE users SET reactions_given_count = reactions_given_count - 1 WHERE user_id = ? AND reactions_given_count > 0";
@@ -77,33 +77,33 @@ class Reaction
     /**
      * Get reactions for item
      */
-    public static function getReactions($reactableType, $reactableId, $limit = 100)
+    public static function getReactions($targetType, $targetId, $limit = 100)
     {
         $sql = "SELECT r.*, u.username, u.display_name, u.avatar_url
                 FROM reactions r
                 JOIN users u ON r.user_id = u.user_id
-                WHERE r.reactable_type = ? AND r.reactable_id = ?
+                WHERE r.target_type = ? AND r.target_id = ?
                 ORDER BY r.created_at DESC
                 LIMIT ?";
         
-        return Database::fetchAll($sql, [$reactableType, $reactableId, $limit]);
+        return Database::fetchAll($sql, [$targetType, $targetId, $limit]);
     }
 
     /**
      * Get user's reaction
      */
-    public static function getUserReaction($userId, $reactableType, $reactableId)
+    public static function getUserReaction($userId, $targetType, $targetId)
     {
-        $sql = "SELECT * FROM reactions WHERE user_id = ? AND reactable_type = ? AND reactable_id = ?";
-        return Database::fetchOne($sql, [$userId, $reactableType, $reactableId]);
+        $sql = "SELECT * FROM reactions WHERE user_id = ? AND target_type = ? AND target_id = ?";
+        return Database::fetchOne($sql, [$userId, $targetType, $targetId]);
     }
 
     /**
      * Update reaction counters
      */
-    private static function updateCounters($reactableType, $reactableId)
+    private static function updateCounters($targetType, $targetId)
     {
-        $table = $reactableType === 'post' ? 'posts' : 'comments';
+        $table = $targetType === 'post' ? 'posts' : 'comments';
         
         // Get counts
         $countSql = "SELECT 
@@ -111,12 +111,12 @@ class Reaction
                         SUM(CASE WHEN reaction_type = 'like' THEN 1 ELSE 0 END) as likes,
                         SUM(CASE WHEN reaction_type = 'dislike' THEN 1 ELSE 0 END) as dislikes
                      FROM reactions
-                     WHERE reactable_type = ? AND reactable_id = ?";
+                     WHERE target_type = ? AND target_id = ?";
         
-        $counts = Database::fetchOne($countSql, [$reactableType, $reactableId]);
+        $counts = Database::fetchOne($countSql, [$targetType, $targetId]);
         
         // Update target table
-        $idColumn = $reactableType === 'post' ? 'post_id' : 'comment_id';
+        $idColumn = $targetType === 'post' ? 'post_id' : 'comment_id';
         $updateSql = "UPDATE $table SET 
                       reaction_count = ?,
                       like_count = ?,
@@ -128,21 +128,21 @@ class Reaction
             $counts['total'],
             $counts['likes'],
             $counts['dislikes'],
-            $reactableId
+            $targetId
         ]);
     }
 
     /**
      * Get reaction statistics
      */
-    public static function getReactionStats($reactableType, $reactableId)
+    public static function getReactionStats($targetType, $targetId)
     {
         $sql = "SELECT reaction_type, COUNT(*) as count
                 FROM reactions
-                WHERE reactable_type = ? AND reactable_id = ?
+                WHERE target_type = ? AND target_id = ?
                 GROUP BY reaction_type";
         
-        $stats = Database::fetchAll($sql, [$reactableType, $reactableId]);
+        $stats = Database::fetchAll($sql, [$targetType, $targetId]);
         
         $result = [
             'like' => 0,
@@ -190,8 +190,8 @@ class Reaction
             // Add or update reaction
             self::addReaction([
                 'user_id' => $userId,
-                'reactable_type' => $targetType,
-                'reactable_id' => $targetId,
+                'target_type' => $targetType,
+                'target_id' => $targetId,
                 'reaction_type' => $reactionType
             ]);
             
@@ -219,7 +219,7 @@ class Reaction
     {
         $sql = "SELECT reaction_type, COUNT(*) as count
                 FROM reactions
-                WHERE reactable_type = ? AND reactable_id = ?
+                WHERE target_type = ? AND target_id = ?
                 GROUP BY reaction_type
                 ORDER BY count DESC";
         
@@ -241,7 +241,7 @@ class Reaction
         $sql = "SELECT r.reaction_type, u.user_id, u.username, u.display_name, u.avatar_url, r.created_at
                 FROM reactions r
                 JOIN users u ON r.user_id = u.user_id
-                WHERE r.reactable_type = ? AND r.reactable_id = ?";
+                WHERE r.target_type = ? AND r.target_id = ?";
         
         $params = [$targetType, $targetId];
         
@@ -268,7 +268,7 @@ class Reaction
         
         $placeholders = implode(',', array_fill(0, count($targetIds), '?'));
         $sql = "SELECT * FROM reactions 
-                WHERE user_id = ? AND reactable_type = ? AND reactable_id IN ($placeholders)";
+                WHERE user_id = ? AND target_type = ? AND target_id IN ($placeholders)";
         
         $params = array_merge([$userId, $targetType], $targetIds);
         
