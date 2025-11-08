@@ -5,6 +5,8 @@
  * Handles user social links
  */
 
+use App\Utils\Database;
+
 class SocialLink
 {
     /**

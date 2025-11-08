@@ -5,6 +5,8 @@
  * Handles threaded comments with reactions
  */
 
+use App\Utils\Database;
+
 class Comment
 {
     /**

@@ -5,6 +5,8 @@
  * Handles reactions (likes, dislikes, etc.) for posts and comments
  */
 
+use App\Utils\Database;
+
 class Reaction
 {
     /**
