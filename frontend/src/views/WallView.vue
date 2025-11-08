@@ -208,6 +208,17 @@
               </button>
               <span class="post-time-footer">{{ formatDate(post.post_type === 'ai_app' ? post.updated_at : post.created_at) }}</span>
             </div>
+            
+            <!-- Comment Section for Regular Posts -->
+            <div v-if="post.post_type !== 'ai_app'" class="post-comments">
+              <CommentSection 
+                :post-id="post.post_id" 
+                :max-depth="3"
+                @comment-created="handleCommentCreated"
+                @comment-deleted="handleCommentDeleted"
+                @comment-updated="handleCommentUpdated"
+              />
+            </div>
           </div>
         </div>
 
