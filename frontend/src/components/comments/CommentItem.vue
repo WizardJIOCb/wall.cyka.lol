@@ -198,6 +198,17 @@ if (!props.comment) {
   console.warn('CommentItem: comment prop is required')
 }
 
+// Helper function to validate comment objects
+const isValidComment = (comment: any): comment is Comment => {
+  return (
+    comment !== null &&
+    comment !== undefined &&
+    typeof comment === 'object' &&
+    typeof comment.comment_id === 'number' &&
+    comment.comment_id > 0
+  )
+}
+
 // State
 const isEditing = ref(false)
 const showReplyForm = ref(false)

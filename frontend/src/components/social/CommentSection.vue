@@ -43,7 +43,7 @@
 
       <div v-else class="comments">
         <CommentItem
-          v-for="comment in comments"
+          v-for="(comment, index) in comments"
           :key="comment.comment_id"
           :comment="comment"
           :post-id="postId"

@@ -16,6 +16,16 @@ export function useComments(postId: Ref<number> | number) {
 
   const getPostId = () => typeof postId === 'number' ? postId : postId.value
 
+  const isValidComment = (comment: any): comment is Comment => {
+    return (
+      comment !== null &&
+      comment !== undefined &&
+      typeof comment === 'object' &&
+      typeof comment.comment_id === 'number' &&
+      comment.comment_id > 0
+    )
+  }
+
   const loadComments = async (sortBy: 'newest' | 'oldest' | 'popular' = 'newest') => {
     try {
       loading.value = true
@@ -39,12 +49,8 @@ export function useComments(postId: Ref<number> | number) {
       // response is already the data part: { comments: [...], count: 6, has_more: false }
       // Make sure we have a valid array of comments
       if (response && Array.isArray(response.comments)) {
-        // Filter out any null or undefined comments and ensure each comment is a valid object
-        comments.value = response.comments.filter((comment: any) => 
-          comment !== null && 
-          typeof comment === 'object' && 
-          comment.hasOwnProperty('comment_id')
-        )
+        // Filter out any invalid comments and ensure each comment is a valid object
+        comments.value = response.comments.filter(isValidComment)
       } else {
         comments.value = []
       }
@@ -66,7 +72,7 @@ export function useComments(postId: Ref<number> | number) {
       const newComment = response.comment
       
       // Make sure we have a valid comment object
-      if (newComment && typeof newComment === 'object' && newComment.comment_id) {
+      if (isValidComment(newComment)) {
         // Add to comments list
         if (!commentData.parent_id) {
           comments.value.unshift(newComment)
@@ -93,7 +99,7 @@ export function useComments(postId: Ref<number> | number) {
       const updatedComment = response.comment
       
       // Make sure we have a valid comment object
-      if (updatedComment && typeof updatedComment === 'object' && updatedComment.comment_id) {
+      if (isValidComment(updatedComment)) {
         // Update in comments list
         const index = comments.value.findIndex((c: Comment) => c && c.comment_id === commentId)
         if (index !== -1) {
@@ -132,12 +138,8 @@ export function useComments(postId: Ref<number> | number) {
       // The API client interceptor already unwraps the response
       // response is already the data part: { comments: [...] }
       if (response && Array.isArray(response.comments)) {
-        // Filter out any null or undefined comments and ensure each comment is a valid object
-        return response.comments.filter((comment: any) => 
-          comment !== null && 
-          typeof comment === 'object' && 
-          comment.hasOwnProperty('comment_id')
-        )
+        // Filter out any invalid comments and ensure each comment is a valid object
+        return response.comments.filter(isValidComment)
       }
       return []
     } catch (err: any) {

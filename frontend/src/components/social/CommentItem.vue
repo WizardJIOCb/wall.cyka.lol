@@ -1,5 +1,5 @@
 <template>
-  <div v-if="comment" :class="['comment-item', { 'is-reply': depth > 0 }]" :style="{ marginLeft: `${depth * 40}px` }">
+  <div v-if="comment && comment.comment_id" :class="['comment-item', { 'is-reply': depth > 0 }]" :style="{ marginLeft: `${depth * 40}px` }">
     <!-- Comment Header -->
     <div class="comment-header">
       <img 
