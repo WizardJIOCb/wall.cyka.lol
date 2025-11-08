@@ -199,7 +199,7 @@ class PostController
                 $userReactions = Reaction::getUserReactions($userId, 'post', $postIds);
                 $reactionMap = [];
                 foreach ($userReactions as $r) {
-                    $reactionMap[$r['reactable_id']] = $r['reaction_type'];
+                    $reactionMap[$r['target_id']] = $r['reaction_type'];
                 }
                 
                 foreach ($posts as &$post) {
@@ -248,7 +248,7 @@ class PostController
                 $userReactions = Reaction::getUserReactions($currentUserId, 'post', $postIds);
                 $reactionMap = [];
                 foreach ($userReactions as $r) {
-                    $reactionMap[$r['reactable_id']] = $r['reaction_type'];
+                    $reactionMap[$r['target_id']] = $r['reaction_type'];
                 }
                 
                 foreach ($posts as &$post) {
