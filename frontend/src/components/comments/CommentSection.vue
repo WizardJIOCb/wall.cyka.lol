@@ -127,9 +127,9 @@ const fetchComments = async () => {
       }
     })
     
-    comments.value = response.data.data.comments || []
-    hasMore.value = response.data.data.has_more || false
-    totalCount.value = response.data.data.count || 0
+    comments.value = response.comments || []
+    hasMore.value = response.has_more || false
+    totalCount.value = response.count || 0
     
     // Build comment tree
     buildCommentTree()

@@ -48,7 +48,7 @@ export const useCommentsStore = defineStore('comments', () => {
         }
       })
       
-      const data: CommentListResponse = response.data.data
+      const data: CommentListResponse = response
       commentsByPost.value.set(postId, data.comments)
       
       return data
@@ -70,7 +70,7 @@ export const useCommentsStore = defineStore('comments', () => {
         : `/posts/${postId}/comments`
       
       const response = await apiClient.post(endpoint, { content: data.content })
-      const comment: Comment = response.data.data
+      const comment: Comment = response
       
       // Add to local state
       const comments = commentsByPost.value.get(postId) || []
@@ -89,8 +89,8 @@ export const useCommentsStore = defineStore('comments', () => {
   ): Promise<Comment> => {
     try {
       const response = await apiClient.patch(`/comments/${commentId}`, data)
-      const updatedComment: Comment = response.data.data
-      
+      const updatedComment: Comment = response
+    
       // Update in local state
       for (const [postId, comments] of commentsByPost.value.entries()) {
         const index = comments.findIndex(c => c.comment_id === commentId)
@@ -131,7 +131,7 @@ export const useCommentsStore = defineStore('comments', () => {
         reaction_type: reactionType
       })
       
-      const data: CommentReactionResponse = response.data.data
+      const data: CommentReactionResponse = response
       
       // Update comment reaction in local state
       for (const [postId, comments] of commentsByPost.value.entries()) {
@@ -161,8 +161,8 @@ export const useCommentsStore = defineStore('comments', () => {
   const removeReaction = async (commentId: number): Promise<CommentReactionResponse> => {
     try {
       const response = await apiClient.delete(`/comments/${commentId}/reactions`)
-      const data: CommentReactionResponse = response.data.data
-      
+      const data: CommentReactionResponse = response
+    
       // Update comment reaction in local state
       for (const [postId, comments] of commentsByPost.value.entries()) {
         const updateCommentReaction = (comment: Comment) => {
@@ -176,10 +176,10 @@ export const useCommentsStore = defineStore('comments', () => {
             comment.replies.forEach(updateCommentReaction)
           }
         }
-        
+      
         comments.forEach(updateCommentReaction)
       }
-      
+    
       return data
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to remove reaction'
@@ -190,7 +190,7 @@ export const useCommentsStore = defineStore('comments', () => {
   const getCommentReactions = async (commentId: number) => {
     try {
       const response = await apiClient.get(`/comments/${commentId}/reactions`)
-      return response.data.data
+      return response
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to fetch reactions'
       throw err
@@ -209,7 +209,7 @@ export const useCommentsStore = defineStore('comments', () => {
       const response = await apiClient.get(`/comments/${commentId}/reactions/users`, {
         params: options
       })
-      return response.data.data
+      return response
     } catch (err: any) {
       error.value = err.response?.data?.message || 'Failed to fetch reaction users'
       throw err
