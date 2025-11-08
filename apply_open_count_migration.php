@@ -1,12 +1,12 @@
 <?php
 // Directly apply the open_count migration
 
-// Database configuration
-$DB_HOST = getenv('DB_HOST') ?: 'localhost';
-$DB_PORT = getenv('DB_PORT') ?: '3308';
-$DB_NAME = getenv('DB_NAME') ?: 'wall_social_platform';
-$DB_USER = getenv('DB_USER') ?: 'wall_user';
-$DB_PASS = getenv('DB_PASSWORD') ?: 'wall_secure_password_123';
+// Database configuration - connecting to Docker container from host
+$DB_HOST = 'localhost';  // Connect to localhost since we're on the host
+$DB_PORT = '3308';       // Exposed port from docker-compose.yml
+$DB_NAME = 'wall_social_platform';
+$DB_USER = 'wall_user';
+$DB_PASS = 'wall_secure_password_123';
 
 try {
     // Database connection
