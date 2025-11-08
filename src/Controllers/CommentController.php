@@ -24,7 +24,8 @@ class CommentController
     public static function getPostComments($params)
     {
         try {
-            $userId = AuthMiddleware::getUserId(false);
+            $currentUser = AuthMiddleware::optionalAuth();
+            $userId = $currentUser ? $currentUser['user_id'] : null;
             $postId = (int)$params['postId'];
             
             // Verify post exists and user has access
@@ -88,7 +89,8 @@ class CommentController
     public static function createComment($params)
     {
         try {
-            $userId = AuthMiddleware::getUserId();
+            $currentUser = AuthMiddleware::requireAuth();
+            $userId = $currentUser['user_id'];
             $postId = (int)$params['postId'];
             
             // Verify post exists
@@ -196,7 +198,8 @@ class CommentController
     public static function createReply($params)
     {
         try {
-            $userId = AuthMiddleware::getUserId();
+            $currentUser = AuthMiddleware::requireAuth();
+            $userId = $currentUser['user_id'];
             $parentCommentId = (int)$params['commentId'];
             
             // Get parent comment
@@ -269,7 +272,8 @@ class CommentController
     public static function getComment($params)
     {
         try {
-            $userId = AuthMiddleware::getUserId(false);
+            $currentUser = AuthMiddleware::optionalAuth();
+            $userId = $currentUser ? $currentUser['user_id'] : null;
             $commentId = (int)$params['commentId'];
             
             $comment = Comment::findById($commentId);
@@ -296,7 +300,8 @@ class CommentController
     public static function updateComment($params)
     {
         try {
-            $userId = AuthMiddleware::getUserId();
+            $currentUser = AuthMiddleware::requireAuth();
+            $userId = $currentUser['user_id'];
             $commentId = (int)$params['commentId'];
             
             // Get comment
@@ -359,7 +364,8 @@ class CommentController
     public static function deleteComment($params)
     {
         try {
-            $userId = AuthMiddleware::getUserId();
+            $currentUser = AuthMiddleware::requireAuth();
+            $userId = $currentUser['user_id'];
             $commentId = (int)$params['commentId'];
             
             // Get comment
@@ -391,7 +397,8 @@ class CommentController
     public static function reactToComment($params)
     {
         try {
-            $userId = AuthMiddleware::getUserId();
+            $currentUser = AuthMiddleware::requireAuth();
+            $userId = $currentUser['user_id'];
             $commentId = (int)$params['commentId'];
             
             // Verify comment exists
@@ -450,7 +457,8 @@ class CommentController
     public static function removeCommentReaction($params)
     {
         try {
-            $userId = AuthMiddleware::getUserId();
+            $currentUser = AuthMiddleware::requireAuth();
+            $userId = $currentUser['user_id'];
             $commentId = (int)$params['commentId'];
             
             // Verify comment exists

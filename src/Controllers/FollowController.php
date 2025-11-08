@@ -15,7 +15,8 @@ class FollowController
      */
     public static function followUser($params)
     {
-        $currentUserId = AuthMiddleware::getUserId();
+        $currentUser = AuthMiddleware::requireAuth();
+        $currentUserId = $currentUser['user_id'];
         $targetUserId = (int)$params['userId'];
 
         // Validate target user exists
@@ -84,7 +85,8 @@ class FollowController
      */
     public static function unfollowUser($params)
     {
-        $currentUserId = AuthMiddleware::getUserId();
+        $currentUser = AuthMiddleware::requireAuth();
+        $currentUserId = $currentUser['user_id'];
         $targetUserId = (int)$params['userId'];
 
         // Validate target user exists
@@ -133,7 +135,8 @@ class FollowController
     public static function getFollowers($params)
     {
         $userId = (int)$params['userId'];
-        $currentUserId = AuthMiddleware::getUserIdOptional();
+        $currentUser = AuthMiddleware::optionalAuth();
+        $currentUserId = $currentUser ? $currentUser['user_id'] : null;
 
         // Validate user exists
         $user = User::find($userId);
@@ -176,7 +179,8 @@ class FollowController
     public static function getFollowing($params)
     {
         $userId = (int)$params['userId'];
-        $currentUserId = AuthMiddleware::getUserIdOptional();
+        $currentUser = AuthMiddleware::optionalAuth();
+        $currentUserId = $currentUser ? $currentUser['user_id'] : null;
 
         // Validate user exists
         $user = User::find($userId);
@@ -218,7 +222,8 @@ class FollowController
      */
     public static function getFollowStatus($params)
     {
-        $currentUserId = AuthMiddleware::getUserId();
+        $currentUser = AuthMiddleware::requireAuth();
+        $currentUserId = $currentUser['user_id'];
         $targetUserId = (int)$params['userId'];
 
         // Validate target user exists
@@ -247,7 +252,8 @@ class FollowController
      */
     public static function getMutualFollowers($params)
     {
-        $currentUserId = AuthMiddleware::getUserId();
+        $currentUser = AuthMiddleware::requireAuth();
+        $currentUserId = $currentUser['user_id'];
         $targetUserId = (int)$params['userId'];
 
         // Validate target user exists

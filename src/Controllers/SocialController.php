@@ -5,6 +5,14 @@
  * Handles social features: reactions, comments, reposts
  */
 
+namespace App\Controllers;
+
+use App\Middleware\AuthMiddleware;
+use App\Models\Reaction;
+use App\Models\Comment;
+use App\Utils\Validator;
+use Exception;
+
 class SocialController
 {
     /**
