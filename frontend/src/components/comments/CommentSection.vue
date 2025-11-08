@@ -127,6 +127,8 @@ const fetchComments = async () => {
       }
     })
     
+    // The API client interceptor already unwraps the response
+    // response is already the data part: { comments: [...], count: 6, has_more: false }
     comments.value = response.comments || []
     hasMore.value = response.has_more || false
     totalCount.value = response.count || 0

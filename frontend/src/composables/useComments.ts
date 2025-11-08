@@ -21,13 +21,23 @@ export function useComments(postId: Ref<number> | number) {
       loading.value = true
       error.value = null
       
+      // Convert sortBy to the format expected by the backend
+      let sortParam = 'created_asc'
+      if (sortBy === 'newest') {
+        sortParam = 'created_desc'
+      } else if (sortBy === 'popular') {
+        sortParam = 'reactions'
+      }
+      
       const response = await apiClient.get(`/posts/${getPostId()}/comments`, {
-        sort: sortBy
+        params: {
+          sort: sortParam
+        }
       })
       
-      if (response.data.success) {
-        comments.value = response.data.data.comments || []
-      }
+      // The API client interceptor already unwraps the response, so we access response directly
+      // response is already the data part: { comments: [...], count: 6, has_more: false }
+      comments.value = response.comments || []
     } catch (err: any) {
       error.value = err.message || 'Failed to load comments'
       console.error('Error loading comments:', err)
@@ -40,20 +50,19 @@ export function useComments(postId: Ref<number> | number) {
     try {
       const response = await apiClient.post('/comments', commentData)
       
-      if (response.data.success) {
-        const newComment = response.data.data.comment
-        
-        // Add to comments list
-        if (!commentData.parent_id) {
-          comments.value.unshift(newComment)
-        } else {
-          // Add as reply (will be handled by component)
-          return newComment
-        }
-        
+      // The API client interceptor already unwraps the response
+      // response is already the data part: { comment: {...} }
+      const newComment = response.comment
+      
+      // Add to comments list
+      if (!commentData.parent_id) {
+        comments.value.unshift(newComment)
+      } else {
+        // Add as reply (will be handled by component)
         return newComment
       }
-      return null
+      
+      return newComment
     } catch (err: any) {
       error.value = err.message || 'Failed to add comment'
       throw err
@@ -64,18 +73,17 @@ export function useComments(postId: Ref<number> | number) {
     try {
       const response = await apiClient.patch(`/comments/${commentId}`, data)
       
-      if (response.data.success) {
-        const updatedComment = response.data.data.comment
-        
-        // Update in comments list
-        const index = comments.value.findIndex((c: Comment) => c.comment_id === commentId)
-        if (index !== -1) {
-          comments.value[index] = { ...comments.value[index], ...updatedComment }
-        }
-        
-        return updatedComment
+      // The API client interceptor already unwraps the response
+      // response is already the data part: { comment: {...} }
+      const updatedComment = response.comment
+      
+      // Update in comments list
+      const index = comments.value.findIndex((c: Comment) => c.comment_id === commentId)
+      if (index !== -1) {
+        comments.value[index] = { ...comments.value[index], ...updatedComment }
       }
-      return null
+      
+      return updatedComment
     } catch (err: any) {
       error.value = err.message || 'Failed to update comment'
       throw err
@@ -97,13 +105,14 @@ export function useComments(postId: Ref<number> | number) {
   const loadReplies = async (parentId: number): Promise<Comment[]> => {
     try {
       const response = await apiClient.get(`/posts/${getPostId()}/comments`, {
-        parent_id: parentId
+        params: {
+          parent_id: parentId
+        }
       })
       
-      if (response.data.success) {
-        return response.data.data.comments || []
-      }
-      return []
+      // The API client interceptor already unwraps the response
+      // response is already the data part: { comments: [...] }
+      return response.comments || []
     } catch (err: any) {
       error.value = err.message || 'Failed to load replies'
       return []
