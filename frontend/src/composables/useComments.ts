@@ -1,21 +1,6 @@
 import { ref, Ref } from 'vue'
 import apiClient from '@/services/api/client'
-
-export interface Comment {
-  comment_id: number
-  post_id: number
-  author_id: number
-  author_username: string
-  author_avatar: string
-  content_text: string
-  content_html?: string
-  parent_id: number | null
-  reaction_count: number
-  reply_count: number
-  created_at: string
-  edited_at: string | null
-  replies?: Comment[]
-}
+import type { Comment } from '@/types/comment'
 
 export interface CreateCommentData {
   post_id: number
@@ -37,7 +22,7 @@ export function useComments(postId: Ref<number> | number) {
       error.value = null
       
       const response = await apiClient.get(`/posts/${getPostId()}/comments`, {
-        sort_by: sortBy
+        sort: sortBy
       })
       
       if (response.data.success) {
@@ -83,7 +68,7 @@ export function useComments(postId: Ref<number> | number) {
         const updatedComment = response.data.data.comment
         
         // Update in comments list
-        const index = comments.value.findIndex(c => c.comment_id === commentId)
+        const index = comments.value.findIndex((c: Comment) => c.comment_id === commentId)
         if (index !== -1) {
           comments.value[index] = { ...comments.value[index], ...updatedComment }
         }
@@ -102,7 +87,7 @@ export function useComments(postId: Ref<number> | number) {
       await apiClient.delete(`/comments/${commentId}`)
       
       // Remove from comments list
-      comments.value = comments.value.filter(c => c.comment_id !== commentId)
+      comments.value = comments.value.filter((c: Comment) => c.comment_id !== commentId)
     } catch (err: any) {
       error.value = err.message || 'Failed to delete comment'
       throw err

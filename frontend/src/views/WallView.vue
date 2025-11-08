@@ -1199,14 +1199,20 @@ const toggleLike = async (post: any) => {
 }
 
 const handleCommentCreated = (comment: any) => {
-  // Update comment count in the selected post
+  // Update comment count in the selected post (AI modal)
   if (selectedAIPost.value) {
     selectedAIPost.value.comment_count = (selectedAIPost.value.comment_count || 0) + 1
+    
+    // Update comment count in the posts list
+    const postIndex = posts.value.findIndex((p: any) => p.post_id === selectedAIPost.value.post_id)
+    if (postIndex !== -1) {
+      posts.value[postIndex].comment_count = (posts.value[postIndex].comment_count || 0) + 1
+    }
   }
   
-  // Update comment count in the posts list
-  if (selectedAIPost.value) {
-    const postIndex = posts.value.findIndex((p: any) => p.post_id === selectedAIPost.value.post_id)
+  // Also update comment count for regular posts
+  if (comment && comment.post_id) {
+    const postIndex = posts.value.findIndex((p: any) => p.post_id === comment.post_id)
     if (postIndex !== -1) {
       posts.value[postIndex].comment_count = (posts.value[postIndex].comment_count || 0) + 1
     }
@@ -1216,18 +1222,20 @@ const handleCommentCreated = (comment: any) => {
 }
 
 const handleCommentDeleted = (commentId: number) => {
-  // Update comment count in the selected post
+  // Update comment count in the selected post (AI modal)
   if (selectedAIPost.value) {
     selectedAIPost.value.comment_count = Math.max(0, (selectedAIPost.value.comment_count || 0) - 1)
-  }
-  
-  // Update comment count in the posts list
-  if (selectedAIPost.value) {
+    
+    // Update comment count in the posts list
     const postIndex = posts.value.findIndex((p: any) => p.post_id === selectedAIPost.value.post_id)
     if (postIndex !== -1) {
       posts.value[postIndex].comment_count = Math.max(0, (posts.value[postIndex].comment_count || 0) - 1)
     }
   }
+  
+  // Also update comment count for regular posts
+  // Note: We don't have the post_id here, so we can't update the specific post count
+  // This is a limitation of the current implementation
   
   displayToast('✓ Comment deleted')
 }

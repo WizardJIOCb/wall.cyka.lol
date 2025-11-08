@@ -593,8 +593,10 @@ class PostController
             ], 200);
             
         } catch (Exception $e) {
-            error_log("Error in addReactionToPost: " . $e->getMessage());
-            self::jsonResponse(false, ['code' => 'REACTION_FAILED'], 'Failed to add reaction', 500);
+            error_log("Error in addReactionToPost: " . $e->getMessage() . " Stack trace: " . $e->getTraceAsString());
+            // More detailed error message for debugging
+            $errorMessage = 'Failed to add reaction: ' . $e->getMessage();
+            self::jsonResponse(false, ['code' => 'REACTION_FAILED'], $errorMessage, 500);
         }
     }
     
@@ -627,8 +629,8 @@ class PostController
             ]);
             
         } catch (Exception $e) {
-            error_log("Error in removeReactionFromPost: " . $e->getMessage());
-            self::jsonResponse(false, ['code' => 'REACTION_REMOVAL_FAILED'], 'Failed to remove reaction', 500);
+            error_log("Error in removeReactionFromPost: " . $e->getMessage() . " Stack trace: " . $e->getTraceAsString());
+            self::jsonResponse(false, ['code' => 'REACTION_REMOVAL_FAILED'], 'Failed to remove reaction: ' . $e->getMessage(), 500);
         }
     }
     
@@ -672,8 +674,8 @@ class PostController
             ]);
             
         } catch (Exception $e) {
-            error_log("Error in getPostReactions: " . $e->getMessage());
-            self::jsonResponse(false, ['code' => 'REACTIONS_FETCH_FAILED'], 'Failed to fetch reactions', 500);
+            error_log("Error in getPostReactions: " . $e->getMessage() . " Stack trace: " . $e->getTraceAsString());
+            self::jsonResponse(false, ['code' => 'REACTIONS_FETCH_FAILED'], 'Failed to fetch reactions: ' . $e->getMessage(), 500);
         }
     }
 

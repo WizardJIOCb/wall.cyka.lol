@@ -36,12 +36,20 @@ class Reaction
             
             Database::query($sql, $params);
             
-            // Update counter on target
-            self::updateCounters($data['target_type'], $data['target_id']);
+            // Update counter on target (failure here won't break the reaction)
+            try {
+                self::updateCounters($data['target_type'], $data['target_id']);
+            } catch (Exception $e) {
+                error_log("Warning: Failed to update counters: " . $e->getMessage());
+            }
             
             // Update user counter
-            $userSql = "UPDATE users SET reactions_given_count = reactions_given_count + 1 WHERE user_id = ?";
-            Database::query($userSql, [$data['user_id']]);
+            try {
+                $userSql = "UPDATE users SET reactions_given_count = reactions_given_count + 1 WHERE user_id = ?";
+                Database::query($userSql, [$data['user_id']]);
+            } catch (Exception $e) {
+                error_log("Warning: Failed to update user counter: " . $e->getMessage());
+            }
             
             Database::commit();
             return true;
@@ -106,33 +114,39 @@ class Reaction
      */
     private static function updateCounters($targetType, $targetId)
     {
-        $table = $targetType === 'post' ? 'posts' : 'comments';
-        
-        // Get counts
-        $countSql = "SELECT 
-                        COUNT(*) as total,
-                        SUM(CASE WHEN reaction_type = 'like' THEN 1 ELSE 0 END) as likes,
-                        SUM(CASE WHEN reaction_type = 'dislike' THEN 1 ELSE 0 END) as dislikes
-                     FROM reactions
-                     WHERE target_type = ? AND target_id = ?";
-        
-        $counts = Database::fetchOne($countSql, [$targetType, $targetId]);
-        
-        // Update target table
-        $idColumn = $targetType === 'post' ? 'post_id' : 'comment_id';
-        $updateSql = "UPDATE $table SET 
-                      reaction_count = ?,
-                      like_count = ?,
-                      dislike_count = ?,
-                      updated_at = NOW()
-                      WHERE $idColumn = ?";
-        
-        Database::query($updateSql, [
-            $counts['total'],
-            $counts['likes'],
-            $counts['dislikes'],
-            $targetId
-        ]);
+        try {
+            $table = $targetType === 'post' ? 'posts' : 'comments';
+            
+            // Get counts
+            $countSql = "SELECT 
+                            COUNT(*) as total,
+                            SUM(CASE WHEN reaction_type = 'like' THEN 1 ELSE 0 END) as likes,
+                            SUM(CASE WHEN reaction_type = 'dislike' THEN 1 ELSE 0 END) as dislikes
+                         FROM reactions
+                         WHERE target_type = ? AND target_id = ?";
+            
+            $counts = Database::fetchOne($countSql, [$targetType, $targetId]);
+            
+            // Update target table
+            $idColumn = $targetType === 'post' ? 'post_id' : 'comment_id';
+            $updateSql = "UPDATE $table SET 
+                          reaction_count = ?,
+                          like_count = ?,
+                          dislike_count = ?,
+                          updated_at = NOW()
+                          WHERE $idColumn = ?";
+            
+            Database::query($updateSql, [
+                $counts['total'],
+                $counts['likes'],
+                $counts['dislikes'],
+                $targetId
+            ]);
+        } catch (Exception $e) {
+            // Log the specific error but don't stop the process
+            error_log("Error updating counters for $targetType $targetId: " . $e->getMessage());
+            // Continue without throwing - we don't want reactions to fail just because of counter updates
+        }
     }
 
     /**
