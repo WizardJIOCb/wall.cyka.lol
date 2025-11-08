@@ -41,7 +41,10 @@ function checkTableStructure($tableName) {
 
 function checkTableExists($tableName) {
     try {
-        $stmt = Database::query("SHOW TABLES LIKE ?", [$tableName]);
+        // Use direct query without parameter binding for SHOW TABLES LIKE
+        $conn = Database::getConnection();
+        $stmt = $conn->prepare("SHOW TABLES LIKE '$tableName'");
+        $stmt->execute();
         return $stmt->fetch() !== false;
     } catch (Exception $e) {
         return false;
@@ -76,78 +79,100 @@ try {
     echo "Wall Social Platform - Database Structure Checker\n";
     echo "==================================================\n\n";
     
+    // Try to verify database connection and charset
+    try {
+        $conn = Database::getConnection();
+        if (defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+            $charset = $conn->query("SELECT @@character_set_client, @@character_set_connection, @@character_set_results")->fetch();
+            echo "[Database] Charset verification: " . json_encode($charset) . "\n";
+        } else {
+            echo "[Database] Unable to verify charset (PDO constant not defined)\n";
+        }
+    } catch (Exception $e) {
+        echo "[Database] Connection failed: " . $e->getMessage() . "\n";
+        echo "Please run this script inside the Docker container where the database is accessible.\n";
+        exit(1);
+    }
+    
     // Check if required tables exist
     $requiredTables = ['users', 'walls', 'posts', 'comments', 'reactions'];
     
+    $existingTables = [];
     foreach ($requiredTables as $table) {
         if (checkTableExists($table)) {
             echo "✓ Table $table exists\n";
+            $existingTables[] = $table;
         } else {
             echo "✗ Table $table does not exist\n";
         }
     }
     echo "\n";
     
-    // Check reactions table structure
-    if (checkTableExists('reactions')) {
-        checkTableStructure('reactions');
+    // Only check table structures if tables exist
+    if (count($existingTables) > 0) {
+        // Check reactions table structure
+        if (in_array('reactions', $existingTables)) {
+            checkTableStructure('reactions');
+            
+            // Check for required columns in reactions table
+            $requiredReactionColumns = [
+                'reaction_id',
+                'user_id',
+                'target_type',
+                'target_id',
+                'reaction_type',
+                'created_at',
+                'updated_at'  // This is likely missing based on the error
+            ];
+            checkMissingColumns('reactions', $requiredReactionColumns);
+        }
         
-        // Check for required columns in reactions table
-        $requiredReactionColumns = [
-            'reaction_id',
-            'user_id',
-            'target_type',
-            'target_id',
-            'reaction_type',
-            'created_at',
-            'updated_at'  // This is likely missing based on the error
-        ];
-        checkMissingColumns('reactions', $requiredReactionColumns);
-    }
-    
-    // Check posts table structure
-    if (checkTableExists('posts')) {
-        checkTableStructure('posts');
+        // Check posts table structure
+        if (in_array('posts', $existingTables)) {
+            checkTableStructure('posts');
+            
+            // Check for required columns in posts table
+            $requiredPostColumns = [
+                'post_id',
+                'wall_id',
+                'author_id',
+                'post_type',
+                'content_text',
+                'reaction_count',
+                'like_count',
+                'dislike_count',
+                'created_at',
+                'updated_at'
+            ];
+            checkMissingColumns('posts', $requiredPostColumns);
+        }
         
-        // Check for required columns in posts table
-        $requiredPostColumns = [
-            'post_id',
-            'wall_id',
-            'author_id',
-            'post_type',
-            'content_text',
-            'reaction_count',
-            'like_count',
-            'dislike_count',
-            'created_at',
-            'updated_at'
-        ];
-        checkMissingColumns('posts', $requiredPostColumns);
-    }
-    
-    // Check comments table structure
-    if (checkTableExists('comments')) {
-        checkTableStructure('comments');
-        
-        // Check for required columns in comments table
-        $requiredCommentColumns = [
-            'comment_id',
-            'post_id',
-            'author_id',
-            'parent_comment_id',
-            'content_text',
-            'reply_count',
-            'reaction_count',
-            'like_count',
-            'dislike_count',
-            'depth_level',
-            'is_hidden',
-            'is_edited',
-            'is_deleted',
-            'created_at',
-            'updated_at'
-        ];
-        checkMissingColumns('comments', $requiredCommentColumns);
+        // Check comments table structure
+        if (in_array('comments', $existingTables)) {
+            checkTableStructure('comments');
+            
+            // Check for required columns in comments table
+            $requiredCommentColumns = [
+                'comment_id',
+                'post_id',
+                'author_id',
+                'parent_comment_id',
+                'content_text',
+                'reply_count',
+                'reaction_count',
+                'like_count',
+                'dislike_count',
+                'depth_level',
+                'is_hidden',
+                'is_edited',
+                'is_deleted',
+                'created_at',
+                'updated_at'
+            ];
+            checkMissingColumns('comments', $requiredCommentColumns);
+        }
+    } else {
+        echo "No tables found in the database. Please ensure the database is properly initialized.\n";
     }
     
     echo "Database structure check completed.\n";
