@@ -259,7 +259,7 @@ loadReactions()
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 1000; /* Increased z-index to ensure it's above all other elements */
+  z-index: 9999; /* Increased z-index even further to ensure it's above all content */
 }
 
 .reaction-picker.position-above {
