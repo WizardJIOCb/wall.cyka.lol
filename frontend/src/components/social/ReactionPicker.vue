@@ -272,7 +272,7 @@ loadReactions()
   display: flex;
   gap: var(--spacing-2);
   padding: var(--spacing-3);
-  background: var(--color-bg-elevated);
+  background: #ffffff; /* Explicit white background with no transparency */
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   z-index: 9999;
@@ -471,4 +471,3 @@ loadReactions()
 .modal-fade-leave-to {
   opacity: 0;
 }
-</style>
