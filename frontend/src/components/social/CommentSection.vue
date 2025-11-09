@@ -310,3 +310,4 @@ onMounted(() => {
   margin-top: 5px;
   white-space: pre-wrap;
 }
+</style>
