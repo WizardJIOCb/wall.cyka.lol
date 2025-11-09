@@ -1,5 +1,5 @@
 <template>
-  <div class="reaction-picker-container">
+  <div class="reaction-picker-container" ref="containerRef">
     <!-- Reaction Button -->
     <button 
       @click="togglePicker" 
@@ -13,7 +13,7 @@
       <span v-if="stats.total > 0" class="reaction-count">{{ stats.total }}</span>
     </button>
 
-    <!-- Reaction Picker Popup -->
+    <!-- Reaction Picker Popup (teleported to body) -->
     <Transition name="picker-fade">
       <div 
         v-if="showPicker" 
@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useReactions, ReactionType, Reaction } from '@/composables/useReactions'
 
 const props = defineProps<{
@@ -121,6 +121,7 @@ const showDetailsModal = ref(false)
 const selectedTab = ref<string>('all')
 const positionAbove = ref(false)
 const pickerRef = ref<HTMLElement | null>(null)
+const containerRef = ref<HTMLElement | null>(null)
 let hoverTimeout: any = null
 
 const togglePicker = (event: Event) => {
@@ -130,22 +131,53 @@ const togglePicker = (event: Event) => {
     // Wait for the picker to be rendered, then check positioning
     nextTick(() => {
       calculatePickerPosition()
+      teleportPicker()
     })
+  } else {
+    removePickerFromBody()
   }
 }
 
 const calculatePickerPosition = () => {
-  if (!pickerRef.value) return
+  if (!containerRef.value || !pickerRef.value) return
   
+  const container = containerRef.value
   const picker = pickerRef.value
-  const rect = picker.getBoundingClientRect()
-  const viewportHeight = window.innerHeight
+  const containerRect = container.getBoundingClientRect()
+  const pickerRect = picker.getBoundingClientRect()
   
   // Check if picker would go below viewport
-  if (rect.bottom > viewportHeight) {
+  if (containerRect.bottom + pickerRect.height > window.innerHeight) {
     positionAbove.value = true
   } else {
     positionAbove.value = false
+  }
+}
+
+const teleportPicker = () => {
+  if (!pickerRef.value || !containerRef.value) return
+  
+  const container = containerRef.value
+  const picker = pickerRef.value
+  const containerRect = container.getBoundingClientRect()
+  
+  // Position the picker absolutely on the body
+  picker.style.position = 'fixed'
+  if (positionAbove.value) {
+    picker.style.top = `${containerRect.top - picker.offsetHeight - 4}px`
+  } else {
+    picker.style.top = `${containerRect.bottom + 4}px`
+  }
+  picker.style.left = `${containerRect.left + containerRect.width / 2}px`
+  picker.style.transform = 'translateX(-50%)'
+  
+  // Append to body
+  document.body.appendChild(picker)
+}
+
+const removePickerFromBody = () => {
+  if (pickerRef.value && document.body.contains(pickerRef.value)) {
+    document.body.removeChild(pickerRef.value)
   }
 }
 
@@ -158,6 +190,7 @@ const showPickerOnHover = () => {
     // Wait for the picker to be rendered, then check positioning
     nextTick(() => {
       calculatePickerPosition()
+      teleportPicker()
     })
   }, 150) // Reduced delay for quicker response
 }
@@ -170,6 +203,7 @@ const hidePickerOnHover = () => {
   // Increased delay to allow moving cursor to the picker
   hoverTimeout = setTimeout(() => {
     showPicker.value = false
+    removePickerFromBody()
   }, 300)
 }
 
@@ -182,6 +216,7 @@ const keepPickerOpen = () => {
 
 const handleReactionClick = async (type: ReactionType) => {
   showPicker.value = false
+  removePickerFromBody()
   try {
     await toggleReaction(type)
   } catch (error) {
@@ -199,6 +234,14 @@ const filteredReactions = computed(() => {
     return reactions.value
   }
   return reactions.value.filter((r: Reaction) => r.reaction_type === selectedTab.value)
+})
+
+// Clean up on unmount
+onUnmounted(() => {
+  removePickerFromBody()
+  if (hoverTimeout) {
+    clearTimeout(hoverTimeout)
+  }
 })
 
 // Load reactions on mount
@@ -249,23 +292,14 @@ loadReactions()
 }
 
 .reaction-picker {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(4px);
   display: flex;
   gap: var(--spacing-2);
   padding: var(--spacing-3);
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 9999; /* Increased z-index even further to ensure it's above all content */
-}
-
-.reaction-picker.position-above {
-  top: auto;
-  bottom: 100%;
-  transform: translateX(-50%) translateY(-4px);
+  z-index: 9999;
+  /* Positioning will be handled by JavaScript */
 }
 
 .reaction-option {
