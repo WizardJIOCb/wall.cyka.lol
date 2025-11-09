@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useReactions, ReactionType, Reaction } from '@/composables/useReactions'
 
 const props = defineProps<{
@@ -107,6 +107,11 @@ const {
   toggleReaction
 } = useReactions(ref(props.reactableType), ref(props.reactableId))
 
+// Watch for changes in props and reload reactions if needed
+watch(() => [props.reactableType, props.reactableId], () => {
+  loadReactions()
+})
+
 const showPicker = ref(false)
 const showDetailsModal = ref(false)
 const selectedTab = ref<string>('all')
@@ -118,9 +123,12 @@ const togglePicker = (event: Event) => {
 }
 
 const showPickerOnHover = () => {
+  if (hoverTimeout) {
+    clearTimeout(hoverTimeout)
+  }
   hoverTimeout = setTimeout(() => {
     showPicker.value = true
-  }, 300)
+  }, 150) // Reduced delay for quicker response
 }
 
 const hidePickerOnHover = () => {
@@ -128,8 +136,8 @@ const hidePickerOnHover = () => {
     clearTimeout(hoverTimeout)
     hoverTimeout = null
   }
-  setTimeout(() => {
-    if (!showPicker.value) return
+  // Increased delay to allow moving cursor to the picker
+  hoverTimeout = setTimeout(() => {
     showPicker.value = false
   }, 300)
 }
@@ -208,7 +216,7 @@ loadReactions()
   position: absolute;
   top: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(8px);
+  transform: translateX(-50%) translateY(4px);
   display: flex;
   gap: var(--spacing-2);
   padding: var(--spacing-3);

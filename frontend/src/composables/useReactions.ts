@@ -66,15 +66,20 @@ export function useReactions(
   const getCurrentUserId = (): number => {
     // Get from auth store
     const userStr = localStorage.getItem('user')
+    console.log('User string from localStorage:', userStr)
     if (userStr) {
       try {
         const user = JSON.parse(userStr)
-        return user.user_id || 0
+        console.log('Parsed user object:', user)
+        const userId = user.user_id || 0
+        console.log('User ID:', userId)
+        return userId
       } catch (e) {
         console.error('Error parsing user from localStorage:', e)
         return 0
       }
     }
+    console.log('No user found in localStorage')
     return 0
   }
 
@@ -118,8 +123,12 @@ export function useReactions(
         
         // Find current user's reaction
         const currentUserId = getCurrentUserId()
+        console.log('Current user ID:', currentUserId)
+        console.log('Reactions array:', reactions.value)
         const userReaction = reactions.value.find((r: Reaction) => r.user_id === currentUserId)
+        console.log('User reaction found:', userReaction)
         currentUserReaction.value = userReaction ? userReaction.reaction_type : null
+        console.log('Current user reaction set to:', currentUserReaction.value)
       } else if (Array.isArray(response)) {
         // Direct array format
         reactions.value = response
