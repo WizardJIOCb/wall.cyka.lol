@@ -24,7 +24,17 @@ export function useReactions(
   reactableId: Ref<number> | number
 ) {
   const reactions = ref<Reaction[]>([])
-  const stats = ref<ReactionStats>({ total: 0, by_type: {} as Record<ReactionType, number> })
+  const stats = ref<ReactionStats>({ 
+  total: 0, 
+  by_type: {
+    like: 0,
+    love: 0,
+    haha: 0,
+    wow: 0,
+    sad: 0,
+    angry: 0
+  } as Record<ReactionType, number> 
+})
   const currentUserReaction = ref<ReactionType | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -63,19 +73,49 @@ export function useReactions(
       if (response && typeof response === 'object' && 'reactions' in response) {
         // Standard format: { reactions: [...], stats: { total: number, by_type: {...} } }
         reactions.value = Array.isArray(response.reactions) ? response.reactions : []
-        stats.value = response.stats || { total: 0, by_type: {} as Record<ReactionType, number> }
+        stats.value = response.stats || { 
+  total: 0, 
+  by_type: {
+    like: 0,
+    love: 0,
+    haha: 0,
+    wow: 0,
+    sad: 0,
+    angry: 0
+  } as Record<ReactionType, number> 
+}
         
         // Find current user's reaction
-        const userReaction = reactions.value.find(r => r.user_id === getCurrentUserId())
+        const userReaction = reactions.value.find((r: Reaction) => r.user_id === getCurrentUserId())
         currentUserReaction.value = userReaction ? userReaction.reaction_type : null
       } else if (Array.isArray(response)) {
         // Direct array format
         reactions.value = response
-        stats.value = { total: response.length, by_type: {} as Record<ReactionType, number> }
+        stats.value = { 
+  total: response.length, 
+  by_type: {
+    like: 0,
+    love: 0,
+    haha: 0,
+    wow: 0,
+    sad: 0,
+    angry: 0
+  } as Record<ReactionType, number> 
+}
       } else {
         // Unexpected format
         reactions.value = []
-        stats.value = { total: 0, by_type: {} as Record<ReactionType, number> }
+        stats.value = { 
+  total: 0, 
+  by_type: {
+    like: 0,
+    love: 0,
+    haha: 0,
+    wow: 0,
+    sad: 0,
+    angry: 0
+  } as Record<ReactionType, number> 
+}
       }
     } catch (err: any) {
       error.value = err.message || 'Failed to load reactions'
