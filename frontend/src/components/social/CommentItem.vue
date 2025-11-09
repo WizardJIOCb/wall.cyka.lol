@@ -141,6 +141,8 @@ const emit = defineEmits<{
 // Add a safety check for the comment prop
 if (!props.comment) {
   console.warn('CommentItem: comment prop is required')
+} else {
+  console.log('Rendering CommentItem:', props.comment)
 }
 
 const authStore = useAuthStore()
@@ -155,11 +157,11 @@ const loadingReplies = ref(false)
 const replies = ref<Comment[]>([])
 
 const canEdit = computed(() => {
-  return props.comment && authStore.user?.user_id === props.comment.author_id
+  return props.comment && authStore.user?.id === props.comment.author_id
 })
 
 const canDelete = computed(() => {
-  return props.comment && authStore.user?.user_id === props.comment.author_id
+  return props.comment && authStore.user?.id === props.comment.author_id
 })
 
 const canReply = computed(() => {

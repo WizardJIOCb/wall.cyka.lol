@@ -1,0 +1,1 @@
+{"version":3,"file":"RegisterView-jg-xukWg.js","sources":["../../frontend/src/views/RegisterView.vue"],"sourcesContent":["<template>\r\n  <LoginView />\r\n</template>\r\n\r\n<script setup lang=\"ts\">\r\nimport LoginView from './LoginView.vue'\r\n</script>\r\n"],"names":["_createBlock","LoginView"],"mappings":"kNACEA,EAAaC,CAAA"}

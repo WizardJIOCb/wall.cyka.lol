@@ -59,8 +59,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useComments, type Comment } from '@/composables/useComments'
+import { ref, onMounted, watch } from 'vue'
+import { useComments } from '@/composables/useComments'
+import type { Comment } from '@/types/comment'
 import CommentInput from './CommentInput.vue'
 import CommentItem from './CommentItem.vue'
 
@@ -89,6 +90,12 @@ const {
 const handleSortChange = () => {
   loadComments(sortBy.value)
 }
+
+// Add debugging for comments
+watch(comments, (newComments: Comment[]) => {
+  console.log('Comments updated:', newComments)
+  console.log('Comments length:', newComments.length)
+})
 
 const handleCommentSubmit = async (text: string) => {
   try {

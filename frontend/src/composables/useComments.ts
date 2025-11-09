@@ -45,13 +45,18 @@ export function useComments(postId: Ref<number> | number) {
         }
       })
       
+      // Debug: Log the raw response
+      console.log('Comments API Response:', response)
+      
       // The API client interceptor already unwraps the response
       // response is already the data part: { comments: [...], count: 6, has_more: false }
       // Make sure we have a valid array of comments
       if (response && Array.isArray(response.comments)) {
         // Filter out any invalid comments and ensure each comment is a valid object
         comments.value = response.comments.filter(isValidComment)
+        console.log('Filtered comments:', comments.value)
       } else {
+        console.log('Invalid response format or no comments array found')
         comments.value = []
       }
     } catch (err: any) {
