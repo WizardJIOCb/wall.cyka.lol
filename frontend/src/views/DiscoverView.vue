@@ -23,9 +23,9 @@
       <div class="section-header">
         <h2>🔥 Trending Walls</h2>
         <select v-model="trendingTimeframe" @change="loadTrendingWalls" class="timeframe-select">
-          <option value="24h">Last 24 hours</option>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
+          <option value="24h">{{ $t('discover.timeframes.24h') }}</option>
+          <option value="7d">{{ $t('discover.timeframes.7d') }}</option>
+          <option value="30d">{{ $t('discover.timeframes.30d') }}</option>
         </select>
       </div>
 
@@ -34,7 +34,7 @@
       </div>
 
       <div v-else-if="trendingWalls.length === 0" class="empty-state">
-        <p>No trending walls found</p>
+        <p>{{ $t('discover.noTrendingWalls') }}</p>
       </div>
 
       <div v-else class="walls-carousel">
@@ -50,9 +50,9 @@
             <p class="wall-owner">@{{ wall.owner_username }}</p>
             <p v-if="wall.description" class="wall-desc">{{ wall.description }}</p>
             <div class="wall-stats">
-              <span>📝 {{ wall.post_count || 0 }}</span>
-              <span>👥 {{ wall.follower_count || 0 }}</span>
-              <span>👁️ {{ wall.view_count || 0 }}</span>
+              <span>📝 {{ wall.post_count || 0 }} {{ $t('common.posts') }}</span>
+              <span>👥 {{ wall.follower_count || 0 }} {{ $t('common.followers') }}</span>
+              <span>👁️ {{ wall.view_count || 0 }} {{ $t('common.views') }}</span>
             </div>
           </div>
         </div>
@@ -62,7 +62,20 @@
     <!-- Popular Posts Section -->
     <section class="content-section">
       <div class="section-header">
-        <h2>⭐ Popular Posts</h2>
+        <h2>⭐ {{ $t('discover.popularPosts') }}</h2>
+        <div class="posts-controls">
+          <select v-model="postsTimeframe" @change="loadPopularPosts" class="timeframe-select">
+            <option value="24h">{{ $t('discover.timeframes.24h') }}</option>
+            <option value="7d">{{ $t('discover.timeframes.7d') }}</option>
+            <option value="30d">{{ $t('discover.timeframes.30d') }}</option>
+          </select>
+          <select v-model="postsSortBy" @change="loadPopularPosts" class="sort-select">
+            <option value="popularity">{{ $t('discover.sort.popularity') }}</option>
+            <option value="reactions">{{ $t('discover.sort.reactions') }}</option>
+            <option value="comments">{{ $t('discover.sort.comments') }}</option>
+            <option value="views">{{ $t('discover.sort.views') }}</option>
+          </select>
+        </div>
       </div>
 
       <div v-if="loadingPosts" class="loading-container">
@@ -70,7 +83,7 @@
       </div>
 
       <div v-else-if="popularPosts.length === 0" class="empty-state">
-        <p>No popular posts found</p>
+        <p>{{ $t('discover.noPopularPosts') }}</p>
       </div>
 
       <div v-else class="posts-grid">
@@ -82,22 +95,26 @@
               <span class="post-time">{{ formatDate(post.created_at) }}</span>
             </div>
           </div>
-          <div class="post-content">
+          <div class="post-content" @click="$router.push(`/wall/${post.wall_id}/post/${post.post_id}`)">
             <div v-if="post.content_html" v-html="post.content_html"></div>
             <p v-else>{{ post.content_text }}</p>
           </div>
           <div class="post-actions">
-            <button class="action-btn">
+            <button class="action-btn" @click="toggleReaction(post, 'like')" :class="{ active: post.user_liked }">
               <span>👍</span>
               <span>{{ post.reaction_count || 0 }}</span>
             </button>
-            <button class="action-btn">
+            <button class="action-btn" @click="openComments(post)">
               <span>💬</span>
               <span>{{ post.comment_count || 0 }}</span>
             </button>
             <button class="action-btn">
               <span>👁️</span>
               <span>{{ post.view_count || 0 }}</span>
+            </button>
+            <button class="action-btn">
+              <span>🔄</span>
+              <span>{{ post.share_count || 0 }}</span>
             </button>
           </div>
         </div>
@@ -107,7 +124,7 @@
     <!-- Suggested Users Section -->
     <section class="content-section">
       <div class="section-header">
-        <h2>👥 Suggested Users</h2>
+        <h2>👥 {{ $t('discover.suggestedUsers') }}</h2>
       </div>
 
       <div v-if="loadingUsers" class="loading-container">
@@ -115,7 +132,7 @@
       </div>
 
       <div v-else-if="suggestedUsers.length === 0" class="empty-state">
-        <p>No user suggestions available</p>
+        <p>{{ $t('discover.noUserSuggestions') }}</p>
       </div>
 
       <div v-else class="users-grid">
@@ -124,8 +141,8 @@
           <h3 class="user-username">@{{ user.username }}</h3>
           <p v-if="user.bio" class="user-bio">{{ user.bio }}</p>
           <div class="user-stats">
-            <span>{{ user.followers_count || 0 }} followers</span>
-            <span>{{ user.posts_count || 0 }} posts</span>
+            <span>{{ user.followers_count || 0 }} {{ $t('common.followers') }}</span>
+            <span>{{ user.posts_count || 0 }} {{ $t('common.posts') }}</span>
           </div>
           <button @click="followUser(user.user_id)" class="btn-follow">
             {{ user.is_following ? $t('common.actions.unfollow') : $t('common.actions.follow') }}
@@ -148,6 +165,8 @@ const toast = useToast()
 
 const { value: searchQuery, debouncedValue: debouncedSearch } = useDebounce('', 300)
 const trendingTimeframe = ref('7d')
+const postsTimeframe = ref('7d')
+const postsSortBy = ref('popularity')
 const trendingWalls = ref<any[]>([])
 const popularPosts = ref<any[]>([])
 const suggestedUsers = ref<any[]>([])
@@ -203,7 +222,7 @@ const loadTrendingWalls = async () => {
 const loadPopularPosts = async () => {
   try {
     loadingPosts.value = true
-    const response = await apiClient.get('/discover/popular-posts?timeframe=7d&limit=10')
+    const response = await apiClient.get(`/discover/popular-posts?timeframe=${postsTimeframe.value}&sort=${postsSortBy.value}&limit=12`)
     if (response && response.data) {
       popularPosts.value = response.data.posts || response.data.data?.posts || []
     } else {
@@ -262,6 +281,34 @@ const followUser = async (userId: number) => {
     }
     toast.error(err.message || 'Failed to update follow status')
   }
+}
+
+const toggleReaction = async (post: any, reactionType: string) => {
+  try {
+    const previousState = post.user_liked
+    const previousCount = post.reaction_count
+
+    // Optimistic update
+    if (previousState) {
+      post.user_liked = false
+      post.reaction_count = Math.max(0, post.reaction_count - 1)
+      await apiClient.delete(`/posts/${post.post_id}/reactions`)
+    } else {
+      post.user_liked = true
+      post.reaction_count = (post.reaction_count || 0) + 1
+      await apiClient.post(`/posts/${post.post_id}/reactions`, { reaction_type: reactionType })
+    }
+  } catch (err: any) {
+    // Rollback on error
+    post.user_liked = !post.user_liked
+    post.reaction_count = previousCount
+    toast.error(err.message || 'Failed to update reaction')
+  }
+}
+
+const openComments = (post: any) => {
+  // Navigate to the post detail page where comments can be viewed
+  router.push(`/wall/${post.wall_id}/post/${post.post_id}`)
 }
 
 onMounted(() => {
@@ -342,15 +389,24 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-6);
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
 }
 
 .section-header h2 {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-text-primary);
+  margin: 0;
 }
 
-.timeframe-select {
+.posts-controls {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.timeframe-select,
+.sort-select {
   padding: var(--spacing-2) var(--spacing-4);
   border: 2px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -441,6 +497,7 @@ onMounted(() => {
   gap: var(--spacing-4);
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+  flex-wrap: wrap;
 }
 
 .posts-grid {
@@ -493,6 +550,11 @@ onMounted(() => {
   margin-bottom: var(--spacing-3);
   line-height: 1.6;
   color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.post-content:hover {
+  opacity: 0.8;
 }
 
 .post-actions {
@@ -518,6 +580,10 @@ onMounted(() => {
 .action-btn:hover {
   background: var(--color-bg-secondary);
   color: var(--color-text-primary);
+}
+
+.action-btn.active {
+  color: var(--color-primary);
 }
 
 .users-grid {
@@ -572,6 +638,7 @@ onMounted(() => {
   margin-bottom: var(--spacing-3);
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+  flex-wrap: wrap;
 }
 
 .btn-follow {
@@ -594,6 +661,21 @@ onMounted(() => {
   .walls-carousel,
   .users-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .posts-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .timeframe-select,
+  .sort-select {
+    flex: 1;
   }
 }
 </style>

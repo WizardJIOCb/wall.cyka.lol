@@ -60,6 +60,7 @@ class DiscoverController
     public static function getPopularPosts()
     {
         $timeframe = isset($_GET['timeframe']) ? $_GET['timeframe'] : '7d';
+        $sortBy = isset($_GET['sort']) ? $_GET['sort'] : 'popularity';
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 12;
         
         $dateMap = [
@@ -69,21 +70,34 @@ class DiscoverController
         ];
         $interval = $dateMap[$timeframe] ?? '7 DAY';
         
-        // Popularity score: comments * 3
+        // Determine sort order
+        $orderBy = '';
+        switch ($sortBy) {
+            case 'reactions':
+                $orderBy = 'p.reaction_count DESC, p.created_at DESC';
+                break;
+            case 'comments':
+                $orderBy = 'p.comment_count DESC, p.created_at DESC';
+                break;
+            case 'views':
+                $orderBy = 'p.view_count DESC, p.created_at DESC';
+                break;
+            case 'popularity':
+            default:
+                // Popularity score: weighted combination of reactions, comments, and views
+                $orderBy = '(COALESCE(p.reaction_count, 0) * 2 + COALESCE(p.comment_count, 0) * 3 + COALESCE(p.view_count, 0) * 0.5) DESC, p.created_at DESC';
+                break;
+        }
+        
         $sql = "SELECT p.*, u.username, u.display_name, u.avatar_url,
-                w.wall_slug, w.display_name as wall_display_name,
-                COUNT(DISTINCT c.comment_id) as comment_count,
-                (COUNT(DISTINCT c.comment_id) * 3) as popularity_score
+                w.wall_slug, w.display_name as wall_display_name
                 FROM posts p
                 JOIN users u ON p.author_id = u.user_id
                 JOIN walls w ON p.wall_id = w.wall_id
-                LEFT JOIN comments c ON p.post_id = c.post_id
                 WHERE p.created_at >= DATE_SUB(NOW(), INTERVAL $interval)
                     AND p.is_deleted = FALSE
                     AND w.privacy_level = 'public'
-                GROUP BY p.post_id
-                HAVING popularity_score > 0
-                ORDER BY popularity_score DESC, p.created_at DESC
+                ORDER BY {$orderBy}
                 LIMIT ?";
         
         $posts = Database::fetchAll($sql, [$limit]);
@@ -97,6 +111,7 @@ class DiscoverController
         self::jsonResponse(true, [
             'posts' => $posts,
             'timeframe' => $timeframe,
+            'sort' => $sortBy,
             'count' => count($posts)
         ]);
     }
