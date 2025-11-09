@@ -103,6 +103,7 @@ export function useReactions(
         reactions.value = Array.isArray(response.reactions) ? response.reactions : []
         const defaultByType = {
           like: 0,
+          dislike: 0,
           love: 0,
           haha: 0,
           wow: 0,
