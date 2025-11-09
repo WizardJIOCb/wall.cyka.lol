@@ -29,12 +29,22 @@ export function useNotifications() {
       error.value = null
       
       const response = await apiClient.get('/notifications', {
-        limit,
-        offset
+        params: {
+          limit,
+          offset
+        }
       })
       
-      if (response.data.success) {
-        notifications.value = response.data.data.notifications || []
+      // The API client already unwraps the response, so we check the unwrapped data directly
+      if (response && typeof response === 'object' && 'notifications' in response) {
+        // Standard format: { notifications: [...], count: number }
+        notifications.value = Array.isArray(response.notifications) ? response.notifications : []
+      } else if (Array.isArray(response)) {
+        // Direct array format
+        notifications.value = response
+      } else {
+        // Unexpected format
+        notifications.value = []
       }
     } catch (err: any) {
       error.value = err.message || 'Failed to load notifications'
@@ -48,8 +58,16 @@ export function useNotifications() {
     try {
       const response = await apiClient.get('/notifications/unread-count')
       
-      if (response.data.success) {
-        unreadCount.value = response.data.data.unread_count || 0
+      // The API client already unwraps the response, so we check the unwrapped data directly
+      if (response && typeof response === 'object' && 'unread_count' in response) {
+        // Standard format: { unread_count: number }
+        unreadCount.value = typeof response.unread_count === 'number' ? response.unread_count : 0
+      } else if (typeof response === 'number') {
+        // Direct number format
+        unreadCount.value = response
+      } else {
+        // Unexpected format
+        unreadCount.value = 0
       }
     } catch (err: any) {
       console.error('Error loading unread count:', err)

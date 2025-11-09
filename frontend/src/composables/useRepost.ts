@@ -17,10 +17,21 @@ export function useRepost() {
       
       const response = await apiClient.post(`/posts/${postId}/repost`, data || {})
       
-      if (response.data.success) {
-        return response.data.data.post
+      // The API client already unwraps the response, so we check the unwrapped data directly
+      if (response && typeof response === 'object') {
+        if ('post' in response) {
+          // Standard format: { post: {...} }
+          return response.post
+        } else if ('message' in response) {
+          // Error format: { message: string }
+          throw new Error(response.message)
+        } else {
+          // Direct data format
+          return response
+        }
       } else {
-        throw new Error(response.data.message || 'Failed to repost post')
+        // Direct data format
+        return response
       }
     } catch (err: any) {
       error.value = err.message || 'Failed to repost post'

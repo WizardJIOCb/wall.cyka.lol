@@ -59,13 +59,23 @@ export function useReactions(
         `/reactions/${getReactableType()}/${getReactableId()}`
       )
       
-      if (response.data.success) {
-        reactions.value = response.data.data.reactions || []
-        stats.value = response.data.data.stats || { total: 0, by_type: {} }
+      // The API client already unwraps the response, so we check the unwrapped data directly
+      if (response && typeof response === 'object' && 'reactions' in response) {
+        // Standard format: { reactions: [...], stats: { total: number, by_type: {...} } }
+        reactions.value = Array.isArray(response.reactions) ? response.reactions : []
+        stats.value = response.stats || { total: 0, by_type: {} as Record<ReactionType, number> }
         
         // Find current user's reaction
         const userReaction = reactions.value.find(r => r.user_id === getCurrentUserId())
         currentUserReaction.value = userReaction ? userReaction.reaction_type : null
+      } else if (Array.isArray(response)) {
+        // Direct array format
+        reactions.value = response
+        stats.value = { total: response.length, by_type: {} as Record<ReactionType, number> }
+      } else {
+        // Unexpected format
+        reactions.value = []
+        stats.value = { total: 0, by_type: {} as Record<ReactionType, number> }
       }
     } catch (err: any) {
       error.value = err.message || 'Failed to load reactions'

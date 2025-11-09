@@ -565,11 +565,26 @@ const loadWall = async () => {
       response = await apiClient.get(`/walls/${wallIdToFetch}`)
     }
 
-    if (response?.success && response?.data?.wall) {
-      wall.value = response.data.wall
-      await loadPosts()
+    // Handle the unwrapped response format from API client
+    let wallData = null;
+    if (response && typeof response === 'object') {
+      if ('wall' in response && response.wall && typeof response.wall === 'object' && 'wall_id' in response.wall) {
+        // Standard format: { wall: { wall_id: ..., ... } }
+        wallData = response.wall;
+      } else if ('wall_id' in response) {
+        // Direct format: { wall_id: ..., ... }
+        wallData = response;
+      } else {
+        // Unexpected format
+        console.log('Unexpected wall response format:', response);
+      }
+    }
+
+    if (wallData) {
+      wall.value = wallData;
+      await loadPosts();
     } else {
-      throw new Error(response?.message || 'Wall not found')
+      throw new Error('Wall not found');
     }
   } catch (err: any) {
     console.error('Error loading wall:', err)
@@ -603,8 +618,23 @@ const loadPosts = async (isPolling = false) => {
     const offset = (page.value - 1) * limit
     const response = await apiClient.get(`/walls/${wall.value.wall_id}/posts?limit=${limit}&offset=${offset}`)
     
-    if (response?.success && response?.data?.posts) {
-      const newPosts = response.data.posts
+    // Handle the unwrapped response format from API client
+    let postsData = [];
+    if (response && typeof response === 'object') {
+      if ('posts' in response && Array.isArray(response.posts)) {
+        // Standard format: { posts: [...], count: number, has_more: boolean }
+        postsData = response.posts;
+      } else if (Array.isArray(response)) {
+        // Direct array format
+        postsData = response;
+      } else {
+        // Unexpected format
+        console.log('Unexpected posts response format:', response);
+      }
+    }
+    
+    if (postsData.length > 0) {
+      const newPosts = postsData;
       
       if (page.value === 1) {
         if (isPolling) {
@@ -628,32 +658,10 @@ const loadPosts = async (isPolling = false) => {
     }
   } catch (err: any) {
     console.error('Error loading posts:', err)
+    error.value = err.response?.data?.message || err.message || 'Failed to load posts'
   } finally {
     isLoadingPostsRequest.value = false
-    if (!isPolling) {
-      loadingPosts.value = false
-    }
-  }
-}
-
-const updatePostsData = (newPosts: any[]) => {
-  // Create a map of new posts by post_id for quick lookup
-  const newPostsMap = new Map(newPosts.map((post: any) => [post.post_id, post]))
-  
-  // Update existing posts with new data WITHOUT causing re-render
-  posts.value.forEach((post: any, index: number) => {
-    const updatedPost = newPostsMap.get(post.post_id)
-    if (updatedPost) {
-      // Update ALL fields, not just status
-      // Use Object.assign to update in-place and avoid re-render
-      Object.assign(posts.value[index], updatedPost)
-      newPostsMap.delete(post.post_id)
-    }
-  })
-  
-  // Add any new posts that weren't in the existing list
-  if (newPostsMap.size > 0) {
-    posts.value = [...Array.from(newPostsMap.values()), ...posts.value]
+    loadingPosts.value = false
   }
 }
 
@@ -684,6 +692,63 @@ const checkForPendingAIPosts = () => {
     })
   } else {
     stopAllContentStreams()
+  }
+}
+
+const pollForAIPosts = async () => {
+  if (!wall.value) return
+
+  try {
+    const response = await apiClient.get(`/walls/${wall.value.wall_id}/posts?status=queued`)
+    
+    // Handle the unwrapped response format from API client
+    let newPosts = [];
+    if (response && typeof response === 'object') {
+      if ('posts' in response && Array.isArray(response.posts)) {
+        // Standard format: { posts: [...] }
+        newPosts = response.posts;
+      } else if (Array.isArray(response)) {
+        // Direct array format
+        newPosts = response;
+      }
+    }
+    
+    if (newPosts.length > 0) {
+      for (const post of newPosts) {
+        const existingPostIndex = posts.value.findIndex(p => p.post_id === post.post_id)
+        if (existingPostIndex !== -1) {
+          posts.value[existingPostIndex] = post
+        }
+      }
+      
+      // Use batch processing for view counts on newly loaded posts
+      batchIncrementViewCounts()
+    }
+  } catch (err: any) {
+    console.error('Error polling for AI posts:', err)
+  } finally {
+    setTimeout(pollForAIPosts, 5000)
+  }
+}
+
+
+const updatePostsData = (newPosts: any[]) => {
+  // Create a map of new posts by post_id for quick lookup
+  const newPostsMap = new Map(newPosts.map((post: any) => [post.post_id, post]))
+  // Update existing posts with new data WITHOUT causing re-render
+  posts.value.forEach((post: any, index: number) => {
+    const updatedPost = newPostsMap.get(post.post_id)
+    if (updatedPost) {
+      // Update ALL fields, not just status
+      // Use Object.assign to update in-place and avoid re-render
+      Object.assign(posts.value[index], updatedPost)
+      newPostsMap.delete(post.post_id)
+    }
+  })
+  
+  // Add any new posts that weren't in the existing list
+  if (newPostsMap.size > 0) {
+    posts.value = [...Array.from(newPostsMap.values()), ...posts.value]
   }
 }
 
