@@ -219,6 +219,14 @@
                 @comment-updated="handleCommentUpdated"
               />
             </div>
+            
+            <!-- View Comments Button for AI Posts -->
+            <div v-else-if="post.post_type === 'ai_app' && post.comment_count > 0" class="post-comments-link">
+              <button @click="openAIModal(post)" class="btn-view-comments">
+                <span class="icon">💬</span>
+                <span>View {{ post.comment_count }} {{ post.comment_count === 1 ? 'Comment' : 'Comments' }}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1902,6 +1910,29 @@ onUnmounted(() => {
 .btn-open-ai:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-view-comments {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-comments:hover {
+  background: var(--color-bg-primary);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
 }
 
 .modal-overlay {
