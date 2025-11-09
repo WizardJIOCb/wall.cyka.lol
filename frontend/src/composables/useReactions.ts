@@ -69,7 +69,7 @@ export function useReactions(
 
   const getCurrentUserId = (): number => {
     // Get from auth store
-    const userStr = localStorage.getItem('user')
+    const userStr = localStorage.getItem('wall_user')
     console.log('User string from localStorage:', userStr)
     if (userStr) {
       try {
