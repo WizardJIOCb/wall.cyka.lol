@@ -75,8 +75,8 @@ export function useReactions(
       try {
         const user = JSON.parse(userStr)
         console.log('Parsed user object:', user)
-        // Fix: Use 'id' instead of 'user_id' to match the User type definition
-        const userId = user.id || 0
+        // Fix: Check for both 'id' and 'user_id' to match the actual user object structure
+        const userId = user.id || user.user_id || 0
         console.log('User ID:', userId)
         return userId
       } catch (e) {
@@ -143,7 +143,7 @@ export function useReactions(
           by_type: createDefaultByType()
         }
       } else {
-        // Unexpected format
+        // Unexpected format - ensure we have proper defaults
         reactions.value = []
         stats.value = { 
           total: 0, 
@@ -153,6 +153,12 @@ export function useReactions(
     } catch (err: any) {
       error.value = err.message || 'Failed to load reactions'
       console.error('Error loading reactions:', err)
+      // Ensure we have proper defaults even on error
+      reactions.value = []
+      stats.value = { 
+        total: 0, 
+        by_type: createDefaultByType()
+      }
     } finally {
       loading.value = false
     }
@@ -167,8 +173,8 @@ export function useReactions(
       // Optimistic update
       currentUserReaction.value = reactionType
       stats.value.total++
-      // Safe access to by_type properties
-      stats.value.by_type[reactionType] = (stats.value.by_type[reactionType] ?? 0) + 1
+      // Safe access to by_type properties with fallback to 0
+      stats.value.by_type[reactionType] = ((stats.value.by_type[reactionType] ?? 0) + 1)
     
       await apiClient.post('/reactions', {
         reactable_type: getReactableType(),
@@ -199,9 +205,9 @@ export function useReactions(
       // Optimistic update
       currentUserReaction.value = null
       stats.value.total--
-      // Safe access to by_type properties
+      // Safe access to by_type properties with proper bounds checking
       if (stats.value.by_type[previousReaction] !== undefined) {
-        stats.value.by_type[previousReaction] = Math.max(0, stats.value.by_type[previousReaction] - 1)
+        stats.value.by_type[previousReaction] = Math.max(0, (stats.value.by_type[previousReaction] - 1))
       }
       
       await apiClient.delete(
