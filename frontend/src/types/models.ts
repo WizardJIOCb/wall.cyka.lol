@@ -68,7 +68,7 @@ export interface Comment {
 }
 
 // Reaction related types
-export type ReactionType = 'like' | 'love' | 'laugh' | 'wow' | 'sad' | 'angry'
+export type ReactionType = 'like' | 'dislike' | 'love' | 'haha' | 'wow' | 'sad' | 'angry'
 
 export interface Reaction {
   id: number

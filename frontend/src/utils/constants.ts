@@ -37,7 +37,7 @@ export const MAX_COMMENT_LENGTH = 5000
 export const THEMES = ['light', 'dark', 'green', 'cream', 'blue', 'high-contrast'] as const
 
 // Reaction types
-export const REACTION_TYPES = ['like', 'love', 'laugh', 'wow', 'sad', 'angry'] as const
+export const REACTION_TYPES = ['like', 'dislike', 'love', 'haha', 'wow', 'sad', 'angry'] as const
 
 // Notification types
 export const NOTIFICATION_TYPES = [

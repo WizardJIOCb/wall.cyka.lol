@@ -46,8 +46,8 @@ const { t } = useI18n()
 const reactions = ref<Reaction[]>([
   { type: 'like', emoji: '👍', label: 'Like' },
   { type: 'dislike', emoji: '👎', label: 'Dislike' },
-  { type: 'heart', emoji: '❤️', label: 'Love' },
-  { type: 'laugh', emoji: '😂', label: 'Laugh' },
+  { type: 'love', emoji: '❤️', label: 'Love' },
+  { type: 'haha', emoji: '😂', label: 'Laugh' },
   { type: 'wow', emoji: '😮', label: 'Wow' },
   { type: 'sad', emoji: '😢', label: 'Sad' },
   { type: 'angry', emoji: '😠', label: 'Angry' }

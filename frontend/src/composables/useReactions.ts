@@ -1,7 +1,8 @@
 import { ref, Ref, computed } from 'vue'
 import apiClient from '@/services/api/client'
 
-export type ReactionType = 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry'
+// Updated to match the actual API response format
+export type ReactionType = 'like' | 'dislike' | 'love' | 'haha' | 'wow' | 'sad' | 'angry'
 
 export interface Reaction {
   reaction_id: number
@@ -26,6 +27,7 @@ export function useReactions(
   // Create a helper function to initialize by_type with all reaction types
   const createDefaultByType = (): Record<ReactionType, number> => ({
     like: 0,
+    dislike: 0,
     love: 0,
     haha: 0,
     wow: 0,
@@ -47,6 +49,7 @@ export function useReactions(
 
   const reactionIcons: Record<ReactionType, string> = {
     like: '👍',
+    dislike: '👎',
     love: '❤️',
     haha: '😂',
     wow: '😮',
@@ -56,6 +59,7 @@ export function useReactions(
 
   const reactionColors: Record<ReactionType, string> = {
     like: '#3b82f6',
+    dislike: '#94a3b8',
     love: '#ef4444',
     haha: '#eab308',
     wow: '#f97316',
@@ -71,7 +75,8 @@ export function useReactions(
       try {
         const user = JSON.parse(userStr)
         console.log('Parsed user object:', user)
-        const userId = user.user_id || 0
+        // Fix: Use 'id' instead of 'user_id' to match the User type definition
+        const userId = user.id || 0
         console.log('User ID:', userId)
         return userId
       } catch (e) {

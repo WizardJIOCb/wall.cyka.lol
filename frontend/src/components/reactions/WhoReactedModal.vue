@@ -120,8 +120,8 @@ const limit = 20
 const reactionEmojis: Record<string, string> = {
   like: '👍',
   dislike: '👎',
-  heart: '❤️',
-  laugh: '😂',
+  love: '❤️',
+  haha: '😂',
   wow: '😮',
   sad: '😢',
   angry: '😠'

@@ -52,11 +52,12 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
 
+// Updated to match the actual API response format
 const reactionEmojis: Record<string, string> = {
   like: '👍',
   dislike: '👎',
-  heart: '❤️',
-  laugh: '😂',
+  love: '❤️',
+  haha: '😂',
   wow: '😮',
   sad: '😢',
   angry: '😠'
