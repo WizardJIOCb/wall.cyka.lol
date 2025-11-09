@@ -112,18 +112,29 @@ const pollInterval = ref<number | null>(null)
 
 // Computed
 const topLevelComments = computed(() => {
-  return comments.value.filter(c => c && c.comment_id && !c.parent_comment_id)
+  return comments.value.filter((c: any) => c && c.comment_id && !c.parent_comment_id)
 })
 
 // Helper function to validate comment objects
 const isValidComment = (comment: any): comment is Comment => {
-  return (
-    comment !== null &&
-    comment !== undefined &&
-    typeof comment === 'object' &&
-    typeof comment.comment_id === 'number' &&
-    comment.comment_id > 0
-  )
+  // More comprehensive validation to handle potential API response issues
+  if (comment === null || comment === undefined || typeof comment !== 'object') {
+    return false
+  }
+  
+  if (typeof comment.comment_id !== 'number' || comment.comment_id <= 0) {
+    return false
+  }
+  
+  // Additional validation for required fields
+  const requiredFields = ['post_id', 'author_id', 'content_text', 'content_html', 'created_at']
+  for (const field of requiredFields) {
+    if (!(field in comment)) {
+      return false
+    }
+  }
+  
+  return true
 }
 
 // Methods
@@ -167,7 +178,7 @@ const fetchComments = async () => {
 const buildCommentTree = () => {
   // Create a map for quick lookup
   const commentMap = new Map<number, Comment>()
-  comments.value.forEach(comment => {
+  comments.value.forEach((comment: any) => {
     if (isValidComment(comment)) {
       comment.replies = []
       commentMap.set(comment.comment_id, comment)
@@ -175,7 +186,7 @@ const buildCommentTree = () => {
   })
   
   // Build tree structure
-  comments.value.forEach(comment => {
+  comments.value.forEach((comment: any) => {
     if (isValidComment(comment) && comment.parent_comment_id) {
       const parent = commentMap.get(comment.parent_comment_id)
       if (parent && parent.replies) {
@@ -209,7 +220,7 @@ const onReplyCreated = (reply: Comment) => {
 
 const onCommentUpdated = (updatedComment: Comment) => {
   if (isValidComment(updatedComment)) {
-    const index = comments.value.findIndex(c => isValidComment(c) && c.comment_id === updatedComment.comment_id)
+    const index = comments.value.findIndex((c: any) => isValidComment(c) && c.comment_id === updatedComment.comment_id)
     if (index !== -1) {
       comments.value[index] = { ...comments.value[index], ...updatedComment }
       buildCommentTree()
@@ -218,7 +229,7 @@ const onCommentUpdated = (updatedComment: Comment) => {
 }
 
 const onCommentDeleted = (commentId: number) => {
-  comments.value = comments.value.filter(c => isValidComment(c) && c.comment_id !== commentId)
+  comments.value = comments.value.filter((c: any) => isValidComment(c) && c.comment_id !== commentId)
   totalCount.value--
   buildCommentTree()
 }

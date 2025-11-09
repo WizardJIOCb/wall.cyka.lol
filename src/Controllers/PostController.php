@@ -602,7 +602,7 @@ class PostController
     
     /**
      * Remove reaction from post
-     * DELETE /api/v1/posts/{postId}/reactions/{reactionType}
+     * DELETE /api/v1/posts/{postId}/reactions
      */
     public static function removeReactionFromPost($params)
     {

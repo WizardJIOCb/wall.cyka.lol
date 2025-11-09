@@ -697,7 +697,7 @@ route('POST', 'api/v1/posts/{postId}/reactions', function($params) {
 });
 
 // Remove reaction from post
-route('DELETE', 'api/v1/posts/{postId}/reactions/{reactionType}', function($params) {
+route('DELETE', 'api/v1/posts/{postId}/reactions', function($params) {
     PostController::removeReactionFromPost($params);
 });
 
