@@ -493,7 +493,7 @@ class AIController
         $apps = AIApplication::getUserApplications($user['user_id'], $limit, $offset);
 
         self::jsonResponse(true, [
-            'history' => $apps,
+            'jobs' => $apps,
             'count' => count($apps)
         ]);
     }

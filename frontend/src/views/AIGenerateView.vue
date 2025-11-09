@@ -303,8 +303,9 @@ const loadHistory = async () => {
   try {
     loadingHistory.value = true
     const response = await apiClient.get('/ai/history?limit=10')
-    if (response.data.success && response.data.data.jobs) {
-      history.value = response.data.data.jobs
+    // Fix: Check if response has the expected structure before accessing properties
+    if (response && response.history) {
+      history.value = response.history
     }
   } catch (err) {
     console.error('Error loading history:', err)
@@ -331,8 +332,9 @@ const submitGeneration = async () => {
 
     console.log('AI Generate Response:', response)
 
-    if (response.success && response.data?.job) {
-      currentJob.value = response.data.job
+    // Fix: Handle the response correctly based on the API client's response transformation
+    if (response && response.job) {
+      currentJob.value = response.job
       // Refresh balance after deduction
       await loadBricksBalance()
       
@@ -353,8 +355,9 @@ const loadJob = async (jobId?: string) => {
     if (!id) return
 
     const response = await apiClient.get(`/ai/jobs/${id}`)
-    if (response.data.success && response.data.data.job) {
-      currentJob.value = response.data.data.job
+    // Fix: Handle the response correctly based on the API client's response transformation
+    if (response && response.job) {
+      currentJob.value = response.job
       
       if (currentJob.value.status !== 'completed' && currentJob.value.status !== 'failed') {
         startPolling()
