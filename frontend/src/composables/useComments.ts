@@ -17,60 +17,40 @@ export function useComments(postId: Ref<number> | number) {
   const getPostId = () => typeof postId === 'number' ? postId : postId.value
 
   const isValidComment = (comment: any): comment is Comment => {
-    // Add detailed logging to see what's happening
-    console.log('Validating comment:', comment);
-    
     // Check if comment is null or undefined
     if (comment === null || comment === undefined) {
-      console.log('Comment is null or undefined');
       return false;
     }
     
     // Check if comment is an object
     if (typeof comment !== 'object') {
-      console.log('Comment is not an object, type:', typeof comment);
       return false;
     }
     
-    // Log all available keys to see what we have
-    console.log('Comment keys:', Object.keys(comment));
-    
     // Check for ID field (be flexible with field names)
     const id = comment.comment_id || comment.id || comment._id;
-    console.log('Found ID field:', id, 'Type:', typeof id);
     
-    // If we can't find any ID field, log the entire comment for debugging
+    // If we can't find any ID field, check if it has the basic structure
     if (id === undefined) {
-      console.log('No ID field found in comment. Full comment structure:', JSON.stringify(comment, null, 2));
-      // Even without ID, let's check if it has the basic structure
-      if (comment.content_text && comment.author_username) {
-        console.log('Comment has basic structure, allowing it through');
-        return true;
-      }
-      return false;
+      return comment.content_text && comment.author_username;
     }
     
     // If we have an ID, validate it
     if (typeof id !== 'number') {
-      console.log('ID is not a number, type:', typeof id, 'value:', id);
       // Try to convert to number
       const numericId = Number(id);
       if (isNaN(numericId) || numericId <= 0) {
-        console.log('ID cannot be converted to valid number');
         return false;
       }
-      console.log('Converted ID to valid number:', numericId);
     }
     
     // Check for required fields
     const requiredFields = ['content_text', 'author_username'];
     const missingFields = requiredFields.filter(field => !(field in comment));
     if (missingFields.length > 0) {
-      console.log('Missing required fields:', missingFields);
       return false;
     }
     
-    console.log('Comment passed validation');
     return true;
   }
 
@@ -94,11 +74,6 @@ export function useComments(postId: Ref<number> | number) {
         }
       })
       
-      // Debug: Log the raw response
-      console.log('Comments API Response:', response)
-      console.log('Response type:', typeof response)
-      console.log('Response keys:', Object.keys(response))
-      
       // Handle different response formats
       let commentsData = [];
       
@@ -107,38 +82,26 @@ export function useComments(postId: Ref<number> | number) {
         if ('comments' in response && Array.isArray(response.comments)) {
           // Standard format: { comments: [...], count: 6, has_more: false }
           commentsData = response.comments;
-          console.log('Found comments array in response:', commentsData);
         } else if (Array.isArray(response)) {
           // Direct array format
           commentsData = response;
-          console.log('Response is directly an array of comments:', commentsData);
-        } else {
-          // Unexpected format
-          console.log('Unexpected response format:', response);
         }
-      } else {
-        console.log('Invalid response format:', response);
       }
-      
-      console.log('Processing comments data:', commentsData);
-      console.log('Comments data type:', typeof commentsData);
-      console.log('Is comments data array?', Array.isArray(commentsData));
       
       if (Array.isArray(commentsData)) {
         // Filter out any invalid comments and ensure each comment is a valid object
         const validComments = commentsData.filter(isValidComment)
-        comments.value = validComments
-        console.log('Filtered comments:', validComments)
-        console.log('Valid comments count:', validComments.length)
+        comments.value = validComments;
         
-        // Also show what was filtered out
-        const invalidComments = commentsData.filter(comment => !isValidComment(comment));
-        if (invalidComments.length > 0) {
-          console.log('Invalid comments that were filtered out:', invalidComments);
+        // Also show what was filtered out in development mode
+        if (import.meta.env.DEV) {
+          const invalidComments = commentsData.filter(comment => !isValidComment(comment));
+          if (invalidComments.length > 0) {
+            console.warn('Invalid comments filtered out:', invalidComments);
+          }
         }
       } else {
-        console.log('Comments data is not an array')
-        comments.value = []
+        comments.value = [];
       }
     } catch (err: any) {
       error.value = err.message || 'Failed to load comments'

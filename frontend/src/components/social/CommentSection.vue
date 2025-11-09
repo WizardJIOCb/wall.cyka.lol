@@ -36,14 +36,8 @@
       </div>
 
       <div v-else class="comments">
-        <!-- Show all comments with debugging info -->
-        <div v-for="(comment, index) in comments" :key="comment.comment_id || comment.id || index" class="comment-debug-wrapper">
-          <div class="comment-debug-info">
-            Comment #{{ index + 1 }}:
-            <div>ID: {{ comment.comment_id || comment.id || 'N/A' }}</div>
-            <div>Author: {{ comment.author_username || 'N/A' }}</div>
-            <div>Content preview: {{ (comment.content_text || comment.content || 'N/A').substring(0, 50) }}...</div>
-          </div>
+        <!-- Show all comments -->
+        <div v-for="(comment, index) in comments" :key="comment.comment_id || comment.id || index">
           <CommentItem
             v-if="comment && (comment.comment_id || comment.id)"
             :comment="comment"
@@ -60,12 +54,7 @@
         <div v-if="comments.length === 0" class="empty-state">
           <span class="empty-icon">💬</span>
           <p>No valid comments to display</p>
-          <p class="empty-hint">Comments may be filtered due to validation</p>
-          <!-- Show raw comments for debugging -->
-          <div v-if="rawComments && rawComments.length > 0" class="debug-raw-comments">
-            <h4>Raw Comments Data:</h4>
-            <pre>{{ JSON.stringify(rawComments, null, 2) }}</pre>
-          </div>
+          <p class="empty-hint">Be the first to comment on this post!</p>
         </div>
       </div>
     </div>
@@ -90,9 +79,6 @@ const emit = defineEmits<{
   (e: 'comment-updated', comment: Comment): void
 }>()
 
-// Add raw comments for debugging
-const rawComments = ref<any[]>([])
-
 const maxDepth = ref(props.maxDepth || 3)
 const sortBy = ref<'newest' | 'oldest' | 'popular'>('newest')
 
@@ -103,21 +89,6 @@ const {
   loadComments,
   addComment
 } = useComments(ref(props.postId))
-
-// Watch for raw comments data
-watch(comments, (newComments: Comment[]) => {
-  rawComments.value = [...newComments] // Store a copy for debugging
-  console.log('Comments updated in CommentSection:', newComments)
-  console.log('Comments length in CommentSection:', newComments.length)
-  if (newComments.length > 0) {
-    console.log('First comment details:', {
-      id: newComments[0].comment_id,
-      type: typeof newComments[0].comment_id,
-      content: newComments[0].content_text?.substring(0, 50)
-    })
-  }
-  console.log('All comments:', JSON.stringify(newComments, null, 2))
-})
 
 const handleSortChange = () => {
   loadComments(sortBy.value)
@@ -151,8 +122,6 @@ const handleCommentDeleted = (commentId: number) => {
 }
 
 onMounted(() => {
-  console.log('CommentSection mounted with postId:', props.postId)
-  console.log('Initializing comments loading...')
   loadComments(sortBy.value)
 })
 </script>

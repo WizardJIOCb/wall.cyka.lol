@@ -198,11 +198,7 @@
                 <span class="icon">💬</span>
                 <span>{{ post.comment_count || 0 }}</span>
               </button>
-              <!-- Add debugging info -->
-              <div class="debug-post-info">
-                Post ID: {{ post.post_id }}, Type: {{ post.post_type }}, Comments: {{ post.comment_count }}
-              </div>
-              <!-- End debugging -->
+
               <button class="action-btn">
                 <span class="icon">👁</span>
                 <span>{{ post.view_count || 0 }}</span>
@@ -216,7 +212,7 @@
             
             <!-- Comment Section for Regular Posts -->
             <div v-if="post.post_type !== 'ai_app'" class="post-comments">
-              <div class="debug-info">Loading CommentSection for post {{ post.post_id }}</div>
+
               <CommentSection 
                 :post-id="post.post_id" 
                 :max-depth="3"
