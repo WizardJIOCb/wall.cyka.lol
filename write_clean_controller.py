@@ -1,16 +1,17 @@
-<?php
+# Python script to write clean SocialController content
+content = '''<?php
 /**
  * Wall Social Platform - Social Controller
  * 
  * Handles social features: reactions, comments, reposts
  */
 
-namespace App\Controllers;
+namespace App\\Controllers;
 
-use App\Middleware\AuthMiddleware;
-use App\Models\Reaction;
-use App\Models\Comment;
-use App\Utils\Validator;
+use App\\Middleware\\AuthMiddleware;
+use App\\Models\\Reaction;
+use App\\Models\\Comment;
+use App\\Utils\\Validator;
 use Exception;
 
 class SocialController
@@ -261,7 +262,7 @@ class SocialController
     {
         $allowedTags = '<p><br><strong><em><u><a>';
         $cleaned = strip_tags($html, $allowedTags);
-        $cleaned = preg_replace('/<(\w+)[^>]*\s(on\w+|javascript:|vbscript:)[^>]*>/i', '<$1>', $cleaned);
+        $cleaned = preg_replace('/<(\\w+)[^>]*\\s(on\\w+|javascript:|vbscript:)[^>]*>/i', '<$1>', $cleaned);
         return $cleaned;
     }
 
@@ -294,4 +295,8 @@ class SocialController
         echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
-}
+}'''
+
+# Write the content to the file
+with open('C:\\\\Users\\\\Rodion\\\\.qoder\\\\worktree\\\\wall.cyka.lol\\\\qoder\\\\check-social-controller-1762705469\\\\src\\\\Controllers\\\\SocialController_clean.php', 'w', encoding='utf-8') as f:
+    f.write(content)
