@@ -406,3 +406,4 @@ loadReactions()
 .modal-fade-leave-to .modal-content {
   transform: scale(0.9);
 }
+</style>
