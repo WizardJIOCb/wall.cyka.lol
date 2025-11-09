@@ -126,7 +126,7 @@ const positionAbove = ref(false)
 const pickerRef = ref<HTMLElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const pickerStyle = ref({
-  position: 'absolute',
+  position: 'fixed',
   top: '0px',
   left: '0px',
   transform: 'translateX(-50%)',
@@ -160,6 +160,13 @@ const calculatePickerPosition = () => {
     pickerStyle.value.top = `${containerRect.bottom + 4}px`
   }
   pickerStyle.value.left = `${containerRect.left + containerRect.width / 2}px`
+  
+  // Add translateY for above positioning
+  if (positionAbove.value) {
+    pickerStyle.value.transform = 'translateX(-50%) translateY(-100%)'
+  } else {
+    pickerStyle.value.transform = 'translateX(-50%)'
+  }
 }
 
 const showPickerOnHover = () => {
@@ -268,10 +275,11 @@ loadReactions()
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+  z-index: 9999;
 }
 
 .reaction-picker.position-above {
-  transform: translateX(-50%) translateY(-100%);
+  /* Positioning handled by inline styles */
 }
 
 .reaction-option {
@@ -312,12 +320,12 @@ loadReactions()
 .picker-fade-enter-from,
 .picker-fade-leave-to {
   opacity: 0;
-  transform: translateX(-50%) translateY(-4px);
+  transform: translateX(-50%) translateY(-10px);
 }
 
 .picker-fade-enter-from.position-above,
 .picker-fade-leave-to.position-above {
-  transform: translateX(-50%) translateY(4px);
+  transform: translateX(-50%) translateY(10px);
 }
 
 .modal-overlay {
