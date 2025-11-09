@@ -63,6 +63,21 @@ export function useReactions(
     angry: '#dc2626'
   }
 
+  const getCurrentUserId = (): number => {
+    // Get from auth store
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        return user.user_id || 0
+      } catch (e) {
+        console.error('Error parsing user from localStorage:', e)
+        return 0
+      }
+    }
+    return 0
+  }
+
   const loadReactions = async () => {
     try {
       loading.value = true
@@ -102,7 +117,8 @@ export function useReactions(
         }
         
         // Find current user's reaction
-        const userReaction = reactions.value.find((r: Reaction) => r.user_id === getCurrentUserId())
+        const currentUserId = getCurrentUserId()
+        const userReaction = reactions.value.find((r: Reaction) => r.user_id === currentUserId)
         currentUserReaction.value = userReaction ? userReaction.reaction_type : null
       } else if (Array.isArray(response)) {
         // Direct array format
@@ -201,16 +217,6 @@ export function useReactions(
     } else {
       await addReaction(reactionType)
     }
-  }
-
-  const getCurrentUserId = (): number => {
-    // Get from auth store
-    const userStr = localStorage.getItem('user')
-    if (userStr) {
-      const user = JSON.parse(userStr)
-      return user.user_id
-    }
-    return 0
   }
 
   const displayIcon = computed(() => {
