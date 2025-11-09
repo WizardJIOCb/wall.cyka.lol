@@ -142,7 +142,9 @@ const emit = defineEmits<{
 if (!props.comment) {
   console.warn('CommentItem: comment prop is required')
 } else {
-  console.log('Rendering CommentItem:', props.comment)
+  console.log('Rendering CommentItem with comment:', props.comment)
+  console.log('Comment ID:', props.comment.comment_id, 'Type:', typeof props.comment.comment_id)
+  console.log('Comment validation:', props.comment && props.comment.comment_id)
 }
 
 const authStore = useAuthStore()
@@ -426,4 +428,3 @@ const viewFullThread = () => {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
-</style>

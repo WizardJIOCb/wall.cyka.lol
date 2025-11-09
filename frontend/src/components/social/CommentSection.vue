@@ -35,24 +35,38 @@
         <button @click="loadComments(sortBy)" class="btn-retry">Retry</button>
       </div>
 
-      <div v-else-if="comments.length === 0" class="empty-state">
-        <span class="empty-icon">💬</span>
-        <p>No comments yet</p>
-        <p class="empty-hint">Be the first to comment!</p>
-      </div>
-
       <div v-else class="comments">
-        <CommentItem
-          v-for="(comment, index) in comments"
-          :key="comment.comment_id"
-          :comment="comment"
-          :post-id="postId"
-          :depth="0"
-          :max-depth="maxDepth"
-          @reply-added="handleReplyAdded"
-          @comment-updated="handleCommentUpdated"
-          @comment-deleted="handleCommentDeleted"
-        />
+        <!-- Show all comments with debugging info -->
+        <div v-for="(comment, index) in comments" :key="comment.comment_id || comment.id || index" class="comment-debug-wrapper">
+          <div class="comment-debug-info">
+            Comment #{{ index + 1 }}:
+            <div>ID: {{ comment.comment_id || comment.id || 'N/A' }}</div>
+            <div>Author: {{ comment.author_username || 'N/A' }}</div>
+            <div>Content preview: {{ (comment.content_text || comment.content || 'N/A').substring(0, 50) }}...</div>
+          </div>
+          <CommentItem
+            v-if="comment && (comment.comment_id || comment.id)"
+            :comment="comment"
+            :post-id="postId"
+            :depth="0"
+            :max-depth="maxDepth"
+            @reply-added="handleReplyAdded"
+            @comment-updated="handleCommentUpdated"
+            @comment-deleted="handleCommentDeleted"
+          />
+        </div>
+        
+        <!-- Show message if no comments passed validation -->
+        <div v-if="comments.length === 0" class="empty-state">
+          <span class="empty-icon">💬</span>
+          <p>No valid comments to display</p>
+          <p class="empty-hint">Comments may be filtered due to validation</p>
+          <!-- Show raw comments for debugging -->
+          <div v-if="rawComments && rawComments.length > 0" class="debug-raw-comments">
+            <h4>Raw Comments Data:</h4>
+            <pre>{{ JSON.stringify(rawComments, null, 2) }}</pre>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -76,6 +90,9 @@ const emit = defineEmits<{
   (e: 'comment-updated', comment: Comment): void
 }>()
 
+// Add raw comments for debugging
+const rawComments = ref<any[]>([])
+
 const maxDepth = ref(props.maxDepth || 3)
 const sortBy = ref<'newest' | 'oldest' | 'popular'>('newest')
 
@@ -87,15 +104,24 @@ const {
   addComment
 } = useComments(ref(props.postId))
 
+// Watch for raw comments data
+watch(comments, (newComments: Comment[]) => {
+  rawComments.value = [...newComments] // Store a copy for debugging
+  console.log('Comments updated in CommentSection:', newComments)
+  console.log('Comments length in CommentSection:', newComments.length)
+  if (newComments.length > 0) {
+    console.log('First comment details:', {
+      id: newComments[0].comment_id,
+      type: typeof newComments[0].comment_id,
+      content: newComments[0].content_text?.substring(0, 50)
+    })
+  }
+  console.log('All comments:', JSON.stringify(newComments, null, 2))
+})
+
 const handleSortChange = () => {
   loadComments(sortBy.value)
 }
-
-// Add debugging for comments
-watch(comments, (newComments: Comment[]) => {
-  console.log('Comments updated:', newComments)
-  console.log('Comments length:', newComments.length)
-})
 
 const handleCommentSubmit = async (text: string) => {
   try {
@@ -125,6 +151,8 @@ const handleCommentDeleted = (commentId: number) => {
 }
 
 onMounted(() => {
+  console.log('CommentSection mounted with postId:', props.postId)
+  console.log('Initializing comments loading...')
   loadComments(sortBy.value)
 })
 </script>
@@ -238,4 +266,47 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
-</style>
+
+.debug-raw-comments {
+  background: #ffeb3b;
+  color: #000;
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.debug-raw-comments h4 {
+  margin: 0 0 10px 0;
+}
+
+.debug-raw-comments pre {
+  background: #fff;
+  padding: 10px;
+  border-radius: 3px;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
+.comment-debug-wrapper {
+  border: 1px solid #ff9800;
+  margin: 5px 0;
+  padding: 5px;
+}
+
+.comment-debug-info {
+  background: #fff3e0;
+  color: #e65100;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.comment-debug-info pre {
+  background: #fff;
+  padding: 5px;
+  border-radius: 3px;
+  margin-top: 5px;
+  white-space: pre-wrap;
+}

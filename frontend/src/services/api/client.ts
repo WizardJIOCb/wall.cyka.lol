@@ -33,7 +33,22 @@ class APIClient {
 
     // Response interceptor - handle errors
     this.client.interceptors.response.use(
-      (response) => response.data,
+      (response) => {
+        // Handle the backend response format { success: boolean, data: any, message?: string }
+        if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+          if (response.data.success) {
+            return response.data.data || response.data; // Return data if available, otherwise the whole response
+          } else {
+            // Handle error response
+            return Promise.reject({
+              status: response.status,
+              message: response.data.message || 'API request failed'
+            });
+          }
+        }
+        // For responses that don't follow the standard format, return as-is
+        return response.data;
+      },
       async (error: AxiosError<ApiResponse>) => {
         const apiError: ApiError = {
           status: error.response?.status || 500,
