@@ -1175,17 +1175,32 @@ const openAIModal = async (post: any) => {
     // For completed posts, fetch full data from API
     const response: any = await apiClient.get(`/ai/apps/${post.ai_app_id}`)
     
-    // Check if response has the expected structure
-    if (response?.success && response?.data?.app) {
-      console.log('AI App Data:', response.data.app)
+    // Check if response has the expected structure (API client unwraps the response)
+    if (response && typeof response === 'object' && 'app' in response) {
+      console.log('AI App Data:', response.app)
       selectedAIPost.value = {
         ...post,
         ai_content: {
-          ...response.data.app,
-          bricks_cost: response.data.app.bricks_cost || post.ai_content?.bricks_cost || 0,
-          input_tokens: response.data.app.input_tokens || post.ai_content?.input_tokens || 0,
-          output_tokens: response.data.app.output_tokens || post.ai_content?.output_tokens || 0,
-          total_tokens: response.data.app.total_tokens || post.ai_content?.total_tokens || 0
+          ...response.app,
+          bricks_cost: response.app.bricks_cost || post.ai_content?.bricks_cost || 0,
+          input_tokens: response.app.input_tokens || post.ai_content?.input_tokens || 0,
+          output_tokens: response.app.output_tokens || post.ai_content?.output_tokens || 0,
+          total_tokens: response.app.total_tokens || post.ai_content?.total_tokens || 0
+        }
+      }
+      showAIModal.value = true
+      document.body.style.overflow = 'hidden'
+    } else if (response && typeof response === 'object' && 'app_id' in response) {
+      // Direct app object format
+      console.log('AI App Data (direct):', response)
+      selectedAIPost.value = {
+        ...post,
+        ai_content: {
+          ...response,
+          bricks_cost: response.bricks_cost || post.ai_content?.bricks_cost || 0,
+          input_tokens: response.input_tokens || post.ai_content?.input_tokens || 0,
+          output_tokens: response.output_tokens || post.ai_content?.output_tokens || 0,
+          total_tokens: response.total_tokens || post.ai_content?.total_tokens || 0
         }
       }
       showAIModal.value = true
