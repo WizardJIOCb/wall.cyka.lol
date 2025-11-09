@@ -223,12 +223,14 @@
             </div>
             
             <!-- View Comments Button for AI Posts -->
+            <!--
             <div v-else-if="post.post_type === 'ai_app' && post.comment_count > 0" class="post-comments-link">
               <button @click="openAIModal(post)" class="btn-view-comments">
                 <span class="icon">💬</span>
                 <span>View {{ post.comment_count }} {{ post.comment_count === 1 ? 'Comment' : 'Comments' }}</span>
               </button>
             </div>
+            -->
           </div>
         </div>
 
