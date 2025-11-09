@@ -88,7 +88,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useReactions, ReactionType } from '@/composables/useReactions'
+import { useReactions, ReactionType, Reaction } from '@/composables/useReactions'
 
 const props = defineProps<{
   reactableType: 'post' | 'comment'
@@ -110,7 +110,7 @@ const {
 const showPicker = ref(false)
 const showDetailsModal = ref(false)
 const selectedTab = ref<string>('all')
-let hoverTimeout: NodeJS.Timeout | null = null
+let hoverTimeout: any = null
 
 const togglePicker = (event: Event) => {
   event.stopPropagation()
@@ -131,7 +131,7 @@ const hidePickerOnHover = () => {
   setTimeout(() => {
     if (!showPicker.value) return
     showPicker.value = false
-  }, 200)
+  }, 300)
 }
 
 const keepPickerOpen = () => {
@@ -159,7 +159,7 @@ const filteredReactions = computed(() => {
   if (selectedTab.value === 'all') {
     return reactions.value
   }
-  return reactions.value.filter(r => r.reaction_type === selectedTab.value)
+  return reactions.value.filter((r: Reaction) => r.reaction_type === selectedTab.value)
 })
 
 // Load reactions on mount
@@ -206,9 +206,9 @@ loadReactions()
 
 .reaction-picker {
   position: absolute;
-  bottom: 100%;
+  top: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(-8px);
+  transform: translateX(-50%) translateY(8px);
   display: flex;
   gap: var(--spacing-2);
   padding: var(--spacing-3);
@@ -406,4 +406,3 @@ loadReactions()
 .modal-fade-leave-to .modal-content {
   transform: scale(0.9);
 }
-</style>

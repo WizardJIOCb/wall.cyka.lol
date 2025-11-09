@@ -8,8 +8,8 @@ export interface Reaction {
   user_id: number
   username: string
   avatar_url: string
-  reactable_type: 'post' | 'comment'
-  reactable_id: number
+  target_type: 'post' | 'comment'
+  target_id: number
   reaction_type: ReactionType
   created_at: string
 }
