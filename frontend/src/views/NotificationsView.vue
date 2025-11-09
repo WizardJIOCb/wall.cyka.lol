@@ -164,16 +164,30 @@ const loadNotifications = async () => {
     const offset = (page.value - 1) * limit
     
     const response = await apiClient.get(`/notifications?limit=${limit}&offset=${offset}`)
-    if (response.data.success && response.data.data.notifications) {
-      if (page.value === 1) {
-        notifications.value = response.data.data.notifications
+    // Add proper error handling for response structure
+    if (response && response.data) {
+      if (response.data.success && response.data.data && response.data.data.notifications) {
+        if (page.value === 1) {
+          notifications.value = response.data.data.notifications
+        } else {
+          notifications.value = [...notifications.value, ...response.data.data.notifications]
+        }
+        hasMore.value = response.data.data.notifications.length === limit
       } else {
-        notifications.value = [...notifications.value, ...response.data.data.notifications]
+        // Handle case where success is false or data structure is different
+        console.warn('Unexpected response structure:', response.data)
+        notifications.value = []
+        hasMore.value = false
       }
-      hasMore.value = response.data.data.notifications.length === limit
+    } else {
+      console.error('Invalid response:', response)
+      notifications.value = []
+      hasMore.value = false
     }
   } catch (err) {
     console.error('Error loading notifications:', err)
+    notifications.value = []
+    hasMore.value = false
   } finally {
     loading.value = false
   }
@@ -182,11 +196,16 @@ const loadNotifications = async () => {
 const loadUnreadCount = async () => {
   try {
     const response = await apiClient.get('/notifications/unread-count')
-    if (response.data.success) {
-      unreadCount.value = response.data.data.unread_count || 0
+    // Add proper error handling for response structure
+    if (response && response.data && response.data.success) {
+      unreadCount.value = response.data.data?.unread_count || 0
+    } else {
+      console.warn('Unexpected response structure for unread count:', response?.data)
+      unreadCount.value = 0
     }
   } catch (err) {
     console.error('Error loading unread count:', err)
+    unreadCount.value = 0
   }
 }
 
