@@ -44,11 +44,64 @@ export function useComments(postId: Ref<number> | number) {
       }
     }
     
-    // Check for required fields
-    const requiredFields = ['content_text', 'author_username'];
+    // Check for all required fields in the Comment type
+    const requiredFields = [
+      'comment_id', 
+      'post_id', 
+      'author_id', 
+      'author_username', 
+      'author_name', 
+      'content_text', 
+      'content_html', 
+      'depth_level', 
+      'reply_count', 
+      'reaction_count', 
+      'like_count', 
+      'dislike_count', 
+      'is_edited', 
+      'is_hidden', 
+      'created_at', 
+      'updated_at'
+    ];
+    
     const missingFields = requiredFields.filter(field => !(field in comment));
     if (missingFields.length > 0) {
+      // In development mode, log what fields are missing
+      if (import.meta.env.DEV) {
+        console.warn('Comment missing required fields:', missingFields, 'Comment:', comment);
+      }
       return false;
+    }
+    
+    // Validate field types
+    if (typeof comment.comment_id !== 'number' || comment.comment_id <= 0) return false;
+    if (typeof comment.post_id !== 'number' || comment.post_id <= 0) return false;
+    if (typeof comment.author_id !== 'number' || comment.author_id <= 0) return false;
+    if (typeof comment.author_username !== 'string' || !comment.author_username) return false;
+    if (typeof comment.author_name !== 'string' || !comment.author_name) return false;
+    if (typeof comment.content_text !== 'string') return false;
+    if (typeof comment.content_html !== 'string') return false;
+    if (typeof comment.depth_level !== 'number') return false;
+    if (typeof comment.reply_count !== 'number') return false;
+    if (typeof comment.reaction_count !== 'number') return false;
+    if (typeof comment.like_count !== 'number') return false;
+    if (typeof comment.dislike_count !== 'number') return false;
+    if (typeof comment.is_edited !== 'boolean') return false;
+    if (typeof comment.is_hidden !== 'boolean') return false;
+    if (typeof comment.created_at !== 'string' || !comment.created_at) return false;
+    if (typeof comment.updated_at !== 'string' || !comment.updated_at) return false;
+    
+    // Validate optional fields if present
+    if (comment.parent_comment_id !== undefined && comment.parent_comment_id !== null) {
+      if (typeof comment.parent_comment_id !== 'number') return false;
+    }
+    
+    if (comment.author_avatar !== undefined && comment.author_avatar !== null) {
+      if (typeof comment.author_avatar !== 'string') return false;
+    }
+    
+    if (comment.user_reaction !== undefined && comment.user_reaction !== null) {
+      if (typeof comment.user_reaction !== 'string') return false;
     }
     
     return true;
@@ -169,7 +222,7 @@ export function useComments(postId: Ref<number> | number) {
       await apiClient.delete(`/comments/${commentId}`)
       
       // Remove from comments list
-      comments.value = comments.value.filter((c: Comment) => c && c.comment_id !== undefined && c.comment_id !== commentId)
+      comments.value = comments.value.filter((c: Comment) => c && c.comment_id !== commentId)
     } catch (err: any) {
       error.value = err.message || 'Failed to delete comment'
       throw err

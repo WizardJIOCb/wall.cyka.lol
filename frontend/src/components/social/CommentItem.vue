@@ -1,5 +1,5 @@
 <template>
-  <div v-if="comment && comment.id" :class="['comment-item', { 'is-reply': depth > 0 }]" :style="{ marginLeft: `${depth * 40}px` }">
+  <div v-if="comment && comment.comment_id" :class="['comment-item', { 'is-reply': depth > 0 }]" :style="{ marginLeft: `${depth * 40}px` }">
     <!-- Comment Header -->
     <div class="comment-header">
       <img 
@@ -37,7 +37,7 @@
     <div v-if="!isEditing" class="comment-actions">
       <ReactionPicker
         :reactable-type="'comment'"
-        :reactable-id="comment.id"
+        :reactable-id="comment.comment_id"
       />
       
       <button 
@@ -73,7 +73,7 @@
     <div v-if="showReplyInput" class="reply-input">
       <CommentInput
         :post-id="comment.post_id"
-        :parent-id="comment.id"
+        :parent-id="comment.comment_id"
         :placeholder="'Write a reply...'"
         @submit="handleReplySubmit"
         @cancel="toggleReply"
@@ -84,7 +84,7 @@
     <div v-if="showReplies && replies.length > 0" class="comment-replies">
       <CommentItem
         v-for="reply in replies"
-        :key="reply.id"
+        :key="reply.comment_id"
         :comment="reply"
         :post-id="postId"
         :depth="depth + 1"
@@ -143,8 +143,8 @@ if (!props.comment) {
   console.warn('CommentItem: comment prop is required')
 } else {
   console.log('Rendering CommentItem with comment:', props.comment)
-  console.log('Comment ID:', props.comment.id, 'Type:', typeof props.comment.id)
-  console.log('Comment validation:', props.comment && props.comment.id)
+  console.log('Comment ID:', props.comment.comment_id, 'Type:', typeof props.comment.comment_id)
+  console.log('Comment validation:', props.comment && props.comment.comment_id)
 }
 
 const authStore = useAuthStore()
@@ -196,7 +196,7 @@ const cancelEdit = () => {
 const handleEditSubmit = async (text: string) => {
   try {
     if (!props.comment) return
-    const updated = await updateComment(props.comment.id, {
+    const updated = await updateComment(props.comment.comment_id, {
       content_text: text
     })
     if (updated) {
@@ -212,8 +212,8 @@ const handleDelete = async () => {
   if (!props.comment || !confirm('Delete this comment?')) return
   
   try {
-    await deleteComment(props.comment.id)
-    emit('comment-deleted', props.comment.id)
+    await deleteComment(props.comment.comment_id)
+    emit('comment-deleted', props.comment.comment_id)
   } catch (error) {
     console.error('Failed to delete comment:', error)
   }
@@ -229,7 +229,7 @@ const handleReplySubmit = async (text: string) => {
     const reply = await addComment({
       post_id: props.postId,
       content_text: text,
-      parent_id: props.comment.id
+      parent_id: props.comment.comment_id
     })
     
     if (reply) {
@@ -247,7 +247,7 @@ const loadReplies = async () => {
   if (!props.comment) return
   loadingReplies.value = true
   try {
-    replies.value = await loadCommentReplies(props.comment.id)
+    replies.value = await loadCommentReplies(props.comment.comment_id)
     showReplies.value = true
   } catch (error) {
     console.error('Failed to load replies:', error)
@@ -263,7 +263,7 @@ const handleReplyAdded = (reply: Comment) => {
 const viewFullThread = () => {
   if (!props.comment) return
   // Navigate to full thread view
-  console.log('View full thread for comment:', props.comment.id)
+  console.log('View full thread for comment:', props.comment.comment_id)
 }
 </script>
 
