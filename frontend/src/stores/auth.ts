@@ -52,13 +52,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (credentials: LoginRequest) => {
     try {
-      const response = await authAPI.login(credentials)
-      if (response.success && response.data) {
-        setAuth(response.data.user, response.data.session_token)
+      const response: any = await authAPI.login(credentials)
+      // The API client interceptor returns response.data, so we need to check for user and session_token directly
+      if (response.user && response.session_token) {
+        setAuth(response.user, response.session_token)
         router.push('/')
-        return response
+        return { success: true, data: response }
       }
-      throw new Error(response.message || 'Login failed')
+      throw new Error('Login failed')
     } catch (error: any) {
       throw error
     }
@@ -66,13 +67,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   const register = async (userData: RegisterRequest) => {
     try {
-      const response = await authAPI.register(userData)
-      if (response.success && response.data) {
-        setAuth(response.data.user, response.data.session_token)
+      const response: any = await authAPI.register(userData)
+      // The API client interceptor returns response.data, so we need to check for user and session_token directly
+      if (response.user && response.session_token) {
+        setAuth(response.user, response.session_token)
         router.push('/wall/me')
-        return response
+        return { success: true, data: response }
       }
-      throw new Error(response.message || 'Registration failed')
+      throw new Error('Registration failed')
     } catch (error: any) {
       throw error
     }
