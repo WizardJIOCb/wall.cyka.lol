@@ -17,7 +17,9 @@
     <Transition name="picker-fade">
       <div 
         v-if="showPicker" 
+        ref="pickerRef"
         class="reaction-picker"
+        :class="{ 'position-above': positionAbove }"
         @mouseenter="keepPickerOpen"
         @mouseleave="hidePickerOnHover"
       >
@@ -89,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useReactions, ReactionType, Reaction } from '@/composables/useReactions'
 
 const props = defineProps<{
@@ -117,11 +119,34 @@ watch(() => [props.reactableType, props.reactableId], () => {
 const showPicker = ref(false)
 const showDetailsModal = ref(false)
 const selectedTab = ref<string>('all')
+const positionAbove = ref(false)
+const pickerRef = ref<HTMLElement | null>(null)
 let hoverTimeout: any = null
 
 const togglePicker = (event: Event) => {
   event.stopPropagation()
   showPicker.value = !showPicker.value
+  if (showPicker.value) {
+    // Wait for the picker to be rendered, then check positioning
+    nextTick(() => {
+      calculatePickerPosition()
+    })
+  }
+}
+
+const calculatePickerPosition = () => {
+  if (!pickerRef.value) return
+  
+  const picker = pickerRef.value
+  const rect = picker.getBoundingClientRect()
+  const viewportHeight = window.innerHeight
+  
+  // Check if picker would go below viewport
+  if (rect.bottom > viewportHeight) {
+    positionAbove.value = true
+  } else {
+    positionAbove.value = false
+  }
 }
 
 const showPickerOnHover = () => {
@@ -130,6 +155,10 @@ const showPickerOnHover = () => {
   }
   hoverTimeout = setTimeout(() => {
     showPicker.value = true
+    // Wait for the picker to be rendered, then check positioning
+    nextTick(() => {
+      calculatePickerPosition()
+    })
   }, 150) // Reduced delay for quicker response
 }
 
@@ -230,7 +259,13 @@ loadReactions()
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
+  z-index: 1000; /* Increased z-index to ensure it's above all other elements */
+}
+
+.reaction-picker.position-above {
+  top: auto;
+  bottom: 100%;
+  transform: translateX(-50%) translateY(-4px);
 }
 
 .reaction-option {
@@ -272,6 +307,11 @@ loadReactions()
 .picker-fade-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(-4px);
+}
+
+.picker-fade-enter-from.position-above,
+.picker-fade-leave-to.position-above {
+  transform: translateX(-50%) translateY(4px);
 }
 
 .modal-overlay {
@@ -416,15 +456,5 @@ loadReactions()
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
-}
-
-.modal-fade-enter-active .modal-content,
-.modal-fade-leave-active .modal-content {
-  transition: transform 0.3s;
-}
-
-.modal-fade-enter-from .modal-content,
-.modal-fade-leave-to .modal-content {
-  transform: scale(0.9);
 }
 </style>
