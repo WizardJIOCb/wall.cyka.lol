@@ -14,27 +14,30 @@
     </button>
 
     <!-- Reaction Picker Popup (teleported to body) -->
-    <Transition name="picker-fade">
-      <div 
-        v-if="showPicker" 
-        ref="pickerRef"
-        class="reaction-picker"
-        :class="{ 'position-above': positionAbove }"
-        @mouseenter="keepPickerOpen"
-        @mouseleave="hidePickerOnHover"
-      >
-        <button
-          v-for="(icon, type) in reactionIcons"
-          :key="type"
-          @click="handleReactionClick(type as ReactionType)"
-          :class="['reaction-option', { selected: currentUserReaction === type }]"
-          :title="type"
-          :disabled="loading"
+    <Teleport to="body">
+      <Transition name="picker-fade">
+        <div 
+          v-if="showPicker" 
+          ref="pickerRef"
+          class="reaction-picker"
+          :class="{ 'position-above': positionAbove }"
+          :style="pickerStyle"
+          @mouseenter="keepPickerOpen"
+          @mouseleave="hidePickerOnHover"
         >
-          {{ icon }}
-        </button>
-      </div>
-    </Transition>
+          <button
+            v-for="(icon, type) in reactionIcons"
+            :key="type"
+            @click="handleReactionClick(type as ReactionType)"
+            :class="['reaction-option', { selected: currentUserReaction === type }]"
+            :title="type"
+            :disabled="loading"
+          >
+            {{ icon }}
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Reaction Details Modal -->
     <Transition name="modal-fade">
@@ -91,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useReactions, ReactionType, Reaction } from '@/composables/useReactions'
 
 const props = defineProps<{
@@ -122,6 +125,13 @@ const selectedTab = ref<string>('all')
 const positionAbove = ref(false)
 const pickerRef = ref<HTMLElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
+const pickerStyle = ref({
+  position: 'absolute',
+  top: '0px',
+  left: '0px',
+  transform: 'translateX(-50%)',
+  zIndex: '9999'
+})
 let hoverTimeout: any = null
 
 const togglePicker = (event: Event) => {
@@ -131,10 +141,7 @@ const togglePicker = (event: Event) => {
     // Wait for the picker to be rendered, then check positioning
     nextTick(() => {
       calculatePickerPosition()
-      teleportPicker()
     })
-  } else {
-    removePickerFromBody()
   }
 }
 
@@ -142,43 +149,17 @@ const calculatePickerPosition = () => {
   if (!containerRef.value || !pickerRef.value) return
   
   const container = containerRef.value
-  const picker = pickerRef.value
   const containerRect = container.getBoundingClientRect()
-  const pickerRect = picker.getBoundingClientRect()
   
   // Check if picker would go below viewport
-  if (containerRect.bottom + pickerRect.height > window.innerHeight) {
+  if (containerRect.bottom + 200 > window.innerHeight) { // 200px is approximate picker height
     positionAbove.value = true
+    pickerStyle.value.top = `${containerRect.top - 4}px`
   } else {
     positionAbove.value = false
+    pickerStyle.value.top = `${containerRect.bottom + 4}px`
   }
-}
-
-const teleportPicker = () => {
-  if (!pickerRef.value || !containerRef.value) return
-  
-  const container = containerRef.value
-  const picker = pickerRef.value
-  const containerRect = container.getBoundingClientRect()
-  
-  // Position the picker absolutely on the body
-  picker.style.position = 'fixed'
-  if (positionAbove.value) {
-    picker.style.top = `${containerRect.top - picker.offsetHeight - 4}px`
-  } else {
-    picker.style.top = `${containerRect.bottom + 4}px`
-  }
-  picker.style.left = `${containerRect.left + containerRect.width / 2}px`
-  picker.style.transform = 'translateX(-50%)'
-  
-  // Append to body
-  document.body.appendChild(picker)
-}
-
-const removePickerFromBody = () => {
-  if (pickerRef.value && document.body.contains(pickerRef.value)) {
-    document.body.removeChild(pickerRef.value)
-  }
+  pickerStyle.value.left = `${containerRect.left + containerRect.width / 2}px`
 }
 
 const showPickerOnHover = () => {
@@ -190,7 +171,6 @@ const showPickerOnHover = () => {
     // Wait for the picker to be rendered, then check positioning
     nextTick(() => {
       calculatePickerPosition()
-      teleportPicker()
     })
   }, 150) // Reduced delay for quicker response
 }
@@ -203,7 +183,6 @@ const hidePickerOnHover = () => {
   // Increased delay to allow moving cursor to the picker
   hoverTimeout = setTimeout(() => {
     showPicker.value = false
-    removePickerFromBody()
   }, 300)
 }
 
@@ -216,7 +195,6 @@ const keepPickerOpen = () => {
 
 const handleReactionClick = async (type: ReactionType) => {
   showPicker.value = false
-  removePickerFromBody()
   try {
     await toggleReaction(type)
   } catch (error) {
@@ -234,14 +212,6 @@ const filteredReactions = computed(() => {
     return reactions.value
   }
   return reactions.value.filter((r: Reaction) => r.reaction_type === selectedTab.value)
-})
-
-// Clean up on unmount
-onUnmounted(() => {
-  removePickerFromBody()
-  if (hoverTimeout) {
-    clearTimeout(hoverTimeout)
-  }
 })
 
 // Load reactions on mount
@@ -298,8 +268,10 @@ loadReactions()
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 9999;
-  /* Positioning will be handled by JavaScript */
+}
+
+.reaction-picker.position-above {
+  transform: translateX(-50%) translateY(-100%);
 }
 
 .reaction-option {
