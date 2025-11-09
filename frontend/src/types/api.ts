@@ -19,7 +19,7 @@ export interface AuthResponse {
   success: boolean
   data: {
     user: import('./models').User
-    token: string
+    session_token: string
   }
   message?: string
 }

@@ -69,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authAPI.register(userData)
       if (response.success && response.data) {
         setAuth(response.data.user, response.data.session_token)
-        router.push('/')
+        router.push('/wall/me')
         return response
       }
       throw new Error(response.message || 'Registration failed')
