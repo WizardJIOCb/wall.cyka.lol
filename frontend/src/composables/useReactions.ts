@@ -175,8 +175,7 @@ export function useReactions(
         reaction_type: reactionType
       })
       
-      // Reload to get accurate data
-      await loadReactions()
+      // Don't reload here to prevent flickering - let the caller decide when to reload
     } catch (err: any) {
       // Rollback on error
       currentUserReaction.value = previousReaction
@@ -208,8 +207,7 @@ export function useReactions(
         `/reactions/${getReactableType()}/${getReactableId()}`
       )
       
-      // Reload to get accurate data
-      await loadReactions()
+      // Don't reload here to prevent flickering - let the caller decide when to reload
     } catch (err: any) {
       // Rollback on error
       currentUserReaction.value = previousReaction
@@ -231,6 +229,8 @@ export function useReactions(
     } else {
       await addReaction(reactionType)
     }
+    // Reload after toggle to get accurate data
+    await loadReactions()
   }
 
   const displayIcon = computed(() => {

@@ -7,6 +7,7 @@
       @mouseleave="hidePickerOnHover"
       :class="['reaction-button', { active: currentUserReaction }]"
       :style="{ color: displayColor }"
+      :disabled="loading"
     >
       <span class="reaction-icon">{{ displayIcon }}</span>
       <span v-if="stats.total > 0" class="reaction-count">{{ stats.total }}</span>
@@ -26,6 +27,7 @@
           @click="handleReactionClick(type as ReactionType)"
           :class="['reaction-option', { selected: currentUserReaction === type }]"
           :title="type"
+          :disabled="loading"
         >
           {{ icon }}
         </button>
@@ -199,6 +201,11 @@ loadReactions()
   transform: scale(1.05);
 }
 
+.reaction-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .reaction-button.active {
   color: var(--color-primary);
 }
@@ -248,6 +255,12 @@ loadReactions()
 .reaction-option.selected {
   border-color: var(--color-primary);
   background: rgba(99, 102, 241, 0.1);
+}
+
+.reaction-option:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .picker-fade-enter-active,
