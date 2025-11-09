@@ -23,18 +23,21 @@ export function useReactions(
   reactableType: Ref<'post' | 'comment'> | 'post' | 'comment',
   reactableId: Ref<number> | number
 ) {
-  const reactions = ref<Reaction[]>([])
-  const stats = ref<ReactionStats>({ 
-  total: 0, 
-  by_type: {
+  // Create a helper function to initialize by_type with all reaction types
+  const createDefaultByType = (): Record<ReactionType, number> => ({
     like: 0,
     love: 0,
     haha: 0,
     wow: 0,
     sad: 0,
     angry: 0
-  } as Record<ReactionType, number> 
-})
+  })
+
+  const reactions = ref<Reaction[]>([])
+  const stats = ref<ReactionStats>({ 
+    total: 0, 
+    by_type: createDefaultByType()
+  })
   const currentUserReaction = ref<ReactionType | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -73,17 +76,30 @@ export function useReactions(
       if (response && typeof response === 'object' && 'reactions' in response) {
         // Standard format: { reactions: [...], stats: { total: number, by_type: {...} } }
         reactions.value = Array.isArray(response.reactions) ? response.reactions : []
-        stats.value = response.stats || { 
-  total: 0, 
-  by_type: {
-    like: 0,
-    love: 0,
-    haha: 0,
-    wow: 0,
-    sad: 0,
-    angry: 0
-  } as Record<ReactionType, number> 
-}
+        const defaultByType = {
+          like: 0,
+          love: 0,
+          haha: 0,
+          wow: 0,
+          sad: 0,
+          angry: 0
+        } as Record<ReactionType, number>
+
+        // Safely merge stats, filtering out any keys not in our ReactionType
+        const apiStats = response.stats?.by_type || {}
+        const filteredStats: Record<ReactionType, number> = { ...defaultByType }
+        
+        // Only copy over values for valid reaction types
+        Object.keys(defaultByType).forEach(key => {
+          if (key in apiStats) {
+            filteredStats[key as ReactionType] = Number(apiStats[key]) || 0
+          }
+        })
+
+        stats.value = {
+          total: response.stats?.total || 0,
+          by_type: filteredStats
+        }
         
         // Find current user's reaction
         const userReaction = reactions.value.find((r: Reaction) => r.user_id === getCurrentUserId())
@@ -92,30 +108,16 @@ export function useReactions(
         // Direct array format
         reactions.value = response
         stats.value = { 
-  total: response.length, 
-  by_type: {
-    like: 0,
-    love: 0,
-    haha: 0,
-    wow: 0,
-    sad: 0,
-    angry: 0
-  } as Record<ReactionType, number> 
-}
+          total: response.length, 
+          by_type: createDefaultByType()
+        }
       } else {
         // Unexpected format
         reactions.value = []
         stats.value = { 
-  total: 0, 
-  by_type: {
-    like: 0,
-    love: 0,
-    haha: 0,
-    wow: 0,
-    sad: 0,
-    angry: 0
-  } as Record<ReactionType, number> 
-}
+          total: 0, 
+          by_type: createDefaultByType()
+        }
       }
     } catch (err: any) {
       error.value = err.message || 'Failed to load reactions'
@@ -134,8 +136,9 @@ export function useReactions(
       // Optimistic update
       currentUserReaction.value = reactionType
       stats.value.total++
-      stats.value.by_type[reactionType] = (stats.value.by_type[reactionType] || 0) + 1
-      
+      // Safe access to by_type properties
+      stats.value.by_type[reactionType] = (stats.value.by_type[reactionType] ?? 0) + 1
+    
       await apiClient.post('/reactions', {
         reactable_type: getReactableType(),
         reactable_id: getReactableId(),
@@ -166,8 +169,9 @@ export function useReactions(
       // Optimistic update
       currentUserReaction.value = null
       stats.value.total--
-      if (stats.value.by_type[previousReaction]) {
-        stats.value.by_type[previousReaction]--
+      // Safe access to by_type properties
+      if (stats.value.by_type[previousReaction] !== undefined) {
+        stats.value.by_type[previousReaction] = Math.max(0, stats.value.by_type[previousReaction] - 1)
       }
       
       await apiClient.delete(
