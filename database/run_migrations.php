@@ -74,6 +74,8 @@ foreach ($migrations as $migrationFile) {
                 if (preg_match('/^\s*(SHOW|DESCRIBE|SELECT)/i', $statement)) {
                     $stmt = $pdo->query($statement);
                     $stmt->fetchAll(); // Drain result set
+                    $stmt->closeCursor(); // Explicitly close cursor
+                    unset($stmt); // Free statement
                     continue;
                 }
                 $pdo->exec($statement);
@@ -97,6 +99,8 @@ echo str_repeat("=", 50) . "\n\n";
 try {
     $stmt = $pdo->query("SHOW TABLES");
     $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $stmt->closeCursor();
+    unset($stmt);
     echo "Total tables in database: " . count($tables) . "\n";
     echo "Database name: {$DB_NAME}\n";
     
